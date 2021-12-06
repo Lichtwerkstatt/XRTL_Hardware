@@ -6,18 +6,23 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiMulti.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
 #include <Stepper.h>
+#include <Preferences.h>
 
-WiFiMulti WiFiMulti;
 SocketIOclient socketIO;
+
+/* save changes in rotation to flash. Note that this only logs software changes and 
+does NOT keep track of physical influences like skips and forced rotations.
+Number of write cycles limited, use EEPROM with care. */
+Preferences preferences;
 
 // identify component
 String componentID = "km100_1";
+bool busyState = false;
 
 // definition for stepper motors
 const int stepperOneA = 16;
@@ -25,11 +30,19 @@ const int stepperOneB = 18;
 const int stepperOneC = 17;
 const int stepperOneD = 19;
 const int stepsPerRevolution = 2048;
-int stepperOnePos;// for storing rotation
+long stepperOnePos;// for storing rotation
 String stepperOneName = "top";
 Stepper stepperOne(stepsPerRevolution, stepperOneA, stepperOneB, stepperOneC, stepperOneD);
 
-// define events types
+const int stepperTwoA = 32;
+const int stepperTwoB = 25;
+const int stepperTwoC = 33;
+const int stepperTwoD = 26;
+long stepperTwoPos;// for storing rotation
+String stepperTwoName = "bottom";
+Stepper stepperTwo(stepsPerRevolution, stepperTwoA, stepperTwoB, stepperTwoC, stepperTwoD);
+
+// define event types
 void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length) {
   switch(type) {
     case sIOtype_DISCONNECT:
@@ -60,13 +73,29 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
         // analyze and store input
         JsonObject receivedPayload = incomingEvent[1];
         String component = receivedPayload["component"];
-        String control = receivedPayload["control"];
-        JsonObject command = receivedPayload["command"];
-        int steps = command["steps"];
 
         // act only when involving this component
         if (component == componentID) {
-          driveStepper(control,steps);
+          // check for simple or extended command structure
+          if (receivedPayload["command"].is<JsonObject>()) {
+            JsonObject command = receivedPayload["command"];
+            String control = receivedPayload["control"];
+            int steps = command["steps"];
+            driveStepper(control,steps);
+          }
+          else if (receivedPayload["command"].is<String>()) {
+            String command = receivedPayload["command"];
+            if (command == "getStatus") {
+              reportState();
+            }
+            if (command == "restart") {
+              Serial.println("Received restart command. Disconnecting now.");
+              preferences.putLong("stepperOnePos",stepperOnePos);
+              preferences.putLong("stepperTwoPos",stepperTwoPos);
+              WiFi.disconnect();
+              ESP.restart();
+            }
+          }
         }
       }
     }
@@ -85,9 +114,27 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   }
 }
 
+void reportState() {
+  DynamicJsonDocument outgoingEvent(1024);
+  JsonArray payload = outgoingEvent.to<JsonArray>();
+  payload.add("status");
+  JsonObject parameters = payload.createNestedObject();
+  parameters["component"] = componentID;
+  JsonObject state = parameters.createNestedObject("status");
+  state["busy"] = busyState;
+  state[stepperOneName] = stepperOnePos;
+  state[stepperTwoName] = stepperTwoPos;
+  String output;
+  serializeJson(payload, output);
+  socketIO.sendEVENT(output);
+  Serial.print("string sent: ");
+  Serial.println(output);
+}
+
 // communicate with server, drive stepper and report
 void driveStepper(String stepperName, int steps) {
-  // set status to busy (to be implemented)
+  busyState = true;
+  reportState();
   if (stepperName == stepperOneName) {
     stepperOnePos += steps;
     Serial.printf("moving %s by %d steps... ", stepperOneName, steps);
@@ -99,8 +146,19 @@ void driveStepper(String stepperName, int steps) {
     digitalWrite(stepperOneD,0);
     Serial.printf("done. New Position: %d\n", stepperOnePos);
   }
-  // set status to available (to be implemented)
-  // report new position to server (to be implemented)
+  if (stepperName == stepperTwoName) {
+    stepperTwoPos += steps;
+    Serial.printf("moving %s by %d steps... ", stepperTwoName, steps);
+    stepperTwo.step(steps);
+    // depower stepper? Might decrease precision slightly but increase durability and save power
+    digitalWrite(stepperTwoA,0);
+    digitalWrite(stepperTwoB,0);
+    digitalWrite(stepperTwoC,0);
+    digitalWrite(stepperTwoD,0);
+    Serial.printf("done. New Position: %d\n", stepperTwoPos);
+  }
+  busyState = false;
+  reportState();
 }
 
 void setup() {
@@ -109,6 +167,11 @@ void setup() {
   Serial.setDebugOutput(true);
 
   stepperOne.setSpeed(10);
+  stepperTwo.setSpeed(10);
+
+  preferences.begin(componentID.c_str(), false);
+  stepperOnePos = preferences.getLong("stepperOnePos",0);
+  stepperTwoPos = preferences.getLong("stepperTwoPos",0);
 
   // boot delay
   for(uint8_t t = 4; t > 0; t--) {
@@ -118,9 +181,9 @@ void setup() {
   }
 
   // connect to WiFi
-  WiFiMulti.addAP("Himbeere", "remotelab");
-  while (WiFiMulti.run() != WL_CONNECTED) {
-    delay(100);
+  WiFi.begin("Himbeere", "remotelab");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
   }
   String ip = WiFi.localIP().toString();
   Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
