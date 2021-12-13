@@ -148,14 +148,10 @@ void driveStepper(String stepperName, int steps) {
     Serial.printf("moving %s by %d steps... ", stepperOneName, steps);
     wasRunning = true;
     stepperOne.move(steps);
-    // depower stepper? Might decrease precision slightly but increase durability and save power
-    depowerStepper();
   }
   if (stepperName == stepperTwoName) {
     Serial.printf("moving %s by %d steps... ", stepperTwoName, steps);
     stepperTwo.move(steps);
-    // depower stepper? Might decrease precision slightly but increase durability and save power
-    depowerStepper();
   }
 }
 
