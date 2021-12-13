@@ -6,11 +6,10 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
-#include <Stepper.h>
+#include <AccelStepper.h>
 #include <Preferences.h>
 
 SocketIOclient socketIO;
@@ -23,6 +22,7 @@ Preferences preferences;
 // identify component
 String componentID = "km100_1";
 bool busyState = false;
+bool wasRunning = false;
 
 // definition for stepper motors
 const int stepperOneA = 16;
@@ -30,17 +30,15 @@ const int stepperOneB = 18;
 const int stepperOneC = 17;
 const int stepperOneD = 19;
 const int stepsPerRevolution = 2048;
-long stepperOnePos;// for storing rotation
 String stepperOneName = "top";
-Stepper stepperOne(stepsPerRevolution, stepperOneA, stepperOneB, stepperOneC, stepperOneD);
+AccelStepper stepperOne(AccelStepper::HALF4WIRE, stepperOneA, stepperOneB, stepperOneC, stepperOneD);
 
 const int stepperTwoA = 32;
 const int stepperTwoB = 25;
 const int stepperTwoC = 33;
 const int stepperTwoD = 26;
-long stepperTwoPos;// for storing rotation
 String stepperTwoName = "bottom";
-Stepper stepperTwo(stepsPerRevolution, stepperTwoA, stepperTwoB, stepperTwoC, stepperTwoD);
+AccelStepper stepperTwo(AccelStepper::HALF4WIRE, stepperTwoA, stepperTwoB, stepperTwoC, stepperTwoD);
 
 // define event types
 void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length) {
@@ -90,8 +88,8 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
             }
             if (command == "restart") {
               Serial.println("Received restart command. Disconnecting now.");
-              preferences.putLong("stepperOnePos",stepperOnePos);
-              preferences.putLong("stepperTwoPos",stepperTwoPos);
+              preferences.putLong("stepperOnePos",stepperOne.currentPosition());
+              preferences.putLong("stepperTwoPos",stepperTwo.currentPosition());
               WiFi.disconnect();
               ESP.restart();
             }
@@ -122,8 +120,8 @@ void reportState() {
   parameters["component"] = componentID;
   JsonObject state = parameters.createNestedObject("status");
   state["busy"] = busyState;
-  state[stepperOneName] = stepperOnePos;
-  state[stepperTwoName] = stepperTwoPos;
+  state[stepperOneName] = stepperOne.currentPosition();
+  state[stepperTwoName] = stepperTwo.currentPosition();
   String output;
   serializeJson(payload, output);
   socketIO.sendEVENT(output);
@@ -131,34 +129,34 @@ void reportState() {
   Serial.println(output);
 }
 
+void depowerStepper() {
+  digitalWrite(stepperOneA,0);
+  digitalWrite(stepperOneB,0);
+  digitalWrite(stepperOneC,0);
+  digitalWrite(stepperOneD,0);
+  digitalWrite(stepperTwoA,0);
+  digitalWrite(stepperTwoB,0);
+  digitalWrite(stepperTwoC,0);
+  digitalWrite(stepperTwoD,0);
+}
+
 // communicate with server, drive stepper and report
 void driveStepper(String stepperName, int steps) {
   busyState = true;
   reportState();
   if (stepperName == stepperOneName) {
-    stepperOnePos += steps;
     Serial.printf("moving %s by %d steps... ", stepperOneName, steps);
-    stepperOne.step(steps);
+    wasRunning = true;
+    stepperOne.move(steps);
     // depower stepper? Might decrease precision slightly but increase durability and save power
-    digitalWrite(stepperOneA,0);
-    digitalWrite(stepperOneB,0);
-    digitalWrite(stepperOneC,0);
-    digitalWrite(stepperOneD,0);
-    Serial.printf("done. New Position: %d\n", stepperOnePos);
+    depowerStepper();
   }
   if (stepperName == stepperTwoName) {
-    stepperTwoPos += steps;
     Serial.printf("moving %s by %d steps... ", stepperTwoName, steps);
-    stepperTwo.step(steps);
+    stepperTwo.move(steps);
     // depower stepper? Might decrease precision slightly but increase durability and save power
-    digitalWrite(stepperTwoA,0);
-    digitalWrite(stepperTwoB,0);
-    digitalWrite(stepperTwoC,0);
-    digitalWrite(stepperTwoD,0);
-    Serial.printf("done. New Position: %d\n", stepperTwoPos);
+    depowerStepper();
   }
-  busyState = false;
-  reportState();
 }
 
 void setup() {
@@ -166,12 +164,14 @@ void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
 
-  stepperOne.setSpeed(10);
-  stepperTwo.setSpeed(10);
+  stepperOne.setMaxSpeed(250);
+  stepperOne.setAcceleration(250);
+  stepperTwo.setMaxSpeed(250);
+  stepperTwo.setAcceleration(250);
 
   preferences.begin(componentID.c_str(), false);
-  stepperOnePos = preferences.getLong("stepperOnePos",0);
-  stepperTwoPos = preferences.getLong("stepperTwoPos",0);
+  stepperOne.setCurrentPosition(preferences.getLong("stepperOnePos",0));
+  stepperTwo.setCurrentPosition(preferences.getLong("stepperTwoPos",0));
 
   // boot delay
   for(uint8_t t = 4; t > 0; t--) {
@@ -193,8 +193,22 @@ void setup() {
 
   // pass event handler
   socketIO.onEvent(socketIOEvent);
+
+  // setup complete, report state
+  reportState();
 }
 
 void loop() {
   socketIO.loop();
+  if ( (stepperOne.isRunning()) or (stepperTwo.isRunning()) ) {
+    stepperOne.run();
+    stepperTwo.run();
+  }
+  else if (wasRunning) {
+    busyState = false;
+    wasRunning = false;
+    depowerStepper();
+    Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
+    reportState();
+  }
 }
