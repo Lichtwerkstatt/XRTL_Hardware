@@ -52,7 +52,7 @@ void loadSettings() {
   settings.componentID = doc["componentID"].as<String>();
   settings.stepperOneName = doc["stepperOneName"].as<String>();
 
-  stepperOne.setCurrentPosition(stepperOne.currentPosition());
+  stepperOne.setCurrentPosition(settings.stepperOnePos);
 }
 
 void saveSettings() {
