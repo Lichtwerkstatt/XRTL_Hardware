@@ -5,22 +5,29 @@
  */
 
 #include <Arduino.h>
-#include <WiFi.h>
+#include <AccelStepper.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
-#include <AccelStepper.h>
-#include <Preferences.h>
+#include <WiFi.h>
+#include <LITTLEFS.h>
 
 SocketIOclient socketIO;
 
-/* save changes in rotation to flash. Note that this only logs software changes and 
-does NOT keep track of physical influences like skips and forced rotations.
-Number of write cycles limited, use EEPROM with care. */
-Preferences preferences;
+struct {
+  String ssid;
+  String password;
+  String socketIP;
+  int socketPort;
+  String socketURL;
+  String componentID;
+  String stepperOneName;
+  String stepperTwoName;
+  long stepperOnePos;
+  long stepperTwoPos;
+} settings;
 
-// identify component
-String componentID = "km100_1";
+// states
 bool busyState = false;
 bool wasRunning = false;
 
@@ -29,18 +36,61 @@ const int stepperOneA = 16;
 const int stepperOneB = 18;
 const int stepperOneC = 17;
 const int stepperOneD = 19;
-const int stepsPerRevolution = 2048;
-String stepperOneName = "top";
 AccelStepper stepperOne(AccelStepper::HALF4WIRE, stepperOneA, stepperOneB, stepperOneC, stepperOneD);
 
 const int stepperTwoA = 32;
 const int stepperTwoB = 25;
 const int stepperTwoC = 33;
 const int stepperTwoD = 26;
-String stepperTwoName = "bottom";
 AccelStepper stepperTwo(AccelStepper::HALF4WIRE, stepperTwoA, stepperTwoB, stepperTwoC, stepperTwoD);
 
-// define event types
+void loadSettings() {
+  if(!LITTLEFS.begin()){
+    Serial.println("An Error has occurred while mounting LITTLEFS");
+    return;
+  }
+  File file = LITTLEFS.open("/settings.txt","r");
+  DynamicJsonDocument doc(1024);
+  DeserializationError error = deserializeJson(doc, file);
+  if (error) {
+    Serial.printf("deserializeJson() failed: ");
+    Serial.println(error.c_str());
+  }
+  file.close();
+
+  settings.ssid = doc["ssid"].as<String>();
+  settings.password = doc["password"].as<String>();
+  settings.socketIP = doc["socketIP"].as<String>();
+  settings.socketPort = doc["socketPort"];
+  settings.socketURL = doc["socketURL"].as<String>();
+  settings.componentID = doc["componentID"].as<String>();
+  settings.stepperOneName = doc["stepperOneName"].as<String>();
+  settings.stepperTwoName = doc["stepperTwoName"].as<String>();
+
+  stepperOne.setCurrentPosition(settings.stepperOnePos);
+  stepperTwo.setCurrentPosition(settings.stepperTwoPos);
+}
+
+void saveSettings() {
+  DynamicJsonDocument doc(1024);
+
+  doc["ssid"] = settings.ssid;
+  doc["password"] = settings.password;
+  doc["socketIP"] = settings.socketIP;
+  doc["socketPort"] = settings.socketPort;
+  doc["socketURL"] = settings.socketURL;
+  doc["componentID"] = settings.componentID;
+  doc["stepperOneName"] = settings.stepperOneName;
+  doc["stepperOnePos"] = stepperOne.currentPosition();
+  doc["stepperTwoPos"] = stepperTwo.currentPosition();
+
+  File file = LITTLEFS.open("/settings.txt", "w");
+  if (serializeJsonPretty(doc, file) == 0) {
+    Serial.println("Failed to write to file");
+  }
+  file.close();
+}
+
 void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length) {
   switch(type) {
     case sIOtype_DISCONNECT:
@@ -73,7 +123,7 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
         String component = receivedPayload["component"];
 
         // act only when involving this component
-        if (component == componentID) {
+        if (component == settings.componentID) {
           // check for simple or extended command structure
           if (receivedPayload["command"].is<JsonObject>()) {
             JsonObject command = receivedPayload["command"];
@@ -86,11 +136,14 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
             if (command == "getStatus") {
               reportState();
             }
+            if (command == "stop") {
+              stepperOne.stop();
+              stepperTwo.stop();
+              Serial.println("Received stop command. Issuing stop at maximum decceleration.");
+            }
             if (command == "restart") {
               Serial.println("Received restart command. Disconnecting now.");
-              preferences.putLong("stepperOnePos",stepperOne.currentPosition());
-              preferences.putLong("stepperTwoPos",stepperTwo.currentPosition());
-              WiFi.disconnect();
+              saveSettings();
               ESP.restart();
             }
           }
@@ -117,16 +170,31 @@ void reportState() {
   JsonArray payload = outgoingEvent.to<JsonArray>();
   payload.add("status");
   JsonObject parameters = payload.createNestedObject();
-  parameters["component"] = componentID;
+  parameters["component"] = settings.componentID;
   JsonObject state = parameters.createNestedObject("status");
   state["busy"] = busyState;
-  state[stepperOneName] = stepperOne.currentPosition();
-  state[stepperTwoName] = stepperTwo.currentPosition();
+  state[settings.stepperOneName] = stepperOne.currentPosition();
+  state[settings.stepperTwoName] = stepperTwo.currentPosition();
   String output;
   serializeJson(payload, output);
-  socketIO.sendEVENT(output);
+  //socketIO.sendEVENT(output);
   Serial.print("string sent: ");
   Serial.println(output);
+}
+
+void driveStepper(String stepperName, int steps) {
+  busyState = true;
+  reportState();
+  if (stepperName == settings.stepperOneName) {
+    Serial.printf("moving %s by %d steps... ", settings.stepperOneName, steps);
+    stepperOne.move(steps);
+    wasRunning = true;
+  }
+  if (stepperName == settings.stepperTwoName) {
+    Serial.printf("moving %s by %d steps... ", settings.stepperTwoName, steps);
+    stepperTwo.move(steps);
+    wasRunning = true;
+  }
 }
 
 void depowerStepper() {
@@ -140,67 +208,51 @@ void depowerStepper() {
   digitalWrite(stepperTwoD,0);
 }
 
-// communicate with server, drive stepper and report
-void driveStepper(String stepperName, int steps) {
-  busyState = true;
-  reportState();
-  if (stepperName == stepperOneName) {
-    Serial.printf("moving %s by %d steps... ", stepperOneName, steps);
-    wasRunning = true;
-    stepperOne.move(steps);
-  }
-  if (stepperName == stepperTwoName) {
-    Serial.printf("moving %s by %d steps... ", stepperTwoName, steps);
-    stepperTwo.move(steps);
-  }
-}
-
 void setup() {
-  // use serial for debugging
   Serial.begin(115200);
   Serial.setDebugOutput(true);
-
+  for(uint8_t t = 4; t > 0; t--) {
+    Serial.printf("[SETUP] BOOT WAIT %d...\n", t);
+    Serial.flush();
+    delay(1000);
+  }
+  
+  loadSettings();
+  
   stepperOne.setMaxSpeed(250);
   stepperOne.setAcceleration(250);
   stepperTwo.setMaxSpeed(250);
   stepperTwo.setAcceleration(250);
 
-  preferences.begin(componentID.c_str(), false);
-  stepperOne.setCurrentPosition(preferences.getLong("stepperOnePos",0));
-  stepperTwo.setCurrentPosition(preferences.getLong("stepperTwoPos",0));
-
-  // boot delay
-  for(uint8_t t = 4; t > 0; t--) {
-    Serial.printf("[SETUP] BOOT WAIT %ds...\n",t);
-    Serial.flush();
-    delay(1000);
-  }
-
   // connect to WiFi
-  WiFi.begin("Himbeere", "remotelab");
+  Serial.println("starting WiFi setup.");
+  WiFi.begin(settings.ssid.c_str(), settings.password.c_str());
+  Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
     delay(500);
   }
+  Serial.println(" done.");
+  WiFi.setAutoReconnect(true);
   String ip = WiFi.localIP().toString();
   Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
 
   // connect to socketIO server: IP, port, URL
-  socketIO.begin("192.168.4.1", 7000,"/socket.io/?EIO=4");
-
+  socketIO.begin(settings.socketIP, settings.socketPort, settings.socketURL);
+  
   // pass event handler
   socketIO.onEvent(socketIOEvent);
-
+  
   // setup complete, report state
   reportState();
 }
 
 void loop() {
-  socketIO.loop();
-  if ( (stepperOne.isRunning()) or (stepperTwo.isRunning()) ) {
+  if ((stepperOne.isRunning()) or (stepperTwo.isRunning())) {
     stepperOne.run();
     stepperTwo.run();
   }
-  else if (wasRunning) {
+  else if (wasRunning){
     busyState = false;
     wasRunning = false;
     depowerStepper();
