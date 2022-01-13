@@ -1,5 +1,5 @@
 /*
- * using WebSockets with socektsIO subclass by Markus Sattler:
+ * using WebSockets with socketIO subclass by Markus Sattler:
  * https://github.com/Links2004/arduinoWebSockets
  * adapted from /examples/esp32/WebSocketClientSocketIOack/WebsocketClientSocketIOack.ino
  */
@@ -53,7 +53,7 @@ void loadSettings() {
   DynamicJsonDocument doc(1024);
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
-    Serial.printf("deserializeJson() failed: ");
+    Serial.printf("deserializeJson() while loading settings: ");
     Serial.println(error.c_str());
   }
   file.close();
@@ -66,6 +66,8 @@ void loadSettings() {
   settings.componentID = doc["componentID"].as<String>();
   settings.stepperOneName = doc["stepperOneName"].as<String>();
   settings.stepperTwoName = doc["stepperTwoName"].as<String>();
+  settings.stepperOnePos = doc["stepperOnePos"];
+  settings.stepperTwoPos = doc["stepperTwoPos"];
 
   stepperOne.setCurrentPosition(settings.stepperOnePos);
   stepperTwo.setCurrentPosition(settings.stepperTwoPos);
@@ -81,12 +83,13 @@ void saveSettings() {
   doc["socketURL"] = settings.socketURL;
   doc["componentID"] = settings.componentID;
   doc["stepperOneName"] = settings.stepperOneName;
+  doc["stepperTwoName"] = settings.stepperTwoName;
   doc["stepperOnePos"] = stepperOne.currentPosition();
   doc["stepperTwoPos"] = stepperTwo.currentPosition();
 
   File file = LITTLEFS.open("/settings.txt", "w");
   if (serializeJsonPretty(doc, file) == 0) {
-    Serial.println("Failed to write to file");
+    Serial.println("Failed to write file");
   }
   file.close();
 }
@@ -95,12 +98,18 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   switch(type) {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
+      if (WiFi.status() != WL_CONNECTED) {
+        Serial.printf("WiFi connection lost, trying to reconnect...\n");
+        WiFi.begin();
+        delay(1000);
+      }
       break;
     case sIOtype_CONNECT:
       Serial.printf("[IOc] Connected to URL: %s\n", payload);
 
       // join default namespace
       socketIO.send(sIOtype_CONNECT, "/");
+      reportState();
       break;
     case sIOtype_EVENT: {
       char * sptr = NULL;
@@ -227,35 +236,37 @@ void setup() {
   // connect to WiFi
   Serial.println("starting WiFi setup.");
   WiFi.begin(settings.ssid.c_str(), settings.password.c_str());
+  //WiFi.begin("Himbeere", "remotelab");
+  //WiFi.begin(settings.ssid, settings.password);
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
   Serial.println(" done.");
-  WiFi.setAutoReconnect(true);
   String ip = WiFi.localIP().toString();
   Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
 
   // connect to socketIO server: IP, port, URL
   socketIO.begin(settings.socketIP, settings.socketPort, settings.socketURL);
+  //socketIO.begin("192.168.4.1", 7000,"/socket.io/?EIO=4");
   
   // pass event handler
   socketIO.onEvent(socketIOEvent);
   
-  // setup complete, report state
-  reportState();
+  // setup complete
 }
 
 void loop() {
+  socketIO.loop();
   if ((stepperOne.isRunning()) or (stepperTwo.isRunning())) {
     stepperOne.run();
     stepperTwo.run();
   }
   else if (wasRunning){
+    depowerStepper();
     busyState = false;
     wasRunning = false;
-    depowerStepper();
     Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
     reportState();
   }
