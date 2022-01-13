@@ -60,6 +60,8 @@ void loadSettings() {
   settings.componentID = doc["componentID"].as<String>();
   settings.stepperOneName = doc["stepperOneName"].as<String>();
   settings.stepperTwoName = doc["stepperTwoName"].as<String>();
+  settings.stepperOnePos = doc["stepperOnePos"];
+  settings.stepperTwoPos = doc["stepperTwoPos"];
 
   stepperOne.setCurrentPosition(settings.stepperOnePos);
   stepperTwo.setCurrentPosition(settings.stepperTwoPos);
@@ -75,6 +77,7 @@ void saveSettings() {
   doc["socketURL"] = settings.socketURL;
   doc["componentID"] = settings.componentID;
   doc["stepperOneName"] = settings.stepperOneName;
+  doc["stepperTwoName"] = settings.stepperTwoName;
   doc["stepperOnePos"] = stepperOne.currentPosition();
   doc["stepperTwoPos"] = stepperTwo.currentPosition();
 
@@ -89,12 +92,18 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   switch(type) {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
+      if (WiFi.status() != WL_CONNECTED) {
+        Serial.printf("WiFi connection lost, trying to reconnect...\n");
+        WiFi.begin();
+        delay(1000);
+      }
       break;
     case sIOtype_CONNECT:
       Serial.printf("[IOc] Connected to URL: %s\n", payload);
 
       // join default namespace
       socketIO.send(sIOtype_CONNECT, "/");
+      reportState();
       break;
     case sIOtype_EVENT: {
       char * sptr = NULL;
@@ -227,21 +236,18 @@ void setup() {
     delay(500);
   }
   Serial.println(" done.");
-  WiFi.setAutoReconnect(true);
   String ip = WiFi.localIP().toString();
   Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
 
   // connect to socketIO server: IP, port, URL
   socketIO.begin(settings.socketIP, settings.socketPort, settings.socketURL);
-  
+
   // pass event handler
   socketIO.onEvent(socketIOEvent);
-  
-  // setup complete, report state
-  reportState();
 }
 
 void loop() {
+  socketIO.loop();
   if ((stepperOne.isRunning()) or (stepperTwo.isRunning())) {
     stepperOne.run();
     stepperTwo.run();
