@@ -51,6 +51,7 @@ void loadSettings() {
   settings.socketURL = doc["socketURL"].as<String>();
   settings.componentID = doc["componentID"].as<String>();
   settings.stepperOneName = doc["stepperOneName"].as<String>();
+  settings.stepperOnePos = doc["stepperOnePos"];
 
   stepperOne.setCurrentPosition(settings.stepperOnePos);
 }
@@ -78,12 +79,18 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   switch(type) {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
+      if (WiFi.status() != WL_CONNECTED) {
+        Serial.printf("WiFi connection lost, trying to reconnect...\n");
+        WiFi.begin();
+        delay(1000);
+      }
       break;
     case sIOtype_CONNECT:
       Serial.printf("[IOc] Connected to URL: %s\n", payload);
 
       // join default namespace
       socketIO.send(sIOtype_CONNECT, "/");
+      reportState();
       break;
     case sIOtype_EVENT: {
       char * sptr = NULL;
@@ -196,14 +203,13 @@ void setup() {
 
   // connect to WiFi
   Serial.println("starting WiFi setup.");
-  WiFi.begin(settings.ssid, settings.password);
+  WiFi.begin(settings.ssid.c_str(), settings.password.c_str());
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
   Serial.println(" done.");
-  WiFi.setAutoReconnect(true);
   String ip = WiFi.localIP().toString();
   Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
 
@@ -222,15 +228,11 @@ void setup() {
   depowerStepper();
   stepperOne.setCurrentPosition(0);
   
-  // setup complete, report state
-  reportState();
+  // setup complete
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    String SerialInput=Serial.readStringUntil('\n');
-    driveStepper("top",SerialInput.toInt());
-  }
+  socketIO.loop();
   if (stepperOne.isRunning()) {
     stepperOne.run();
   }
