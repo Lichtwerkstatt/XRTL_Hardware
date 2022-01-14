@@ -79,11 +79,6 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   switch(type) {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
-      if (WiFi.status() != WL_CONNECTED) {
-        Serial.printf("WiFi connection lost, trying to reconnect...\n");
-        WiFi.begin();
-        delay(1000);
-      }
       break;
     case sIOtype_CONNECT:
       Serial.printf("[IOc] Connected to URL: %s\n", payload);
@@ -210,6 +205,7 @@ void setup() {
     delay(500);
   }
   Serial.println(" done.");
+  WiFi.setAutoReconnect(true);
   String ip = WiFi.localIP().toString();
   Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
 
@@ -237,10 +233,12 @@ void loop() {
     stepperOne.run();
   }
   else if (wasRunning){
-    busyState = false;
-    wasRunning = false;
-    depowerStepper();
-    Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
-    reportState();
+    if ((socketIO.isConnected()) and (WiFi.status() == WL_CONNECTED)) {
+      busyState = false;
+      wasRunning = false;
+      depowerStepper();
+      Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
+      reportState();
+    }
   }
 }
