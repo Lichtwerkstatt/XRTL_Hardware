@@ -98,11 +98,6 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   switch(type) {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
-      if (WiFi.status() != WL_CONNECTED) {
-        Serial.printf("WiFi connection lost, trying to reconnect...\n");
-        WiFi.begin();
-        delay(1000);
-      }
       break;
     case sIOtype_CONNECT:
       Serial.printf("[IOc] Connected to URL: %s\n", payload);
@@ -217,6 +212,11 @@ void depowerStepper() {
   digitalWrite(stepperTwoD,0);
 }
 
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.printf("[System] lost connection. Trying to reconnect.\n");
+  WiFi.reconnect();
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
@@ -235,9 +235,8 @@ void setup() {
 
   // connect to WiFi
   Serial.println("starting WiFi setup.");
+  WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
   WiFi.begin(settings.ssid.c_str(), settings.password.c_str());
-  //WiFi.begin("Himbeere", "remotelab");
-  //WiFi.begin(settings.ssid, settings.password);
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
@@ -247,9 +246,7 @@ void setup() {
   String ip = WiFi.localIP().toString();
   Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
 
-  // connect to socketIO server: IP, port, URL
   socketIO.begin(settings.socketIP, settings.socketPort, settings.socketURL);
-  //socketIO.begin("192.168.4.1", 7000,"/socket.io/?EIO=4");
   
   // pass event handler
   socketIO.onEvent(socketIOEvent);
@@ -265,9 +262,11 @@ void loop() {
   }
   else if (wasRunning){
     depowerStepper();
-    busyState = false;
-    wasRunning = false;
-    Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
-    reportState();
+    if ((socketIO.isConnected()) and (WiFi.status() == WL_CONNECTED)) {
+      busyState = false;
+      wasRunning = false;
+      Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
+      reportState();
+    }
   }
 }
