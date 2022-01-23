@@ -6,7 +6,7 @@
 
 ## Outline
 * Theory of ESP32
-* Establishing a Wifi Access Point
+* Establishing a [Wifi Access Point](#wifiAP)
 * Building a Webserver
 * Controlling an LED
 * Connecting to Wifi
@@ -18,7 +18,24 @@
 
 ## Materials
 
-### Wifi Access Point 
+### Buildplate
+```
+void setup() {
+  Serial.begin(115200); 
+}
+
+void loop() {
+
+}
+```
+
+### <a name="wifiAP"></a> Wifi Access Point 
 ```
 Serial.println("Hello World!");
 ```
+
+### <a name="webserver"></a> Webserver
+
+### <a name="controlLED"></a> Controlling a LED
+
+### <a name="connectWiFi"></a> Connect to Wifi 
