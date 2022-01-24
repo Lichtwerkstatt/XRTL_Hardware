@@ -13,7 +13,7 @@
   * Establishing a [Wifi Access Point](#wifiAP)
   * Building a [Webserver](#webserver)
   * [Controlling](#controlLED) an LED
-  * Connecting to Wifi
+  * [Connecting](#connectWiFi) to Wifi
   * Gather Data from the Internet
   * Connect to MQTT Server
   * Publish via MQTT
@@ -125,6 +125,24 @@ void switch_LED(){
 * RGB Color LED
 
 ### <a name="connectWiFi"></a> Connect to Wifi 
+~~~
+
+#include <WiFi.h>
+const char *SSID = ""; // Enter your Wifi SSID here
+const char *PWD = ""; // Enter your WifiPassword Here
+
+void connect2Wifi(){
+	  Serial.print ("Connecting to "); Serial.println(SSID);
+	  WiFi.begin(SSID,PWD);
+	  while(WiFi.status() != WL_CONNECTED) {
+	    Serial.print(".");
+	    delay(500);
+	  }
+	  Serial.print("Connected to Wifi AP.");
+	}
+
+
+~~~
 
 ### <a name="overallMQTT"></a> MQTT complete example
 ~~~
