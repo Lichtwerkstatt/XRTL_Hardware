@@ -34,9 +34,10 @@
 * install ESP32 libraries following this [Guide](https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/)
 * TroubleShooting [Guide](https://randomnerdtutorials.com/esp32-troubleshooting-guide/)
 
-## Tutorials
+## <a name="Tutorials"></a> Tutorials and Ressources 
 * MQTT [Tutorial](https://www.survivingwithandroid.com/esp32-mqtt-client-publish-and-subscribe/) with ESP32 and HiveMQ
 * MQTT [Tutorial](https://randomnerdtutorials.com/esp32-mqtt-publish-subscribe-arduino-ide/) with ESP32
+* ESP-32 [PinOut](https://cdn.shopify.com/s/files/1/1509/1638/files/ESP-32_NodeMCU_Developmentboard_Pinout.pdf?v=1609851295)
 
 ## Source Code
 
@@ -141,8 +142,76 @@ void connect2Wifi(){
 	  Serial.print("Connected to Wifi AP.");
 	}
 
-
+//SETUP
+connect2Wifi();
 ~~~
+
+### <a name="gatherData"></a> Gather Data from the Internet 
+~~~
+~~~
+
+
+### <a name="connectMQQT"></a> Connect to MQTT Server
+~~~
+#include <PubSubClient.h>
+
+PubSubClient mqttClient(wifiClient);
+
+char *mqttServer = "SERVER";
+int mqttPort = PORT;
+char *mqttUser = LOGIN;
+char *mqttPwd = PWD;
+
+//SETUP
+mqttClient.setServer(mqttServer, mqttPort);
+
+//LOOP
+  if (!mqttClient.connected())
+    reconnect();
+  mqttClient.loop();
+
+//RECONNECT
+void reconnect(){
+  Serial.println("Connecting to MQTT Broker...");
+  while(!mqttClient.connected()) {
+    Serial.println("Reconnecting...");
+    String clientId = "    ";
+    if (mqttClient.connect(clientId.c_str(), mqttUser, 	mqttPwd)) {
+      Serial.println("Connected."); }
+  }
+}
+~~~
+
+### <a name="publishData"></a> Publish Data on MQTT
+~~~
+char payload[10];
+long now = millis();
+if (now - last_time > 10000){
+  int i = random(0,5000);
+  sprintf(payload, "%d", i);
+  mqttClient.publish("/randomValue", payload);
+  Serial.println(payload); 
+  last_time = now;    
+}
+~~~
+
+### <a name="subscribeData"></a> Subscribe to Topic
+~~~
+//SETUP
+mqttClient.subscribe("bumsi/debug");
+mqttClient.setCallback(callback);
+
+//CALLBACK
+void callback(char* topic, byte* payload, unsigned int length){
+  Serial.print("Callback - ");
+  Serial.print("Message: ");
+  for (int i=0; i<length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println(". END of Message!");
+}
+~~~
+
 
 ### <a name="overallMQTT"></a> MQTT complete example
 ~~~
