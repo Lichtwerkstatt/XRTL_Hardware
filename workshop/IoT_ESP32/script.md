@@ -42,7 +42,7 @@
 ## Source Code
 
 ### Buildplate
-```
+```arduino
 void setup() {
   Serial.begin(115200); 
 }
@@ -53,7 +53,7 @@ void loop() {
 ```
 
 ### <a name="wifiAP"></a> Wifi Access Point 
-```
+```arduino
 #include <WiFi.h>
 
 const char* ssid     = "YourSSID";
@@ -70,7 +70,7 @@ Serial.println(IP);
 ```
 
 ### <a name="webserver"></a> Webserver
-~~~
+~~~arduino
 #include <WebServer.h>
 
 WebServer server(80);
@@ -92,7 +92,7 @@ void handle_root(){
 ~~~
 
 ### <a name="controlLED"></a> Controlling a LED
-~~~
+~~~arduino
 
 bool LED = false;
 
@@ -126,7 +126,7 @@ void switch_LED(){
 * RGB Color LED
 
 ### <a name="connectWiFi"></a> Connect to Wifi 
-~~~
+~~~arduino
 
 #include <WiFi.h>
 const char *SSID = ""; // Enter your Wifi SSID here
@@ -152,7 +152,7 @@ connect2Wifi();
 
 
 ### <a name="connectMQQT"></a> Connect to MQTT Server
-~~~
+~~~arduino
 #include <PubSubClient.h>
 
 PubSubClient mqttClient(wifiClient);
@@ -183,7 +183,7 @@ void reconnect(){
 ~~~
 
 ### <a name="publishData"></a> Publish Data on MQTT
-~~~
+~~~arduino
 char payload[10];
 long now = millis();
 if (now - last_time > 10000){
@@ -196,7 +196,7 @@ if (now - last_time > 10000){
 ~~~
 
 ### <a name="subscribeData"></a> Subscribe to Topic
-~~~
+~~~arduino
 //SETUP
 mqttClient.subscribe("bumsi/debug");
 mqttClient.setCallback(callback);
@@ -214,7 +214,7 @@ void callback(char* topic, byte* payload, unsigned int length){
 
 
 ### <a name="overallMQTT"></a> MQTT complete example
-~~~
+~~~arduino
 #include <Arduino.h>
 	#include <WiFi.h>
 	#include <PubSubClient.h>
