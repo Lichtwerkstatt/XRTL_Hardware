@@ -149,6 +149,7 @@ connect2Wifi();
 ### <a name="gatherData"></a> Gather Data from the Internet 
 ~~~
 ~~~
+*  [Tutorial](https://esp32io.com/tutorials/esp32-http-request) HTTP by hand
 
 
 ### <a name="connectMQQT"></a> Connect to MQTT Server
