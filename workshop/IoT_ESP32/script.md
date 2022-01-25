@@ -147,15 +147,34 @@ connect2Wifi();
 ~~~
 
 ### <a name="gatherData"></a> Gather Data from the Internet 
+~~~c#
+#include <HttpClient.h>
+
+//LOOP
+  WiFiClient client;
+  HttpClient http(client);
+
+  int err = http.get("beetlebum.de", "/");
+  if (err >= 0){
+    Serial.println("Request OK");
+    err = http.responseStatusCode(); 
+    Serial.print("STATUS "); Serial.println(err);
+    while (http.available()) {
+      char c = http.read();
+      Serial.print(c);
+    }
+    http.stop();
+  }
+ 
+  delay(10000);
 ~~~
-~~~
-*  [Tutorial](https://esp32io.com/tutorials/esp32-http-request) HTTP by hand
 
 
 ### <a name="connectMQQT"></a> Connect to MQTT Server
 ~~~c#
 #include <PubSubClient.h>
 
+WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 
 char *mqttServer = "SERVER";
@@ -185,6 +204,10 @@ void reconnect(){
 
 ### <a name="publishData"></a> Publish Data on MQTT
 ~~~c#
+
+long last_time;
+
+//LOOP
 char payload[10];
 long now = millis();
 if (now - last_time > 10000){
@@ -225,6 +248,7 @@ void callback(char* topic, byte* payload, unsigned int length){
 
 	WiFiClient wifiClient;
 	PubSubClient mqttClient(wifiClient);
+
 	char *mqttServer = ""; // Enter MQTT Server here
 	int mqttPort = 0; // Enter MQTT Port here
 	char *mqttUser = ""; // Enter MQTT Username here
