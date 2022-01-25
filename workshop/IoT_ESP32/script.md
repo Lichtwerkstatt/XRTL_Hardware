@@ -14,11 +14,12 @@
   * Building a [Webserver](#webserver)
   * [Controlling](#controlLED) an LED
   * [Connecting](#connectWiFi) to Wifi
-  * Gather Data from the Internet
-  * Connect to MQTT Server
-  * Publish via MQTT
-  * Subscribe and handle Messages
+  * [Gather Data](#gatherData) from the Internet
+  * [Connect](#connectMQTT) to MQTT Server
+  * [Publish](#publishData) via MQTT
+  * [Subscribe](#subscribeData) and handle Messages
   * Free Working Time! \o/ (Complete [MQTT Example](#overallMQTT))
+* [Exercises](#Exercises)
 
 ## Materials 🛒
 
@@ -26,8 +27,11 @@
 |---|---|---|---|
 | ESP32 | Microcontroller | [AZ-Delivery](https://www.az-delivery.de/en/products/esp32-developmentboard) | <10€
 | μUSB cable | Connector Cable for ESP | | |
+| LED | LED with 300ohm pre reistor |||
+| Button | Push button |||
 | Jumper | Dupont cables for building circuits | | |
 | Breadboard | for connecting components | | |
+
 
 ## Preparation
 * install [Arduino IDE](https://www.arduino.cc/en/software)
@@ -38,6 +42,7 @@
 * MQTT [Tutorial](https://www.survivingwithandroid.com/esp32-mqtt-client-publish-and-subscribe/) with ESP32 and HiveMQ
 * MQTT [Tutorial](https://randomnerdtutorials.com/esp32-mqtt-publish-subscribe-arduino-ide/) with ESP32
 * ESP-32 [PinOut](https://cdn.shopify.com/s/files/1/1509/1638/files/ESP-32_NodeMCU_Developmentboard_Pinout.pdf?v=1609851295)
+* Check out the [ESP32 Examples](https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi/examples) in your Arduino IDE
 
 ## Source Code
 
@@ -90,6 +95,8 @@ void handle_root(){
   server.send(200, "text/html", HTML);
 }
 ~~~
+#### **Task:**
+* build a dynamic Webpage based on sensor data (show values)
 
 ### <a name="controlLED"></a> Controlling a LED
 ~~~c#
@@ -145,6 +152,7 @@ void connect2Wifi(){
 //SETUP
 connect2Wifi();
 ~~~
+* use the [WifiClientEnterprise](https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi/examples/WiFiClientEnterprise) example for access to EDUROAM
 
 ### <a name="gatherData"></a> Gather Data from the Internet 
 ~~~c#
@@ -168,9 +176,12 @@ connect2Wifi();
  
   delay(10000);
 ~~~
+* [HttpClient](https://github.com/amcewen/HttpClient) Docu & Repository
+* A [list](https://github.com/public-apis/public-apis) of public APIs
+* take a look at [ArduinoJSON](https://arduinojson.org/) a library for processing structured data
 
 
-### <a name="connectMQQT"></a> Connect to MQTT Server
+### <a name="connectMQTT"></a> Connect to MQTT Server
 ~~~c#
 #include <PubSubClient.h>
 
@@ -187,11 +198,11 @@ mqttClient.setServer(mqttServer, mqttPort);
 
 //LOOP
   if (!mqttClient.connected())
-    reconnect();
+    connect2MQTT();
   mqttClient.loop();
 
 //RECONNECT
-void reconnect(){
+void connect2MQTT(){
   Serial.println("Connecting to MQTT Broker...");
   while(!mqttClient.connected()) {
     Serial.println("Reconnecting...");
@@ -242,6 +253,8 @@ void callback(char* topic, byte* payload, unsigned int length){
 #include <Arduino.h>
 	#include <WiFi.h>
 	#include <PubSubClient.h>
+
+  long last_time
 
 	const char *SSID = ""; // Enter your Wifi SSID here
 	const char *PWD = ""; // Enter your WifiPassword Here
@@ -296,9 +309,17 @@ void callback(char* topic, byte* payload, unsigned int length){
 	  if (!mqttClient.connected())
 	    reconnect();
 	  mqttClient.loop();
-	}
+    char payload[10];
+    long now = millis();
+    if (now - last_time > 10000){
+      int i = random(0,5000);
+      sprintf(payload, "%d", i);
+      mqttClient.publish("/randomValue", payload);
+      Serial.println(payload); 
+      last_time = now; 
+	  }
 ~~~
-
+## Exercises
 ---
 version 1.0  
 Johannes Kretzschmar  
