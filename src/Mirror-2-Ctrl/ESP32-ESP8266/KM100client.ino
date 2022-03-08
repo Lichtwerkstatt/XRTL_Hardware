@@ -8,6 +8,7 @@
 #include <AccelStepper.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
+#include "infoLED.h"
 #include <SocketIOclient.h>
 
 #if defined(ESP32)
@@ -21,6 +22,7 @@
 #endif
 
 SocketIOclient socketIO;
+infoLED infoLED(12,25);
 
 struct {
   String ssid;
@@ -37,6 +39,10 @@ struct {
   int stepperTwoAcc;
   long stepperOnePos;
   long stepperTwoPos;
+  long stepperOneMin;
+  long stepperTwoMin;
+  long stepperOneMax;
+  long stepperTwoMax;
 } settings;
 
 // states
@@ -50,10 +56,10 @@ const int stepperOneC = 17;
 const int stepperOneD = 19;
 AccelStepper stepperOne(AccelStepper::HALF4WIRE, stepperOneA, stepperOneB, stepperOneC, stepperOneD);
 
-const int stepperTwoA = 32;
-const int stepperTwoB = 25;
-const int stepperTwoC = 33;
-const int stepperTwoD = 26;
+const int stepperTwoA = 27;
+const int stepperTwoB = 33;
+const int stepperTwoC = 26;
+const int stepperTwoD = 32;
 AccelStepper stepperTwo(AccelStepper::HALF4WIRE, stepperTwoA, stepperTwoB, stepperTwoC, stepperTwoD);
 
 void loadSettings() {
@@ -70,20 +76,46 @@ void loadSettings() {
   }
   file.close();
 
+  Serial.println("=======================");
+  Serial.println("loading settings");
+  Serial.println("=======================");
   settings.ssid = doc["ssid"].as<String>();
+  Serial.printf("SSID: %s\n", settings.ssid.c_str());
   settings.password = doc["password"].as<String>();
+  Serial.printf("password: %s\n", settings.password.c_str());
   settings.socketIP = doc["socketIP"].as<String>();
+  Serial.printf("socket IP: %s\n", settings.socketIP.c_str());
   settings.socketPort = doc["socketPort"];
+  Serial.printf("Port: %i\n", settings.socketPort);
   settings.socketURL = doc["socketURL"].as<String>();
+  Serial.printf("URL: %s\n", settings.socketURL.c_str());
   settings.componentID = doc["componentID"].as<String>();
+  Serial.printf("component ID: %s\n", settings.componentID.c_str());
   settings.stepperOneName = doc["stepperOneName"].as<String>();
+  Serial.printf("stepper one name: %s\n", settings.stepperOneName.c_str());
   settings.stepperTwoName = doc["stepperTwoName"].as<String>();
+  Serial.printf("stepper two name: %s\n", settings.stepperTwoName.c_str());
   settings.stepperOneSpeed = doc["stepperOneSpeed"];
+  Serial.printf("stepper one speed: %i\n", settings.stepperOneSpeed);
   settings.stepperOneAcc = doc["stepperOneAcc"];
+  Serial.printf("stepper one accelleration: %i\n", settings.stepperOneAcc);
   settings.stepperTwoSpeed = doc["stepperTwoSpeed"];
+  Serial.printf("stepper two speed: %i\n", settings.stepperOneSpeed);
   settings.stepperTwoAcc = doc["stepperTwoAcc"];
+  Serial.printf("stepper two accelleration: %i\n", settings.stepperTwoAcc);
   settings.stepperOnePos = doc["stepperOnePos"];
+  Serial.printf("stepper one position: %i\n", settings.stepperOnePos);
   settings.stepperTwoPos = doc["stepperTwoPos"];
+  Serial.printf("stepper two position: %i\n", settings.stepperTwoPos);
+  settings.stepperOneMin = doc["stepperOneMin"];
+  Serial.printf("stepper one minimum: %i\n", settings.stepperOneMin);
+  settings.stepperTwoMin = doc["stepperTwoMin"];
+  Serial.printf("stepper two minimum: %i\n", settings.stepperTwoMin);
+  settings.stepperOneMax = doc["stepperOneMax"];
+  Serial.printf("stepper one maximum: %i\n", settings.stepperOneMax);
+  settings.stepperTwoMax = doc["stepperTwoMax"];
+  Serial.printf("stepper two maximum: %i\n", settings.stepperTwoMax);
+  Serial.println("=======================");
 
   stepperOne.setCurrentPosition(settings.stepperOnePos);
   stepperTwo.setCurrentPosition(settings.stepperTwoPos);
@@ -92,6 +124,7 @@ void loadSettings() {
 void saveSettings() {
   DynamicJsonDocument doc(1024);
 
+  
   doc["ssid"] = settings.ssid;
   doc["password"] = settings.password;
   doc["socketIP"] = settings.socketIP;
@@ -106,6 +139,15 @@ void saveSettings() {
   doc["stepperTwoAcc"] = settings.stepperTwoAcc;
   doc["stepperOnePos"] = stepperOne.currentPosition();
   doc["stepperTwoPos"] = stepperTwo.currentPosition();
+  doc["stepperOneMin"] = settings.stepperOneMin;
+  doc["stepperTwoMin"] = settings.stepperTwoMin;
+  doc["stepperOneMax"] = settings.stepperOneMax;
+  doc["stepperTwoMax"] = settings.stepperTwoMax;
+
+  if(!FILESYSTEM.begin()){
+    Serial.println("An Error has occurred while mounting LITTLEFS");
+    return;
+  }
 
   File file = FILESYSTEM.open("/settings.txt", "w");
   if (serializeJsonPretty(doc, file) == 0) {
@@ -118,6 +160,13 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   switch(type) {
     case sIOtype_DISCONNECT:
       Serial.printf("[IOc] Disconnected!\n");
+      infoLED.hsv(0, 255, 40);
+      if (WiFi.status() != WL_CONNECTED) {
+        infoLED.cycle(100, false);
+      }
+      else if (WiFi.status() == WL_CONNECTED) {
+        infoLED.pulse(0, 40, 100);
+      }
       break;
     case sIOtype_CONNECT:
       Serial.printf("[IOc] Connected to URL: %s\n", payload);
@@ -125,58 +174,11 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
       // join default namespace
       socketIO.send(sIOtype_CONNECT, "/");
       reportState();
+      infoLED.hsv(20000, 255, 40);
       break;
-    case sIOtype_EVENT: {
-      char * sptr = NULL;
-      int id = strtol((char *)payload, &sptr, 10);
-      Serial.printf("[IOc] get event: %s     (id: %d)\n", payload, id);
-      DynamicJsonDocument incomingEvent(1024);
-      DeserializationError error = deserializeJson(incomingEvent,payload,length);
-      if(error) {
-        Serial.printf("deserializeJson() failed: ");
-        Serial.println(error.c_str());
-        return;
-      }
-
-      String eventName = incomingEvent[0];
-      Serial.printf("[IOc] event name: %s\n", eventName.c_str());
-
-      if (eventName == "control") {
-        // analyze and store input
-        JsonObject receivedPayload = incomingEvent[1];
-        String component = receivedPayload["component"];
-
-        // act only when involving this component
-        if (component == settings.componentID) {
-          // check for simple or extended command structure
-          if (receivedPayload["command"].is<JsonObject>()) {
-            JsonObject command = receivedPayload["command"];
-            String control = receivedPayload["control"];
-            int steps = command["steps"];
-            driveStepper(control,steps);
-          }
-          else if (receivedPayload["command"].is<String>()) {
-            String command = receivedPayload["command"];
-            if (command == "getStatus") {
-              reportState();
-            }
-            if (command == "stop") {
-              stepperOne.stop();
-              stepperTwo.stop();
-              Serial.println("Received stop command. Issuing stop at maximum decceleration.");
-            }
-            if (command == "restart") {
-              Serial.println("Received restart command. Disconnecting now.");
-              stepperOne.stop();
-              stepperTwo.stop();
-              delay(500);
-              saveSettings();
-              ESP.restart();
-            }
-          }
-        }
-      }
-    }
+    case sIOtype_EVENT:
+      eventHandler(payload, length);
+      break;
     case sIOtype_ACK:
       Serial.printf("[IOc] get ack: %u\n", length);
       break;
@@ -192,6 +194,73 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   }
 }
 
+void eventHandler(uint8_t * eventPayload, size_t eventLength) {
+  char * sptr = NULL;
+  int id = strtol((char *)eventPayload, &sptr, 10);
+  Serial.printf("[IOc] get event: %s     (id: %d)\n", eventPayload, id);
+  DynamicJsonDocument incomingEvent(1024);
+  DeserializationError error = deserializeJson(incomingEvent, eventPayload, eventLength);
+  if(error) {
+    Serial.printf("deserializeJson() failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  String eventName = incomingEvent[0];
+  Serial.printf("[IOc] event name: %s\n", eventName.c_str());
+
+  if (strcmp(eventName.c_str(),"command") == 0) {
+    // analyze and store input
+    JsonObject receivedPayload = incomingEvent[1];
+    String component = receivedPayload["componentId"];
+    Serial.println("identified command event");
+
+    // act only when involving this component
+    if (strcmp(component.c_str(),settings.componentID.c_str()) == 0) {
+      // check for simple or extended command structure
+      Serial.printf("componentId identified (me): %s\n", component);
+      if (receivedPayload["command"].is<JsonObject>()) {
+        JsonObject command = receivedPayload["command"];
+        Serial.println("identified nested command structure");
+        String control = receivedPayload["controlId"];
+        Serial.printf("identified controlID: %s\n", control);
+        int steps = command["steps"];
+        Serial.printf("identified number of steps: %i\n", steps);
+        driveStepper(control,steps);
+        }
+      else if (receivedPayload["command"].is<String>()) {
+        String command = receivedPayload["command"];
+        Serial.printf("identified simple command: %s\n", command);
+        if (strcmp(command.c_str(),"getStatus") == 0) {
+          reportState();
+        }
+        if (strcmp(command.c_str(),"stop") == 0) {
+          stepperOne.stop();
+          stepperTwo.stop();
+          while ( (stepperOne.isRunning()) or (stepperTwo.isRunning()) ) {
+            stepperOne.run();
+            stepperTwo.run();
+          }
+          depowerStepper();
+          Serial.println("Received stop command. Issuing stop at maximum decceleration.");
+        }
+        if (strcmp(command.c_str(),"restart") == 0) {
+          Serial.println("Received restart command. Disconnecting now.");
+          stepperOne.stop();
+          stepperTwo.stop();
+          while ( (stepperOne.isRunning()) or (stepperTwo.isRunning()) ) {
+            stepperOne.run();
+            stepperTwo.run();
+          }
+          depowerStepper();
+          saveSettings();
+          ESP.restart();
+        }
+      }
+    }
+  }
+}
+
 void reportState() {
   DynamicJsonDocument outgoingEvent(1024);
   JsonArray payload = outgoingEvent.to<JsonArray>();
@@ -204,7 +273,7 @@ void reportState() {
   state[settings.stepperTwoName] = stepperTwo.currentPosition();
   String output;
   serializeJson(payload, output);
-  //socketIO.sendEVENT(output);
+  socketIO.sendEVENT(output);
   Serial.print("string sent: ");
   Serial.println(output);
 }
@@ -212,16 +281,18 @@ void reportState() {
 void driveStepper(String stepperName, int steps) {
   busyState = true;
   reportState();
-  if (stepperName == settings.stepperOneName) {
+  if (stepperName.indexOf(settings.stepperOneName) != -1) {
     Serial.printf("moving %s by %d steps... ", settings.stepperOneName, steps);
     stepperOne.enableOutputs();
     stepperOne.move(steps);
+    stepperOne.moveTo(constrain(stepperOne.targetPosition(), settings.stepperOneMin, settings.stepperOneMax));
     wasRunning = true;
   }
-  if (stepperName == settings.stepperTwoName) {
+  if (stepperName.indexOf(settings.stepperTwoName) != -1) {
     Serial.printf("moving %s by %d steps... ", settings.stepperTwoName, steps);
     stepperTwo.enableOutputs();
     stepperTwo.move(steps);
+    stepperTwo.moveTo(constrain(stepperTwo.targetPosition(), settings.stepperTwoMin, settings.stepperTwoMax));
     wasRunning = true;
   }
 }
@@ -238,9 +309,29 @@ void depowerStepper() {
   }
 #endif
 
+void stepperLoop() {
+  if ((stepperOne.isRunning()) or (stepperTwo.isRunning())) {
+    stepperOne.run();
+    stepperTwo.run();
+    infoLED.pulse(0, 40, 100);
+  }
+  else if (wasRunning){
+    depowerStepper();
+    busyState = false;
+    wasRunning = false;
+    Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
+    reportState();
+    infoLED.constant();
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
+  infoLED.begin();
+  infoLED.hsv(0,255,40);
+  infoLED.cycle(100, false);
+  infoLED.start();
   for(uint8_t t = 4; t > 0; t--) {
     Serial.printf("[SETUP] BOOT WAIT %d...\n", t);
     Serial.flush();
@@ -254,56 +345,27 @@ void setup() {
   stepperTwo.setMaxSpeed(settings.stepperTwoSpeed);
   stepperTwo.setAcceleration(settings.stepperTwoAcc);
 
-  // connect to WiFi
+  // connect to WiFi and handle auto reconnect
   Serial.println("starting WiFi setup.");
   #if defined(ESP32)
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
   #endif
   WiFi.begin(settings.ssid.c_str(), settings.password.c_str());
-  //Serial.println("Connecting to WiFi");
-  //while (WiFi.status() != WL_CONNECTED) {
-    //Serial.print(".");
-  //  delay(500);
-  //}
-  //Serial.println(" done.");
   #if defined(ESP8266)
     WiFi.setAutoReconnect(true);
   #endif
-  //String ip = WiFi.localIP().toString();
-  //Serial.printf("[SETUP] Connected to WiFi as %s\n", ip.c_str());
 
-  socketIO.begin(settings.socketIP, settings.socketPort, settings.socketURL);
-  
-  // pass event handler
+  // setup socketIO and pass event handler
+  socketIO.begin(settings.socketIP.c_str(), settings.socketPort, settings.socketURL.c_str());
   socketIO.onEvent(socketIOEvent);
-  
-  // setup complete
 }
 
 void loop() {
   socketIO.loop();
   if (Serial.available() > 0) {
     String SerialInput=Serial.readStringUntil('\n');
-    if (SerialInput.indexOf("top") != -1) {
-      SerialInput = SerialInput.substring(4);
-      driveStepper("top", SerialInput.toInt());
-    }
-    else if (SerialInput.indexOf("bottom") != -1) {
-      SerialInput = SerialInput.substring(7);
-      driveStepper("bottom", SerialInput.toInt());
-    }
+    eventHandler((uint8_t *)SerialInput.c_str(), SerialInput.length());
   }
-  if ((stepperOne.isRunning()) or (stepperTwo.isRunning())) {
-    stepperOne.run();
-    stepperTwo.run();
-  }
-  else if (wasRunning){
-    depowerStepper();
-    if ((socketIO.isConnected()) and (WiFi.status() == WL_CONNECTED)) {
-      busyState = false;
-      wasRunning = false;
-      Serial.printf("done. New Position: %d\n", stepperOne.currentPosition());
-      reportState();
-    }
-  }
+  stepperLoop();
+  infoLED.loop();
 }
