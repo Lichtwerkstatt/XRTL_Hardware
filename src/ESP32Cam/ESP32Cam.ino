@@ -5,12 +5,14 @@
 #include <SocketIOclient.h>
 #include <WiFi.h>
 #include <LITTLEFS.h>
+#include <ESP32Servo.h>
 #define FILESYSTEM LITTLEFS
 /*#define CAMERA_MODEL_AI_THINKER
 #include "camera_pins.h"*/
 
 // switch for stream start
 bool streamRunning = false;
+bool isBusy = false;
 String binaryLeadFrame;
 
 //modified socketIO client, added methode to send binary data
@@ -20,7 +22,6 @@ class SocketIOclientMod : public SocketIOclient {
   bool sendBIN(const uint8_t * payload, size_t length);
 };
 
-//method for sending binaries via socketIO
 bool SocketIOclientMod::sendBIN(uint8_t * payload, size_t length, bool headerToPayload) {
   bool ret = false;
   if (length == 0) {
@@ -38,6 +39,19 @@ bool SocketIOclientMod::sendBIN(const uint8_t * payload, size_t length) {
 }
 
 SocketIOclientMod socketIO;
+
+/*servos use ESP PWM channels, however the first two channels get used by the camera
+ *and should under no circumstances be changed in settings.
+ *servo librarie initializes the channels in numerical order when the constructor is
+ *called and cannot be changed
+ *
+ *quick and dirty fix:
+ *call 4 servos and never touch/properly initialize the first 2
+*/
+Servo trashOne;
+Servo trashTwo;
+Servo pan;
+Servo tilt;
 
 struct {
   String ssid;
@@ -62,12 +76,22 @@ void loadSettings() {
   }
   file.close();
 
+  Serial.println("=======================");
+  Serial.println("loading settings");
+  Serial.println("=======================");
   settings.ssid = doc["ssid"].as<String>();
+  Serial.printf("SSID: %s\n", settings.ssid.c_str());
   settings.password = doc["password"].as<String>();
+  Serial.printf("password: %s\n", settings.password.c_str());
   settings.socketIP = doc["socketIP"].as<String>();
+  Serial.printf("socket IP: %s\n", settings.socketIP.c_str());
   settings.socketPort = doc["socketPort"];
+  Serial.printf("Port: %i\n", settings.socketPort);
   settings.socketURL = doc["socketURL"].as<String>();
+  Serial.printf("URL: %s\n", settings.socketURL.c_str());
   settings.componentID = doc["componentID"].as<String>();
+  Serial.printf("component ID: %s\n", settings.componentID.c_str());
+  Serial.println("=======================");
 }
 
 void saveSettings() {
@@ -79,6 +103,11 @@ void saveSettings() {
   doc["socketPort"] = settings.socketPort;
   doc["socketURL"] = settings.socketURL;
   doc["componentID"] = settings.componentID;
+
+  if(!FILESYSTEM.begin()){
+    Serial.println("An Error has occurred while mounting LITTLEFS");
+    return;
+  }
   
   File file = FILESYSTEM.open("/settings.txt", "w");
   if (serializeJsonPretty(doc, file) == 0) {
@@ -92,14 +121,16 @@ void startStreaming() {
   binaryLeadFrame += settings.componentID;
   binaryLeadFrame += "\",\"image\":{\"_placeholder\":true,\"num\":0}}]";
   streamRunning = true;
+  reportState();
 }
 
 void stopStreaming() {
   streamRunning = false;
+  reportState();
 }
 
 void camLoop() {
-  if (streamRunning) {
+  if (streamRunning && (WiFi.status() == WL_CONNECTED) && (socketIO.isConnected())) {
     camera_fb_t *fb = esp_camera_fb_get();
     socketIO.sendBIN(fb->buf,fb->len);
     esp_camera_fb_return(fb);
@@ -170,56 +201,9 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
       socketIO.send(sIOtype_CONNECT, "/");
       reportState();
       break;
-    case sIOtype_EVENT: {
-      char * sptr = NULL;
-      int id = strtol((char *)payload, &sptr, 10);
-      Serial.printf("[IOc] get event: %s     (id: %d)\n", payload, id);
-      DynamicJsonDocument incomingEvent(1024);
-      DeserializationError error = deserializeJson(incomingEvent,payload,length);
-      if(error) {
-        Serial.printf("deserializeJson() failed: ");
-        Serial.println(error.c_str());
-        return;
-      }
-
-      String eventName = incomingEvent[0];
-      Serial.printf("[IOc] event name: %s\n", eventName.c_str());
-
-      if (eventName == "control") {
-        // analyze and store input
-        JsonObject receivedPayload = incomingEvent[1];
-        String component = receivedPayload["component"];
-
-        // act only when involving this component
-        if (component == settings.componentID) {
-          // check for simple or extended command structure
-          if (receivedPayload["command"].is<JsonObject>()) {
-            JsonObject command = receivedPayload["command"];
-            String control = receivedPayload["control"];
-          }
-          else if (receivedPayload["command"].is<String>()) {
-            String command = receivedPayload["command"];
-            if (command == "getStatus") {
-              reportState();
-            }
-            if (command == "restart") {
-              Serial.println("Received restart command. Disconnecting now.");
-              delay(500);
-              saveSettings();
-              ESP.restart();
-            }
-            if (command == "startStreaming") {
-              startStreaming();
-              reportState();
-            }
-            if (command == "stopStreaming") {
-              stopStreaming();
-              reportState();
-            }
-          }
-        }
-      }
-    }
+    case sIOtype_EVENT:
+      eventHandler(payload,length);
+      break;
     case sIOtype_ACK:
       Serial.printf("[IOc] get ack: %u\n", length);
       break;
@@ -235,6 +219,64 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
   }
 }
 
+void eventHandler(uint8_t * eventPayload, size_t eventLength) {
+  char * sptr = NULL;
+  int id = strtol((char *)eventPayload, &sptr, 10);
+  Serial.printf("[IOc] get event: %s     (id: %d)\n", eventPayload, id);
+  DynamicJsonDocument incomingEvent(1024);
+  DeserializationError error = deserializeJson(incomingEvent,eventPayload,eventLength);
+  if(error) {
+    Serial.printf("deserializeJson() failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  String eventName = incomingEvent[0];
+  Serial.printf("[IOc] event name: %s\n", eventName.c_str());
+
+  if (strcmp(eventName.c_str(),"command") == 0) {
+    // analyze and store input
+    JsonObject receivedPayload = incomingEvent[1];
+    String component = receivedPayload["componentId"];
+    Serial.println("identified command event");
+
+    // act only when involving this component
+    if (strcmp(component.c_str(),settings.componentID.c_str()) == 0) {
+      // check for simple or extended command structure
+      Serial.printf("componentId identified (me): %s\n", component);
+      if (receivedPayload["command"].is<JsonObject>()) {
+        JsonObject command = receivedPayload["command"];
+        Serial.println("identified nested command structure");
+        String control = receivedPayload["controlId"];
+        Serial.printf("identified controlID: %s\n", control);
+        int angle = command["position"];
+        Serial.printf("identified target position: %i\n", angle);
+        driveServo(control, angle);
+      }
+      else if (receivedPayload["command"].is<String>()) {
+        String command = receivedPayload["command"];
+        Serial.printf("identified simple command: %s\n", command.c_str());
+        if (strcmp(command.c_str(),"getStatus") == 0) {
+          reportState();
+        }
+        if (strcmp(command.c_str(),"restart") == 0) {
+          Serial.println("Received restart command. Disconnecting now.");
+          stopStreaming();
+          delay(500);
+          saveSettings();
+          ESP.restart();
+        }
+        if (strcmp(command.c_str(),"startStreaming") == 0) {
+          startStreaming();
+        }
+        if (strcmp(command.c_str(),"stopStreaming") == 0) {
+          stopStreaming();
+        }
+      }
+    }
+  }
+}
+
 void reportState() {
   DynamicJsonDocument outgoingEvent(1024);
   JsonArray payload = outgoingEvent.to<JsonArray>();
@@ -243,13 +285,25 @@ void reportState() {
   parameters["component"] = settings.componentID;
   JsonObject state = parameters.createNestedObject("status");
   state["streaming"] = streamRunning;
-  //state[""] = sideServo.read();
-  //state[""] = heightServo.read();
+  state["pan"] = pan.read();
+  state["tilt"] = tilt.read();
   String output;
   serializeJson(payload, output);
   socketIO.sendEVENT(output);
   Serial.print("string sent: ");
   Serial.println(output);
+}
+
+void driveServo(String servoName, int target) {
+  if (strcmp(servoName.c_str(),"pan") == 0) {
+    pan.write(target);
+    Serial.printf("pan to %i degree\n", pan.read());
+  }
+  if (strcmp(servoName.c_str(),"tilt") == 0) {
+    tilt.write(target);
+    Serial.printf("tilt to %i degree\n", tilt.read());
+  }
+  reportState();
 }
 
 static esp_err_t init_camera()
@@ -286,43 +340,29 @@ void setup() {
   WiFi.begin(settings.ssid.c_str(), settings.password.c_str());
   WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
   WiFi.onEvent(WiFiStationConnected, SYSTEM_EVENT_STA_CONNECTED);
-  
-  socketIO.begin(settings.socketIP, settings.socketPort, settings.socketURL);
+
+  socketIO.begin(settings.socketIP.c_str(), settings.socketPort, settings.socketURL.c_str());
   socketIO.onEvent(socketIOEvent);
+
+  pan.setPeriodHertz(50);    // standard 50 hz servo
+  tilt.setPeriodHertz(50);    // standard 50 hz servo
+  trashOne.attach(2, 1000, 2000);
+  trashTwo.attach(13, 1000, 2000);
+  
+  pan.attach(14, 1000, 2000);
+  tilt.attach(15, 1000, 2000);
+  
+  pan.write(90);
+  tilt.write(90);
   
   init_camera();
-
-  while (!((socketIO.isConnected()) and (WiFi.status() == WL_CONNECTED))) {
-    Serial.printf("waiting for connection\n");
-    delay(500);
-    socketIO.loop();
-  }
+  Serial.printf("setup done\n");
 }
 
 void loop() {
   if (Serial.available() > 0) {
     String SerialInput=Serial.readStringUntil('\n');
-    if (SerialInput.indexOf("start") != -1) {
-      //SerialInput = SerialInput.substring(4);
-      //driveStepper("top", SerialInput.toInt());
-      startStreaming();
-    }
-    else if (SerialInput.indexOf("stop") != -1) {
-      //SerialInput = SerialInput.substring(7);
-      //driveStepper("bottom", SerialInput.toInt());
-      stopStreaming();
-    }
-    else if (SerialInput.indexOf("side") != -1) {
-      SerialInput = SerialInput.substring(5);
-      //sideServo.write(SerialInput);
-    }
-    else if (SerialInput.indexOf("height") != -1) {
-      SerialInput = SerialInput.substring(7);
-      //heightServo.write(SerialInput);
-    }
-    else if (SerialInput.indexOf("report") != -1) {
-      reportState();
-    }
+    eventHandler((uint8_t *)SerialInput.c_str(), SerialInput.length());
   }
   camLoop();
   socketIO.loop();
