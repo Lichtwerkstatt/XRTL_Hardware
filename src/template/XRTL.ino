@@ -1,21 +1,21 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <WebSocketsClient.h>
+#include <WebSocketsClient.h>//Websockets by Markus Sattler
 #include <SocketIOclient.h>
 #include <WiFi.h>
-#include <LITTLEFS.h>
-#define FILESYSTEM LITTLEFS
+#include <LittleFS.h>
+#define FILESYSTEM LittleFS
 
-// compiler flags
-#define STEPPERCOUNT 0   // current max: 2
-#define SERVOCOUNT 2     // current max: 2
+// compile parameters
+#define STEPPERCOUNT 2   // current max: 2
+#define SERVOCOUNT 0     // current max: 2
 #define RELAISCOUNT 0    // current max: 2
-#define ISCAMERA true    // true: ESP is a camera
-#define HASINFOLED false // true: info LED is installed
+#define ISCAMERA false   // true: ESP is a camera
+#define HASINFOLED true  // true: info LED is installed
 
 // info LED
-#define INFOLEDNUMBER 12 // number of LEDs
-#define INFOLEDPIN 25
+#define INFOLEDNUMBER 12 // number of LEDs on the stripe/ring
+#define INFOLEDPIN 23
 
 // pins for stepper
 #define STEPPERONEPINA 16
@@ -34,10 +34,10 @@
 #define SERVOTWOPIN 15
 
 // pins for relais
-#define RELAISONEPIN 42
+#define RELAISONEPIN 13
 #define RELAISTWOPIN 42
 
-//
+// subfiles:
 #include "camera.h"
 #include "stepper.h"
 #include "servo.h"

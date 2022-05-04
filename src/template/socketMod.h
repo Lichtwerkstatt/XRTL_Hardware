@@ -7,6 +7,7 @@ class SocketIOclientMod : public SocketIOclient {
   public:
   bool sendBIN(uint8_t * payload, size_t length, bool headerToPayload = false);
   bool sendBIN(const uint8_t * payload, size_t length);
+  bool disconnect();
 };
 
 bool SocketIOclientMod::sendBIN(uint8_t * payload, size_t length, bool headerToPayload) {
@@ -23,6 +24,10 @@ bool SocketIOclientMod::sendBIN(uint8_t * payload, size_t length, bool headerToP
 
 bool SocketIOclientMod::sendBIN(const uint8_t * payload, size_t length) {
     return sendBIN((uint8_t *)payload, length);
+}
+
+bool SocketIOclientMod::disconnect(){
+  return send(sIOtype_DISCONNECT,"");
 }
 
 SocketIOclientMod socketIO;
