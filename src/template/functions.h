@@ -590,11 +590,11 @@ void XRTLsetup(){
   Serial.println("starting setup");
   loadSettings();
   Serial.println("setting up WiFi");
-  
+
   eventIdDisconnected = WiFi.onEvent(WiFiStationDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);//SYSTEM_EVENT_STA_DISCONNECTED for older version
   eventIdGotIP = WiFi.onEvent(WiFiStationGotIP, ARDUINO_EVENT_WIFI_STA_GOT_IP);//SYSTEM_EVENT_STA_GOT_IP for older version
-  WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
   WiFi.setHostname(settings.componentID.c_str());
+  WiFi.mode(WIFI_STA);
   WiFi.begin(settings.ssid.c_str(), settings.password.c_str());
 
   #if HASINFOLED
