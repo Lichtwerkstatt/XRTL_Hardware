@@ -50,7 +50,7 @@ static camera_config_t camera_config = {
     .ledc_channel = LEDC_CHANNEL_0,
 
     .pixel_format = PIXFORMAT_JPEG,//YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size = FRAMESIZE_SVGA,//UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
+    .frame_size = FRAMESIZE_XGA,//UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 12,//10, //0-63 lower number means higher quality
     .fb_count = 2, //if more than one, i2s runs in continuous mode. Use only with JPEG
@@ -69,4 +69,69 @@ static esp_err_t init_camera()
   return ESP_OK;
 }
 
+void setWindow(int resolution, int xOffset, int yOffset, int xLength, int yLength) {
+  sensor_t * s = esp_camera_sensor_get();
+  /*s->set_res_raw(s, startX, startY, endX, endY, offsetX, offsetY, totalX, totalY, outputX, outputY, scale, binning);
+  s->set_res_raw(s, gets cast to ov2640_sensor_mode_t, unused, unused, unused, offsetX, offsetY, totalX, totalY, outputX, outputY, unused, unused);
+  s->set_res_raw(s, OV2640_MODE_SXGA, 0, 0, 0, offsetX, offsetY, totalX, totalY, outputX, outputY, false, false);
+  
+  overall sensor size: 1600 x 1200
+  offset: start of frame on sensor
+  total: width/height of frame
+  output: size of output frame -> rescaling might take place? use identical to width/height
+  
+  typedef enum {
+    OV2640_MODE_UXGA, OV2640_MODE_SVGA, OV2640_MODE_CIF, OV2640_MODE_MAX
+  } ov2640_sensor_mode_t;
+  resolution = 0 \\ 1600 x 1200
+  resolution = 1 \\  800 x  600
+  resolution = 2 \\  400 x  296
+  */
+  s->set_res_raw(s, resolution, 0, 0, 0, xOffset, yOffset, xLength, yLength, xLength, yLength, false, false);
+}
+
+
+/* 
+ *  available settings:
+ *  
+ *  if(!strcmp(variable, "framesize")) {
+        if(s->pixformat == PIXFORMAT_JPEG) res = s->set_framesize(s, (framesize_t)val); // resolution
+    }
+    else if(!strcmp(variable, "quality")) res = s->set_quality(s, val); // image quality: the lower the better
+    else if(!strcmp(variable, "contrast")) res = s->set_contrast(s, val); 
+    else if(!strcmp(variable, "brightness")) res = s->set_brightness(s, val);
+    else if(!strcmp(variable, "saturation")) res = s->set_saturation(s, val);
+    else if(!strcmp(variable, "gainceiling")) res = s->set_gainceiling(s, (gainceiling_t)val);
+    else if(!strcmp(variable, "colorbar")) res = s->set_colorbar(s, val);
+    else if(!strcmp(variable, "awb")) res = s->set_whitebal(s, val);
+    else if(!strcmp(variable, "agc")) res = s->set_gain_ctrl(s, val);
+    else if(!strcmp(variable, "aec")) res = s->set_exposure_ctrl(s, val);
+    else if(!strcmp(variable, "hmirror")) res = s->set_hmirror(s, val);
+    else if(!strcmp(variable, "vflip")) res = s->set_vflip(s, val);
+    else if(!strcmp(variable, "awb_gain")) res = s->set_awb_gain(s, val);
+    else if(!strcmp(variable, "agc_gain")) res = s->set_agc_gain(s, val);
+    else if(!strcmp(variable, "aec_value")) res = s->set_aec_value(s, val);
+    else if(!strcmp(variable, "aec2")) res = s->set_aec2(s, val);
+    else if(!strcmp(variable, "dcw")) res = s->set_dcw(s, val);
+    else if(!strcmp(variable, "bpc")) res = s->set_bpc(s, val);
+    else if(!strcmp(variable, "wpc")) res = s->set_wpc(s, val);
+    else if(!strcmp(variable, "raw_gma")) res = s->set_raw_gma(s, val);
+    else if(!strcmp(variable, "lenc")) res = s->set_lenc(s, val);
+    else if(!strcmp(variable, "special_effect")) res = s->set_special_effect(s, val);
+    else if(!strcmp(variable, "wb_mode")) res = s->set_wb_mode(s, val);
+    else if(!strcmp(variable, "ae_level")) res = s->set_ae_level(s, val);
+    else if(!strcmp(variable, "face_detect")) {
+        detection_enabled = val;
+        if(!detection_enabled) {
+            recognition_enabled = 0;
+        }
+    }
+    else if(!strcmp(variable, "face_enroll")) is_enrolling = val;
+    else if(!strcmp(variable, "face_recognize")) {
+        recognition_enabled = val;
+        if(recognition_enabled){
+            detection_enabled = val;
+        }
+    }
+ */
 #endif
