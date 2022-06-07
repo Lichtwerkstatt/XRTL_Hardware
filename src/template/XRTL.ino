@@ -7,35 +7,35 @@
 #define FILESYSTEM LittleFS
 
 // compile parameters
-#define STEPPERCOUNT 2   // current max: 2
-#define SERVOCOUNT 0     // current max: 2
+#define STEPPERCOUNT 0   // current max: 2
+#define SERVOCOUNT 2     // current max: 2
 #define RELAISCOUNT 0    // current max: 2
-#define ISCAMERA false   // true: ESP is a camera
-#define HASINFOLED true  // true: info LED is installed
+#define ISCAMERA true   // true: ESP is a camera
+#define HASINFOLED false  // true: info LED is installed
 
 // info LED
 #define INFOLEDNUMBER 12 // number of LEDs on the stripe/ring
-#define INFOLEDPIN 23
+#define INFOLEDPIN 32
 
 // pins for stepper
-#define STEPPERONEPINA 16
-#define STEPPERONEPINB 18
-#define STEPPERONEPINC 17
-#define STEPPERONEPIND 19
+#define STEPPERONEPINA 19
+#define STEPPERONEPINB 22
+#define STEPPERONEPINC 21
+#define STEPPERONEPIND 23
 
 // pins for stepper two
-#define STEPPERTWOPINA 27
-#define STEPPERTWOPINB 33
-#define STEPPERTWOPINC 26
-#define STEPPERTWOPIND 32
+#define STEPPERTWOPINA 4
+#define STEPPERTWOPINB 17
+#define STEPPERTWOPINC 16
+#define STEPPERTWOPIND 18
 
 // pins for servos
-#define SERVOONEPIN 14
-#define SERVOTWOPIN 15
+#define SERVOONEPIN 33
+#define SERVOTWOPIN 25
 
-// pins for relais
-#define RELAISONEPIN 13
-#define RELAISTWOPIN 42
+// pins for relays
+#define RELAISONEPIN 27
+#define RELAISTWOPIN 26
 
 // subfiles:
 #include "camera.h"

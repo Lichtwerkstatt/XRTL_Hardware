@@ -1,4 +1,7 @@
 #if RELAISCOUNT > 0
+
+// simple class collecting methodes for switching relays
+
 class Relais {
   public:
   bool relaisState = false;
@@ -30,15 +33,9 @@ class Relais {
 };
 
 Relais relaisOne;
+
 #if RELAISCOUNT > 1
 Relais relaisTwo;
 #endif
-
-void relaisSetup() {
-  relaisOne.attach(RELAISONEPIN);
-  #if RELAISCOUNT > 1
-    relaisTwo.attach(RELAISTWOPIN);
-  #endif
-}
 
 #endif

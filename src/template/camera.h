@@ -52,9 +52,9 @@ static camera_config_t camera_config = {
     .pixel_format = PIXFORMAT_JPEG,//YUV422,GRAYSCALE,RGB565,JPEG
     .frame_size = FRAMESIZE_XGA,//UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
 
-    .jpeg_quality = 12,//10, //0-63 lower number means higher quality
+    .jpeg_quality = 10,//0-63 lower number means higher quality
     .fb_count = 2, //if more than one, i2s runs in continuous mode. Use only with JPEG
-    //.grab_mode = CAMERA_GRAB_WHEN_EMPTY//CAMERA_GRAB_LATEST. Sets when buffers should be filled
+    .grab_mode = CAMERA_GRAB_LATEST//CAMERA_GRAB_WHEN_EMPTY. Sets when buffers should be filled
 };
 
 
@@ -69,6 +69,9 @@ static esp_err_t init_camera()
   return ESP_OK;
 }
 
+// windowing works seems to work for now with several drawbacks
+// aspect ratio should remain, already slight deviations regularly (but not for all values??) result in faulty images
+// 
 void setWindow(int resolution, int xOffset, int yOffset, int xLength, int yLength) {
   sensor_t * s = esp_camera_sensor_get();
   /*s->set_res_raw(s, startX, startY, endX, endY, offsetX, offsetY, totalX, totalY, outputX, outputY, scale, binning);
@@ -87,7 +90,8 @@ void setWindow(int resolution, int xOffset, int yOffset, int xLength, int yLengt
   resolution = 1 \\  800 x  600
   resolution = 2 \\  400 x  296
   */
-  s->set_res_raw(s, resolution, 0, 0, 0, xOffset, yOffset, xLength, yLength, xLength, yLength, false, false);
+  s->set_res_raw(s, resolution, 0, 0, 0, xOffset, yOffset, xLength, yLength, xLength, yLength, true, true);
+  //binning and scaling used to be false -- test if true makes the aspect ratio more flexible?
 }
 
 

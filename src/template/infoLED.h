@@ -1,6 +1,8 @@
 #if HASINFOLED
 #include "Adafruit_NeoPixel.h"
 
+// wrapper for the adafruit neopixel library to display simple (non blocking) light patterns
+
 class InfoLED {
   public:
   InfoLED(uint8_t n, uint8_t pin) : led(n, pin, NEO_GRB + NEO_KHZ800){}
@@ -28,20 +30,29 @@ class InfoLED {
 
   void begin();
 
+  // let a value "run" over the LED chain
   void cycle(uint32_t t, bool b);
 
+  // pulse brightness between minimum and maximum
   void pulse(uint32_t t, uint8_t minimum, uint8_t maximum);
 
+  // gradually change hue, can be called with cycle() or pulse() but not both simultaneously
   void rainbow(uint16_t h);
 
+  // enables the LEDs, also continues patterns after stop() is called
   void start();
 
+  // turns off all LEDs until start is called
   void stop();
-  
+
+  // set a constant HSV to be shown
   void hsv(uint16_t h, uint8_t s, uint8_t v);
 
+  // disables all dynamics, whatever HSV was shown last remains
   void constant();
 
+  // check the selected pattern and change the corresponding values if necessary
+  // must be called whenever a none constant light pattern should be displayed
   void loop();
 };
 
@@ -103,33 +114,29 @@ void InfoLED::constant() {
 void InfoLED::loop() {
   if (isOn) {
     now = millis() - last;
-    if (isCycling) {
-      if (now > interval) {
-        if (currentLED == led.numPixels()) {
-          currentLED = 0;
-          if (!continueCycle) {
-            led.clear();
-          }
+    if ( (isCycling) && (now > interval) ) {
+      if (currentLED == led.numPixels()) {
+        currentLED = 0;
+        if (!continueCycle) {
+          led.clear();
         }
-        led.setPixelColor(currentLED, led.gamma32(led.ColorHSV(hue, sat, val)));
-        currentLED++;
-        last = millis();
       }
+      led.setPixelColor(currentLED, led.gamma32(led.ColorHSV(hue, sat, val)));
+      currentLED++;
+      last = millis();
     }
     if (isHueing) {
       hue = hue + hueIncrement;
     }
-    if (isPulsing) {
-      if (now > interval) {
-        if (val == minVal) {
-          deltaVal = 1;
-        }
-        if (val == maxVal) {
-          deltaVal = -1;
-        }
-        val += deltaVal;
-        last = millis();
+    if ( (isPulsing) && (now > interval) ) {
+      if (val == minVal) {
+        deltaVal = 1;
       }
+      if (val == maxVal) {
+        deltaVal = -1;
+      }
+      val += deltaVal;
+      last = millis();
     }
     if (!isCycling){
       for (int i = 0; i < led.numPixels(); i++) {
