@@ -5,6 +5,7 @@ struct {
   int socketPort;
   String socketURL;
   String componentID;
+  String componentAlias;
 
   #if STEPPERCOUNT > 0 
   String stepperOneName;
@@ -66,6 +67,7 @@ void saveSettings() {
   doc["socketPort"] = settings.socketPort;
   doc["socketURL"] = settings.socketURL;
   doc["componentID"] = settings.componentID;
+  doc["componentAlias"] = settings.componentAlias;
 
   #if STEPPERCOUNT > 0
   doc["stepperOneName"] = settings.stepperOneName;
@@ -168,6 +170,7 @@ void loadSettings() {
   settings.socketPort = doc["socketPort"];
   settings.socketURL = doc["socketURL"].as<String>();
   settings.componentID = doc["componentID"].as<String>();
+  settings.componentAlias = doc["componentAlias"].as<String>();
 
   Serial.println("");
   Serial.println("======================================");
@@ -180,6 +183,7 @@ void loadSettings() {
   Serial.printf("Port: %i\n", settings.socketPort);
   Serial.printf("URL: %s\n", settings.socketURL.c_str());
   Serial.printf("component ID: %s\n", settings.componentID.c_str());
+  Serial.printf("component alias: %s\n", settings.componentAlias.c_str());
   Serial.println("");
 
   #if STEPPERCOUNT > 0
@@ -290,12 +294,13 @@ String serialInput(String question) {
   return answer;
 }
 
-
+// used to handle recconects, deregistered in serial setup
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.printf("[WiFi] lost connection. Trying to reconnect.\n");
   WiFi.reconnect();
 }
 
+// informs when an IP is aquired, deregistered in serial setup
 void WiFiStationGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
   Serial.print("[WiFi] connected to WiFi with local IP: ");
   Serial.println(WiFi.localIP());
@@ -307,7 +312,8 @@ WiFiEventId_t eventIdGotIP; // use this when attaching the gotIP handler
 void setViaSerial() {
   WiFi.removeEvent(eventIdGotIP); // get rid of autoamtic reconnect to avoid error messages
   WiFi.removeEvent(eventIdDisconnected);
-  WiFi.disconnect(); // disconnecting from WiFi should prevent serial output messing up the process
+  WiFi.disconnect(true); // disconnecting from WiFi should prevent serial output messing up the process
+  WiFi.mode(WIFI_OFF);
   int64_t startTime = esp_timer_get_time();
   while (esp_timer_get_time() - startTime < 200000) {
     yield();
@@ -322,6 +328,7 @@ void setViaSerial() {
   doc["socketPort"] = settings.socketPort;
   doc["socketURL"] = settings.socketURL;
   doc["componentID"] = settings.componentID;
+  doc["componentAlias"] = settings.componentAlias;
 
   #if STEPPERCOUNT > 0
   doc["stepperOneName"] = settings.stepperOneName;
@@ -413,6 +420,7 @@ void setViaSerial() {
     doc["socketPort"] = serialInput("socket Port: ").toInt();
     doc["socketURL"] = serialInput("socket URL: ");
     doc["componentID"] = serialInput("component ID: ");
+    doc["componentAlias"] = serialInput("component alias: ");
     Serial.println("");
 
     #if STEPPERCOUNT > 0
@@ -479,6 +487,7 @@ void setViaSerial() {
     doc["socketPort"] = serialInput("socket Port: ").toInt();
     doc["socketURL"] = serialInput("socket URL: ");
     doc["componentID"] = serialInput("component ID: ");
+    doc["componentAlias"] = serialInput("component alias: ");
     Serial.println("");
   }
   
