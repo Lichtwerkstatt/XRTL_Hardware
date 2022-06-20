@@ -72,7 +72,7 @@ static esp_err_t init_camera()
 // windowing works seems to work for now with several drawbacks
 // aspect ratio should remain, already slight deviations regularly (but not for all values??) result in faulty images
 // 
-void setWindow(int resolution, int xOffset, int yOffset, int xLength, int yLength) {
+void setWindowRaw(int resolution, int xOffset, int yOffset, int xLength, int yLength) {
   sensor_t * s = esp_camera_sensor_get();
   /*s->set_res_raw(s, startX, startY, endX, endY, offsetX, offsetY, totalX, totalY, outputX, outputY, scale, binning);
   s->set_res_raw(s, gets cast to ov2640_sensor_mode_t, unused, unused, unused, offsetX, offsetY, totalX, totalY, outputX, outputY, unused, unused);

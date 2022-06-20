@@ -91,32 +91,590 @@ void reportState() {
   Serial.println(output);
 }
 
+#if STEPPERCOUNT > 0
+  void moveStepperOne(JsonObject &command) {
+    auto val = command["val"];
+    if ( !( val.is<int>() or val.is<float>() ) )  {// TO DO: implement float
+      sendError(wrong_type, "<val> is missing or no float or integer but was expected to be");
+      return;
+    }
+
+    //passed availability checks, prepare for movement
+    busyState = true;
+    wasRunning = true;
+    stepperOne.enableOutputs();
+    int target;
+
+    // control by slider
+    if (settings.stepperOneSlider) {
+      if ( (val.as<int>() > 100) or (val.as<int>() < 0) ) {
+        sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
+      }
+      target = map(constrain(val.as<int>(), 0, 100), 0, 100, settings.stepperOneMin, settings.stepperOneMax);
+    }
+
+    // control by steps
+    else {
+      stepperOne.move(val.as<int>());
+      target = stepperOne.targetPosition();
+      // check if boundaries would be violated:
+      if ( (target < settings.stepperOneMin) or (target > settings.stepperOneMax) ) {
+        target = constrain(target, settings.stepperOneMin, settings.stepperOneMax);
+        sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
+      }
+    }
+      
+    stepperOne.moveTo(target);
+      
+    #if HASINFOLED
+      infoLED.pulse(0, 40, 100);
+    #endif
+      
+    reportState(); 
+    return;
+  }
+#endif
+
+#if STEPPERCOUNT > 1
+  void moveStepperTwo(JsonObject &command) {
+    auto val = command["val"];
+    if ( !( val.is<int>() or val.is<float>() ) )  {// TO DO: implement float
+      sendError(wrong_type, "<val> is missing or no float or integer but was expected to be");
+      return;
+    }
+
+    // passed availability checks, prepare for movement
+    busyState = true;
+    wasRunning = true;
+    stepperTwo.enableOutputs();
+    int target;
+
+    // control as slider
+    if (settings.stepperTwoSlider) {
+      if ( (val.as<int>() > 100) or (val.as<int>() < 0) ) {
+        sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
+      }
+      target = map(val.as<int>(), 0, 100, settings.stepperTwoMin, settings.stepperTwoMax);
+    }
+
+    // control by steps
+    else {
+      stepperTwo.move(val.as<int>());
+      target = stepperTwo.targetPosition();
+      if ( (target < settings.stepperTwoMin) or (target > settings.stepperTwoMax) ) {
+        target = constrain(target, settings.stepperTwoMin, settings.stepperTwoMax);
+        sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
+      }
+    }
+      
+    stepperTwo.moveTo(target);
+    
+    #if HASINFOLED
+      infoLED.pulse(0, 40, 100);
+    #endif
+      
+    reportState();
+    return;
+  }
+#endif
+
+#if SERVOCOUNT > 0
+  void moveServoOne(JsonObject &command) {
+    auto val = command["val"];
+    if ( !( val.is<int>() or val.is<float>() ) )  {// TO DO: implement float
+      sendError(wrong_type, "<val> is missing or no float or integer but was expected to be");
+      return;
+    }
+    Serial.printf("found value: %i\n", val.as<int>());
+    int target = val.as<int>();
+
+    // check boundaries
+    if ( (target < settings.servoOneMinAngle) or (target > settings.servoOneMaxAngle) ) {
+      target = constrain(target, settings.servoOneMinAngle, settings.servoOneMaxAngle);
+      sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
+    }
+
+    // passed all checks, map to target interval and move servo
+    servoOne.write(map(target,settings.servoOneMinAngle,settings.servoOneMaxAngle,0,180));
+    reportState();
+    return;
+  }
+#endif
+
+#if SERVOCOUNT > 1
+  void moveServoTwo(JsonObject &command) {
+    auto val = command["val"];
+    if ( !( val.is<int>() or val.is<float>() ) )  {// TO DO: implement float
+      sendError(wrong_type, "<val> is missing or no float or integer but was expected to be");
+      return;
+    }
+    Serial.printf("found value: %i\n", val.as<int>());
+    int target = val.as<int>();
+
+    // check boundaries
+    if ( (target < settings.servoTwoMinAngle) or (target > settings.servoTwoMaxAngle) ) {
+      target = constrain(target, settings.servoTwoMinAngle, settings.servoTwoMaxAngle);
+      sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
+    }
+
+    // passed all checks, map to target interval and move servo
+    servoTwo.write(map(target,settings.servoTwoMinAngle,settings.servoTwoMaxAngle,0,180));
+    reportState();
+    return;
+  }
+#endif
+
+#if RELAISCOUNT > 0
+  
+  void moveRelayOne(JsonObject &command) {
+  // safety check: socket still connected?
+    if (!socketIO.isConnected()) {
+      Serial.println("[WARNING] refused to switch relay: no connection to server");
+      return;
+    }
+
+    auto val = command["val"];
+    if (!val.is<bool>()) {
+      if (val.is<int>()) { // check if 0 or 1 is used instead
+        if ( (val != 1) and (val != 0) ) {
+          sendError(wrong_type,"<val> is no bool but was expected to be");
+          return;
+        }
+      }
+      else {
+        sendError(wrong_type,"<val> is no bool but was expected to be");
+        return;
+      }
+    }
+
+    // all checks passed, switch relay:
+    relaisOne.toggle(val);
+    reportState();
+    return;
+  }
+#endif
+
+#if RELAISCOUNT > 1
+  void moveRelayTwo(JsonObject &command) {
+  // safety check: socket still connected?
+    if (!socketIO.isConnected()) {
+      Serial.println("[WARNING] refused to switch relay: no connection to server");
+      return;
+    }
+      
+    auto val = command["val"];
+    if (!val.is<bool>()) {
+      if (val.is<int>()) { // check if 0 or 1 is used instead
+        if ( (val != 1) and (val != 0) ) {
+          sendError(wrong_type,"<val> is no bool but was expected to be");
+          return;
+        }
+      }
+      else {
+        sendError(wrong_type,"<val> is no bool but was expected to be");
+        return;
+      }
+    }
+
+    // all checks passed, switch relay:
+    relaisTwo.toggle(val);
+    reportState();
+    return;
+  }
+#endif
+
 #if ISCAMERA
-// send frame if available
-void startStreaming() {
-  strcpy(binaryLeadFrame, "451-[\"pic\",{\"componentId\":\"");
-  strcat(binaryLeadFrame, settings.componentID.c_str());
-  strcat(binaryLeadFrame,"\",\"image\":{\"_placeholder\":true,\"num\":0}}]");
-  streamRunning = true;
-  reportState();
-  lastFrameTime = esp_timer_get_time();
-}
+  // send frame if available
+  void startStreaming() {
+    strcpy(binaryLeadFrame, "451-[\"pic\",{\"componentId\":\"");
+    strcat(binaryLeadFrame, settings.componentID.c_str());
+    strcat(binaryLeadFrame,"\",\"image\":{\"_placeholder\":true,\"num\":0}}]");
+    streamRunning = true;
+    reportState();
+    lastFrameTime = esp_timer_get_time();
+  }
 
-//stop sending frames
-void stopStreaming() {
-  streamRunning = false;
-  reportState();
-}
+  // stop sending frames
+  void stopStreaming() {
+    streamRunning = false;
+    reportState();
+  }
 
-//set maximum frame rate, might be lower in reality
-void setMaxFrameRate(float frameRate) {
-  frameIntervalCap = 1000000 / frameRate;
-  Serial.printf("frame interval cap set to %i µs\n", frameIntervalCap);
-}
+  //set maximum frame rate, might be lower in reality
+  void setMaxFrameRate(float frameRate) {
+    frameIntervalCap = 1000000 / frameRate;
+    Serial.printf("frame interval cap set to %i µs\n", frameIntervalCap);
+  }
+  
+  void setFrameSize(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+    Serial.println("trying to change frame size");
+    String val = command["val"];  // to do: check for type
+    if (strcmp(val.c_str(),"UXGA") == 0) {
+      s->set_framesize(s, FRAMESIZE_UXGA);
+      Serial.println("changed frame size to UXGA");// 1600 x 1200 px
+      return;
+    }
+    else if (strcmp(val.c_str(),"QVGA") == 0) {
+      s->set_framesize(s, FRAMESIZE_QVGA);
+      Serial.println("changed frame size to QVGA");// 320 x 240 px
+      return;
+    }
+    else if (strcmp(val.c_str(),"CIF") == 0) {
+      s->set_framesize(s, FRAMESIZE_CIF);
+      Serial.println("changed frame size to CIF");// 352 x 288 px
+      return;
+    }
+    else if (strcmp(val.c_str(),"VGA") == 0) {
+      s->set_framesize(s, FRAMESIZE_VGA);
+      Serial.println("changed frame size to VGA");// 640 x 480 px
+      return;
+    }
+    else if (strcmp(val.c_str(),"SVGA") == 0) {
+      s->set_framesize(s, FRAMESIZE_SVGA);
+      Serial.println("changed frame size to SVGA");// 800 x 600 px
+      return;
+    }
+    else if (strcmp(val.c_str(),"XGA") == 0) {
+      s->set_framesize(s, FRAMESIZE_XGA);
+      Serial.println("changed frame size to XGA");// 1024 x 768 px
+      return;
+    }
+    else if (strcmp(val.c_str(),"SXGA") == 0) {
+      s->set_framesize(s, FRAMESIZE_SXGA);
+      Serial.println("changed frame size to SXGA");// 1280 x 1024 px
+      return;
+    }
+    else {
+      sendError(unknown_key,"requested frame size unknown, complete list: UXGA, QVGA, CIF, VGA, SVGA, XGA, SXGA");
+      return;
+    }
+  }
+
+  void setWindow(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+      
+    auto val = command["xOffset"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<xOffset> is no int but was expected to be");
+      return;
+    }
+    int xOffset = val.as<int>();
+    if ( (xOffset < 0) or (xOffset > 1600) ) {
+      xOffset = constrain(xOffset, 0, 1600);
+      sendError(out_of_bounds,"<xOffset> was out of bounds and has been constrained to (0, 1600)");
+    }
+
+    val = command["yOffset"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<yOffset> is no int but was expected to be");
+      return;
+    }
+    int yOffset = val.as<int>();
+    if ( (yOffset < 0) or (yOffset > 1200) ) {
+      yOffset = constrain(yOffset, 0 , 1200);
+      sendError(out_of_bounds,"<yOffset> was out of bound and has been constrained to (0, 1200)");
+    }
+
+    val = command["xLength"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<xLength> is no int but was expected to be");
+      return;
+    }
+    int xLength = val.as<int>();
+    if ( (xLength < 0) or (xLength > 1600 - xOffset) ) {
+      xLength = constrain(xLength, 0, 1600 - xOffset);
+      sendError(out_of_bounds,"<xLength> was out of bounds and has been constrained to (0, 1600 - xOffset)");
+    }
+    val = command["yLength"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<yLength> is no int but was expected to be");
+      return;
+    }
+    int yLength = val.as<int>();
+    if ( (yLength < 0) or (yLength > 1200 - yOffset) ) {
+      yLength = constrain(yLength, 0, 1200 - yOffset);
+      sendError(out_of_bounds,"<yLength> was out of bounds and has been constrained to (0, 1200 - yOffset)");
+    }
+      
+    setWindowRaw(0, xOffset, yOffset, xLength, yLength);
+    Serial.printf("changed window to origin (%i, %i) and length (%i, %i)\n", xOffset, yOffset, xLength, yLength);
+    return;
+  }
+
+  void setQuality(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+     
+    auto val = command["val"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<val> is no int but was expected to be");
+      return;
+    }
+      
+    int quality = val.as<int>();
+    if ( (quality < 10) or (quality > 63) ) {
+      quality = constrain(quality,10,63);
+      sendError(out_of_bounds,"<quality> was out of bounds and has been constrained to (10, 63)");
+    }
+      
+    s->set_quality(s,quality);
+    Serial.printf("changed jpeg quality to %i\n", quality);
+    return;
+  }
+
+  void setBrightness(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+
+    auto val = command["val"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<val> is no int but was expected to be");
+      return;
+    }
+      
+    int brightness = val.as<int>();
+    if ( (brightness < -2) or (brightness > 2) ){
+      brightness = constrain(brightness,-2,2);
+      sendError(out_of_bounds,"<brightness> was out of bound and has been constrained to (-2,2)");
+    }
+      
+    s->set_brightness(s, brightness);
+    Serial.printf("set brightness to %i\n", brightness);
+    return;
+  }
+
+  void setContrast(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+
+    auto val = command["val"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<val> is no int but was expected to be");
+      return;
+    }
+  
+    int contrast = val.as<int>();
+    if ( (contrast < -2) or (contrast > 2) ) {
+      contrast = constrain(contrast,-2,2); // to do: check for type
+      sendError(out_of_bounds,"<contrast> was out of bound and has been constrained to (-2,2)");
+    }
+      
+    s->set_contrast(s,val);
+    Serial.printf("set contrast to %i\n",contrast);
+    return;
+  }
+
+  void setSaturation(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+
+    auto val = command["val"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<val> is no int but was expected to be");
+      return;
+    }
+
+    int saturation = val.as<int>();
+    if ( (saturation < -2) or (saturation > 2) ) {
+      saturation = constrain(saturation,-2,2);
+      sendError(out_of_bounds,"<saturation> was out of bound and has been constrained to (-2,2)");
+    }
+    s->set_saturation(s,val);
+    Serial.printf("set saturation to %i\n",saturation);
+    return;
+  }
+
+  void setFrameRate(JsonObject &command) {
+    auto val = command["val"];
+    if ( !((val.is<float>()) or (val.is<int>())) ) {
+      sendError(wrong_type,"<val> is no float or int but was expected to be");
+      return;
+    }
+
+    float frameRate = val.as<float>();
+    if ( (frameRate <= 0) or (frameRate > 120) ) {
+      frameRate = constrain(frameRate, 0.0001, 120);
+      sendError(out_of_bounds,"<frame rate> was out of bound and has been constrained to (0.0001,120)");
+    }
+    setMaxFrameRate(frameRate);
+    Serial.printf("set maximum frame rate to %f fps\n", frameRate);
+    return;
+  }
+
+  void setGain(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+    auto val = command["val"];
+
+    // automatic control via string "auto"
+    if (val.is<String>()) {
+      if (strcmp(val, "auto") == 0) {
+        s->set_gain_ctrl(s,1);
+        Serial.println("auto gain on");
+      }
+      else {
+        sendError(out_of_bounds,"only <auto> allowed if <gain> is a string");
+      }
+      return;
+    }
+
+    // manual control via integer
+    else if (val.is<int>()) {
+      int gain = val.as<int>();
+      if ( (gain < 0) or (gain > 30) ) {
+        gain = constrain(gain,0,30);
+        sendError(out_of_bounds,"<gain> was out of bounds and has been constrained to (0,30)");
+      }
+      
+      s->set_gain_ctrl(s,0);
+      s->set_agc_gain(s,gain);
+      Serial.printf("auto gain off, gain set to %i\n",gain);
+      return;
+    }
+
+    else {
+      sendError(wrong_type,"<val> is no String or int but was expected to be");
+      return;
+    }
+  }
+
+  void setExposure(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+    auto val = command["val"];
+
+    //
+    if (val.is<String>()) {
+      if (strcmp(val, "auto") == 0) {
+        s->set_exposure_ctrl(s,1);
+        Serial.println("auto exposure on");
+      }
+      else {
+        sendError(out_of_bounds,"only <auto> allowed if <exposure> is a string");
+      }
+      return;
+    }
+
+    // 
+    else if (val.is<int>()) {
+      int exposure = val.as<int>();
+      if ( (exposure < 0) or (exposure > 1200) ) {
+        exposure = constrain(exposure, 0, 1200);
+        sendError(out_of_bounds,"<exposure> was out of bounds and has been constrained to (0, 1200)"); 
+      }
+      
+      s->set_gain_ctrl(s,0);
+      s->set_aec_value(s,exposure);
+      Serial.printf("auto exposure off, set exposure to %i\n",exposure);
+      return;
+    }
+
+    else {
+      sendError(wrong_type,"<val> is no String or int but was expected to be");
+      return;
+    }
+  }
+
+  void setSharpness(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+
+    auto val = command["val"];
+    if (!val.is<int>()) {
+      sendError(wrong_type,"<val> is no int but was expected to be");
+      return;
+    }
+      
+    int sharpness = val.as<int>();
+    if ( (sharpness < -2) or (sharpness > 2) ) {
+      sharpness = constrain(sharpness,-2,2);
+      sendError(out_of_bounds,"<sharpness> was out of bounds and has been constrained to (-2,2)");
+    }
+    s->set_sharpness(s,val);
+    Serial.printf("set sharpness to %i\n", sharpness);
+    return;
+  }
+
+  void setGrayFilter(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+
+    auto val = command["val"];
+    if (!val.is<bool>()) {
+      if (val.is<int>()) { // check if 0 or 1 is used instead
+        if ( (val != 1) and (val != 0) ) {
+          sendError(wrong_type,"<val> is no bool but was expected to be");
+          return;
+        }
+      }
+      else {
+        sendError(wrong_type,"<val> is no bool but was expected to be");
+        return;
+      }
+    }
+
+    bool gray = val.as<bool>(); // also TO DO: check pixelformat for native gray -- save data! 
+    if (gray) {
+      s->set_special_effect(s, 2);
+      Serial.println("gray filter on");
+    }
+      
+    else if (!gray) {
+      s->set_special_effect(s,0);
+      Serial.println("gray filter off");
+    }
+  }
+
+  
+  void mirrorImage(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+
+    auto val = command["val"];
+    if (!val.is<bool>()) {
+      if (val.is<int>()) { // check if 0 or 1 is used instead
+        if ( (val != 1) and (val != 0) ) {
+          sendError(wrong_type,"<val> is no bool but was expected to be");
+          return;
+        }
+      }
+      else {
+        sendError(wrong_type,"<val> is no bool but was expected to be");
+        return;
+      }
+    }
+
+    s->set_hmirror(s, val.as<bool>());
+  }
+
+  void flipImage(JsonObject &command) {
+    // get address of camera settings
+    sensor_t * s = esp_camera_sensor_get();
+
+    auto val = command["val"];
+    if (!val.is<bool>()) {
+      if (val.is<int>()) { // check if 0 or 1 is used instead
+        if ( (val != 1) and (val != 0) ) {
+          sendError(wrong_type,"<val> is no bool but was expected to be");
+          return;
+        }
+      }
+      else {
+        sendError(wrong_type,"<val> is no bool but was expected to be");
+        return;
+      }
+    }
+
+    s->set_vflip(s, val.as<bool>());
+  }
+  
 #endif
 
 // command handler for extended command structure
-void eventCommandNested(JsonObject command) {
+void eventCommandNested(JsonObject &command) {
   Serial.println("identified nested command structure");
   auto controlId = command["controlId"];
   String control = controlId.as<String>();
@@ -134,175 +692,42 @@ void eventCommandNested(JsonObject command) {
         
   #if STEPPERCOUNT > 0
     else if (strcmp(control.c_str(),settings.stepperOneName.c_str()) == 0) {
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type, "<val> is no integer");
-        return;
-      }
-
-      //passed availability checks, prepare for movement
-      busyState = true;
-      wasRunning = true;
-      stepperOne.enableOutputs();
-      int target;
-
-      // control by slider
-      if (settings.stepperOneSlider) {
-        if ( (val.as<int>() > 100) or (val.as<int>() < 0) ) {
-          sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
-        }
-        target = map(constrain(val.as<int>(), 0, 100), 0, 100, settings.stepperOneMin, settings.stepperOneMax);
-      }
-
-      // control by steps
-      else {
-        stepperOne.move(val.as<int>());
-        target = stepperOne.targetPosition();
-        // check if boundaries would be violated:
-        if ( (target < settings.stepperOneMin) or (target > settings.stepperOneMax) ) {
-          target = constrain(target, settings.stepperOneMin, settings.stepperOneMax);
-          sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
-        }
-      }
-      
-      stepperOne.moveTo(target);
-      
-      #if HASINFOLED
-        infoLED.pulse(0, 40, 100);
-      #endif
-      
-      reportState(); 
-      return;      
+      moveStepperOne(command);
+      return;
     }
   #endif
   
   #if STEPPERCOUNT > 1
     else if (strcmp(control.c_str(),settings.stepperTwoName.c_str()) == 0) {
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type, "<val> is no integer but was expected to be");
-        return;
-      }
-
-      // passed availability checks, prepare for movement
-      busyState = true;
-      wasRunning = true;
-      stepperTwo.enableOutputs();
-      int target;
-
-      // control as slider
-      if (settings.stepperTwoSlider) {
-        if ( (val.as<int>() > 100) or (val.as<int>() < 0) ) {
-          sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
-        }
-        target = map(val.as<int>(), 0, 100, settings.stepperTwoMin, settings.stepperTwoMax);
-      }
-
-      // control by steps
-      else {
-        stepperTwo.move(val.as<int>());
-        target = stepperTwo.targetPosition();
-        if ( (target < settings.stepperTwoMin) or (target > settings.stepperTwoMax) ) {
-          target = constrain(target, settings.stepperTwoMin, settings.stepperTwoMax);
-          sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
-        }
-      }
-      
-      stepperTwo.moveTo(target);
-      
-      #if HASINFOLED
-        infoLED.pulse(0, 40, 100);
-      #endif
-      
-      reportState();
+      moveStepperTwo(command);
       return;
     }
   #endif
         
   #if SERVOCOUNT > 0
     else if (strcmp(control.c_str(),settings.servoOneName.c_str()) == 0) {
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type, "<val> is no integer but was expected to be");
-        return;
-      }
-      Serial.printf("found value: %i\n", val.as<int>());
-      int target = val.as<int>();
-
-      // check boundaries
-      if ( (target < settings.servoOneMinAngle) or (target > settings.servoOneMaxAngle) ) {
-        target = constrain(target, settings.servoOneMinAngle, settings.servoOneMaxAngle);
-        sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
-      }
-
-      // passed all checks, map to target interval and move servo
-      servoOne.write(map(target,settings.servoOneMinAngle,settings.servoOneMaxAngle,0,180));
-      reportState();
+      moveServoOne(command);
       return;
     }
   #endif
   
   #if SERVOCOUNT > 1
     else if (strcmp(control.c_str(),settings.servoTwoName.c_str()) == 0) {
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type, "<val> is no integer but was expected to be");
-        return;
-      }
-      Serial.printf("found value: %i\n", val.as<int>());
-      int target = val.as<int>();
-
-      // check boundaries
-      if ( (target < settings.servoTwoMinAngle) or (target > settings.servoTwoMaxAngle) ) {
-        target = constrain(target, settings.servoTwoMinAngle, settings.servoTwoMaxAngle);
-        sendError(out_of_bounds, "<val> is out of bounds, target set to limit");
-      }
-
-      // passed all checks, map to target interval and move servo
-      servoTwo.write(map(target,settings.servoTwoMinAngle,settings.servoTwoMaxAngle,0,180));
-      reportState();
+      moveServoTwo(command);
       return;
     }
   #endif
         
   #if RELAISCOUNT > 0
     else if (strcmp(control.c_str(),settings.relaisOneName.c_str()) == 0) {
-      
-      // safety check: socket still connected?
-      if (!socketIO.isConnected()) {
-        return;
-      }
-
-      auto val = command["val"];
-      if (!val.is<bool>()) {
-        sendError(wrong_type, "<val> is no boolean but was expected to be");
-        return;
-      }
-
-      // all checks passed, switch relay:
-      relaisOne.toggle(val);
-      reportState();
+      moveRelayOne(command);
       return;
     }
   #endif
   
   #if RELAISCOUNT > 1
     else if (strcmp(control.c_str(),settings.relaisTwoName.c_str()) == 0) {
-
-      // safety check: socket still connected?
-      if (!socketIO.isConnected()) {
-        return;
-      }
-      
-      auto val = command["val"];
-      if (!val.is<bool>()) {
-        sendError(wrong_type, "<val> is no boolean but was expected to be");
-        return;
-      }
-
-      // all checks passed, switch relay:
-      relaisTwo.toggle(val);
-      reportState();
+      moveRelayTwo(command);
       return;
     }
   #endif
@@ -310,339 +735,80 @@ void eventCommandNested(JsonObject command) {
   #if ISCAMERA
     // change frame size
     else if (strcmp(control.c_str(),"frame size") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-      Serial.println("trying to change frame size");
-      String val = command["val"];  // to do: check for type
-      if (strcmp(val.c_str(),"UXGA") == 0) {
-        s->set_framesize(s, FRAMESIZE_UXGA);
-        Serial.println("changed frame size to UXGA");// 1600 x 1200 px
-        return;
-      }
-      else if (strcmp(val.c_str(),"QVGA") == 0) {
-        s->set_framesize(s, FRAMESIZE_QVGA);
-        Serial.println("changed frame size to QVGA");// 320 x 240 px
-        return;
-      }
-      else if (strcmp(val.c_str(),"CIF") == 0) {
-        s->set_framesize(s, FRAMESIZE_CIF);
-        Serial.println("changed frame size to CIF");// 352 x 288 px
-        return;
-      }
-      else if (strcmp(val.c_str(),"VGA") == 0) {
-        s->set_framesize(s, FRAMESIZE_VGA);
-        Serial.println("changed frame size to VGA");// 640 x 480 px
-        return;
-      }
-      else if (strcmp(val.c_str(),"SVGA") == 0) {
-        s->set_framesize(s, FRAMESIZE_SVGA);
-        Serial.println("changed frame size to SVGA");// 800 x 600 px
-        return;
-      }
-      else if (strcmp(val.c_str(),"XGA") == 0) {
-        s->set_framesize(s, FRAMESIZE_XGA);
-        Serial.println("changed frame size to XGA");// 1024 x 768 px
-        return;
-      }
-      else if (strcmp(val.c_str(),"SXGA") == 0) {
-        s->set_framesize(s, FRAMESIZE_SXGA);
-        Serial.println("changed frame size to SXGA");// 1280 x 1024 px
-        return;
-      }
-      else {
-        sendError(unknown_key,"requested frame size unknown, complete list: UXGA, QVGA, CIF, VGA, SVGA, XGA, SXGA");
-        return;
-      }
+      setFrameSize(command);
+      return;
     }
 
     // window camera output to avoid sending unneeded data
     else if (strcmp(control.c_str(), "window") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-      
-      auto val = command["xOffset"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<xOffset> is no int but was expected to be");
-        return;
-      }
-      int xOffset = val.as<int>();
-      if ( (xOffset < 0) or (xOffset > 1600) ) {
-        xOffset = constrain(xOffset, 0, 1600);
-        sendError(out_of_bounds,"<xOffset> was out of bounds and has been constrained to (0, 1600)");
-      }
-
-      val = command["yOffset"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<yOffset> is no int but was expected to be");
-        return;
-      }
-      int yOffset = val.as<int>();
-      if ( (yOffset < 0) or (yOffset > 1200) ) {
-        yOffset = constrain(yOffset, 0 , 1200);
-        sendError(out_of_bounds,"<yOffset> was out of bound and has been constrained to (0, 1200)");
-      }
-
-      val = command["xLength"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<xLength> is no int but was expected to be");
-        return;
-      }
-      int xLength = val.as<int>();
-      if ( (xLength < 0) or (xLength > 1600 - xOffset) ) {
-        xLength = constrain(xLength, 0, 1600 - xOffset);
-        sendError(out_of_bounds,"<xLength> was out of bounds and has been constrained to (0, 1600 - xOffset)");
-      }
-
-      val = command["yLength"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<yLength> is no int but was expected to be");
-        return;
-      }
-      int yLength = val.as<int>();
-      if ( (yLength < 0) or (yLength > 1200 - yOffset) ) {
-        yLength = constrain(yLength, 0, 1200 - yOffset);
-        sendError(out_of_bounds,"<yLength> was out of bounds and has been constrained to (0, 1200 - yOffset)");
-      }
-      
-      setWindow(0, xOffset, yOffset, xLength, yLength);
-      Serial.printf("changed window to origin (%i, %i) and length (%i, %i)\n", xOffset, yOffset, xLength, yLength);
+      setWindow(command);
       return;
     }
 
     // jpeg quality: 10 = best
     else if (strcmp(control.c_str(), "quality") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-      
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<val> is no int but was expected to be");
-        return;
-      }
-      
-      int quality = val.as<int>();
-      if ( (quality < 10) or (quality > 63) ) {
-        quality = constrain(quality,10,63);
-        sendError(out_of_bounds,"<quality> was out of bounds and has been constrained to (10, 63)");
-      }
-      
-      s->set_quality(s,quality);
-      Serial.printf("changed jpeg quality to %i\n", quality);
+      setQuality(command);
       return;
     }
 
     // brightness
     else if (strcmp(control.c_str(), "brightness") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<val> is no int but was expected to be");
-        return;
-      }
-      
-      int brightness = val.as<int>();
-      if ( (brightness < -2) or (brightness > 2) ){
-        brightness = constrain(brightness,-2,2);
-        sendError(out_of_bounds,"<brightness> was out of bound and has been constrained to (-2,2)");
-      }
-      
-      s->set_brightness(s, brightness);
-      Serial.printf("set brightness to %i\n", brightness);
+      setBrightness(command);
       return;
     }
 
     // contrast
     else if (strcmp(control.c_str(), "contrast") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<val> is no int but was expected to be");
-        return;
-      }
-
-      
-      int contrast = val.as<int>();
-      if ( (contrast < -2) or (contrast > 2) ) {
-        contrast = constrain(contrast,-2,2); // to do: check for type
-        sendError(out_of_bounds,"<contrast> was out of bound and has been constrained to (-2,2)");
-      }
-      
-      s->set_contrast(s,val);
-      Serial.printf("set contrast to %i\n",contrast);
+      setContrast(command);
       return;
     }
 
     // saturation
     else if (strcmp(control.c_str(), "saturation") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<val> is no int but was expected to be");
-        return;
-      }
-
-      int saturation = val.as<int>();
-      if ( (saturation < -2) or (saturation > 2) ) {
-        saturation = constrain(saturation,-2,2);
-        sendError(out_of_bounds,"<saturation> was out of bound and has been constrained to (-2,2)");
-      }
-      s->set_saturation(s,val);
-      Serial.printf("set saturation to %i\n",saturation);
+      setSaturation(command);
       return;
     }
 
     // upper limit for frame rate, actual rate might be lower due to network etc.
     else if (strcmp(control.c_str(), "frame rate") == 0) {
-
-      auto val = command["val"];
-      if ( !((val.is<float>()) or (val.is<int>())) ) {
-        sendError(wrong_type,"<val> is no float or int but was expected to be");
-        return;
-      }
-
-      float frameRate = val.as<float>();
-      if ( (frameRate <= 0) or (frameRate > 120) ) {
-        frameRate = constrain(frameRate, 0.0001, 120);
-        sendError(out_of_bounds,"<frame rate> was out of bound and has been constrained to (0.0001,120)");
-      }
-      setMaxFrameRate(frameRate);
-      Serial.printf("set maximum frame rate to %f fps\n", frameRate);
+      setFrameRate(command);
       return;
     }
 
     // automatic gain control
     else if (strcmp(control.c_str(), "gain") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-      auto val = command["val"];
-
-      // automatic control via string "auto"
-      if (val.is<String>()) {
-        if (strcmp(val, "auto") == 0) {
-          s->set_gain_ctrl(s,1);
-          Serial.println("auto gain on");
-        }
-        else {
-          sendError(out_of_bounds,"only <auto> allowed if <gain> is a string");
-        }
-        return;
-      }
-
-      // manual control via integer
-      else if (val.is<int>()) {
-        int gain = val.as<int>();
-        if ( (gain < 0) or (gain > 30) ) {
-          gain = constrain(gain,0,30);
-          sendError(out_of_bounds,"<gain> was out of bounds and has been constrained to (0,30)");
-        }
-        
-        s->set_gain_ctrl(s,0);
-        s->set_agc_gain(s,gain);
-        Serial.printf("auto gain off, gain set to %i\n",gain);
-        return;
-      }
-
-      else {
-        sendError(wrong_type,"<val> is no String or int but was expected to be");
-        return;
-      }
+      setGain(command);
+      return;
     }
 
     // 
     else if (strcmp(control.c_str(), "exposure") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-      auto val = command["val"];
-
-      //
-      if (val.is<String>()) {
-        if (strcmp(val, "auto") == 0) {
-          s->set_exposure_ctrl(s,1);
-          Serial.println("auto exposure on");
-        }
-        else {
-          sendError(out_of_bounds,"only <auto> allowed if <exposure> is a string");
-        }
-        return;
-      }
-
-      // 
-      else if (val.is<int>()) {
-        int exposure = val.as<int>();
-        if ( (exposure < 0) or (exposure > 1200) ) {
-          exposure = constrain(exposure, 0, 1200);
-          sendError(out_of_bounds,"<exposure> was out of bounds and has been constrained to (0, 1200)"); 
-        }
-        
-        s->set_gain_ctrl(s,0);
-        s->set_aec_value(s,exposure);
-        Serial.printf("auto exposure off, set exposure to %i\n",exposure);
-        return;
-      }
-
-      else {
-        sendError(wrong_type,"<val> is no String or int but was expected to be");
-        return;
-      }
+      setExposure(command);
+      return;
     }
 
     // sharpness
     else if (strcmp(control.c_str(), "sharpness") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
+      setSharpness(command);
+      return;
+    }
 
-      auto val = command["val"];
-      if (!val.is<int>()) {
-        sendError(wrong_type,"<val> is no int but was expected to be");
-        return;
-      }
-      
-      int sharpness = val.as<int>();
-      if ( (sharpness < -2) or (sharpness > 2) ) {
-        sharpness = constrain(sharpness,-2,2);
-        sendError(out_of_bounds,"<sharpness> was out of bounds and has been constrained to (-2,2)");
-      }
-      s->set_sharpness(s,val);
-      Serial.printf("set sharpness to %i\n", sharpness);
+    // flip image
+    else if (strcmp(control.c_str(), "flip") == 0) {
+      flipImage(command);
+      return;
+    }
+
+    // mirror image
+    else if (strcmp(control.c_str(), "mirror") == 0) {
+      mirrorImage(command);
       return;
     }
 
     // gray filter
     else if (strcmp(control.c_str(), "gray") == 0) {
-      // get address of camera settings
-      sensor_t * s = esp_camera_sensor_get();
-
-      auto val = command["val"];
-      if (!val.is<bool>()) {
-        if (val.is<int>()) { // check if 0 or 1 is used instead
-          if ( (val != 1) and (val != 0) ) {
-            sendError(wrong_type,"<val> is no bool but was expected to be");
-            return;
-          }
-        }
-        else {
-          sendError(wrong_type,"<val> is no bool but was expected to be");
-          return;
-        }
-      }
-
-      bool gray = val.as<bool>(); // also TO DO: check pixelformat for native gray -- save data! 
-      if (gray) {
-        s->set_special_effect(s, 2);
-        Serial.println("gray filter on");
-      }
-      
-      else if (!gray) {
-        s->set_special_effect(s,0);
-        Serial.println("gray filter off");
-      }
-      
+      setGrayFilter(command);
+      return;      
     }
     
   #endif
@@ -658,7 +824,7 @@ void eventCommandNested(JsonObject command) {
 
 
 // command handler for simple command structure
-void eventCommandString(String command) {
+void eventCommandString(String &command) {
   Serial.printf("identified simple command: %s\n", command.c_str());
 
   // validity check
@@ -734,6 +900,8 @@ void eventCommandString(String command) {
           
     saveSettings();// remember current stepper positions
     socketIO.disconnect();
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
     ESP.restart();
   }
 
@@ -866,6 +1034,11 @@ void eventHandler(uint8_t * eventPayload, size_t eventLength) {
     return;
   }
 
+  // newLog event will be recognized to surpress errors, but not handled
+  else if (strcmp(eventName.c_str(),"newLog") == 0) {
+    return;
+  }
+
   // change stuff on the component
   else if (strcmp(eventName.c_str(),"command") == 0) {
     Serial.println("identified command event");
@@ -888,10 +1061,10 @@ void eventHandler(uint8_t * eventPayload, size_t eventLength) {
       }
     }
     String component = componentId;
-    Serial.printf("identified componentID: %s\n", component);
+    Serial.printf("identified componentID: %s\n", component.c_str());
 
     // act only when this comoponent is involved
-    if ( (strcmp(component.c_str(),settings.componentID.c_str()) == 0) or (strcmp(component.c_str(),"*") == 0) ) {
+    if ( (strcmp(component.c_str(),settings.componentID.c_str()) == 0) or (strcmp(component.c_str(),"*") == 0) or ( (strcmp(component.c_str(),settings.componentAlias.c_str()) == 0) and (strcmp(settings.componentAlias.c_str(),"null") != 0) and (settings.componentAlias != 0) ) ) {
       Serial.printf("componentId recognized: %s (that's me)\n", component.c_str());
       auto command = receivedPayload["command"];
 
@@ -955,15 +1128,21 @@ void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length)
         relaisTwo.stop();
       #endif
       break;
-    case sIOtype_CONNECT:
+    case sIOtype_CONNECT: {
       Serial.printf("[IOc] Connected to URL: %s\n", payload);
 
       // join default namespace
       socketIO.send(sIOtype_CONNECT, "/");
+      // wait between 100 and 300 ms
+      int64_t waitTime = esp_timer_get_time() + random(100000,300000);
+      while ( esp_timer_get_time() < waitTime) {
+        yield();
+      }
       reportState();
       #if HASINFOLED
         infoLED.hsv(20000, 255, 40);
       #endif
+      }
       break;
     case sIOtype_EVENT:
       eventHandler(payload, length);
