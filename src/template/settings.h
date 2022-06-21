@@ -585,6 +585,10 @@ void setViaSerial() {
 
   else {
     Serial.println("unable to choose setup routine");
+    eventIdDisconnected = WiFi.onEvent(WiFiStationDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+    eventIdGotIP = WiFi.onEvent(WiFiStationGotIP, ARDUINO_EVENT_WIFI_STA_GOT_IP);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin();
     return;
   }
 

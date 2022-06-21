@@ -979,6 +979,7 @@ void eventHandler(uint8_t * eventPayload, size_t eventLength) {
     // serial setup
     if (strcmp((char *)eventPayload, "serial setup") == 0) {
       setViaSerial();
+      return;
     }
 
     // serial device info request
@@ -1039,6 +1040,10 @@ void eventHandler(uint8_t * eventPayload, size_t eventLength) {
     return;
   }
 
+  else if (strcmp(eventName.c_str(),"status") == 0) {
+    return;
+  }
+
   // change stuff on the component
   else if (strcmp(eventName.c_str(),"command") == 0) {
     Serial.println("identified command event");
@@ -1049,7 +1054,8 @@ void eventHandler(uint8_t * eventPayload, size_t eventLength) {
 
     // check validity
     if (!componentId.is<String>()) {
-      
+
+      //if field is missing it might be parsed as 0 or "null"
       if ((componentId == NULL) or (strcmp(componentId.as<String>().c_str(),"null") == 0)) {
         sendError(field_is_null,"<componentId> is null");
         return;
@@ -1061,10 +1067,17 @@ void eventHandler(uint8_t * eventPayload, size_t eventLength) {
       }
     }
     String component = componentId;
-    Serial.printf("identified componentID: %s\n", component.c_str());
 
-    // act only when this comoponent is involved
-    if ( (strcmp(component.c_str(),settings.componentID.c_str()) == 0) or (strcmp(component.c_str(),"*") == 0) or ( (strcmp(component.c_str(),settings.componentAlias.c_str()) == 0) and (strcmp(settings.componentAlias.c_str(),"null") != 0) and (settings.componentAlias != 0) ) ) {
+    // componentId is a string, but is it empty?
+    if ( (component == 0) or (strcmp(component.c_str(),"null") == 0) ) {
+      sendError(field_is_null,"<componentId> is null");
+      return;
+    }
+    
+    Serial.printf("identified componentID: %s\n", component.c_str());
+    
+    // act only when this comoponent is involved: componentId, componentAlias or * (wildcard)
+    if ( (strcmp(component.c_str(),settings.componentID.c_str()) == 0) or (strcmp(component.c_str(),"*") == 0) or (strcmp(component.c_str(),settings.componentAlias.c_str()) == 0) ) {
       Serial.printf("componentId recognized: %s (that's me)\n", component.c_str());
       auto command = receivedPayload["command"];
 
