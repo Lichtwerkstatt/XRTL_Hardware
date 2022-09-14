@@ -1,5 +1,9 @@
 #include "OutputModule.h"
 
+XRTLoutput::XRTLoutput(bool isPWM){
+    pwm = isPWM;
+}
+
 void XRTLoutput::attach(uint8_t controlPin) {
     pin = controlPin;
     pinMode(pin, OUTPUT);
@@ -8,26 +12,48 @@ void XRTLoutput::attach(uint8_t controlPin) {
 
 void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency) {
     pin = controlPin;
+    channel = pwmChannel;
+    frequency = pwmFrequency;
+    ledcSetup(channel, frequency, 8); // 8 bit resolution -> steps in percentage: 1/255 = 0.39%
     pinMode(pin, OUTPUT);
-    digitalWrite(pin, LOW);
+    ledcAttachPin(pin, channel);
 }
 
 void XRTLoutput::toggle(bool targetState) {
     if (targetState == state) return;
 
     if (targetState) {
-        digitalWrite(pin, HIGH);
+        if (pwm) {
+            ledcWrite(channel, power);
+        }
+        else {
+            digitalWrite(pin, HIGH);
+        }
         state = true;
     }
     else {
-        digitalWrite(pin, LOW);
+        if (pwm) {
+            ledcWrite(channel, 0);
+        }
+        else {
+            digitalWrite(pin, LOW);
+        }
         state = false;
     }
 
 }
 
-void XRTLoutput::set(uint8_t powerLvl){
-    
+void XRTLoutput::write(uint8_t powerLvl){
+    if (!pwm) return;
+    power = powerLvl;
+}
+
+uint8_t XRTLoutput::read() {
+    if (!pwm) {
+        if (state) return 255;
+        else return 0;
+    }
+    return power;
 }
 
 bool XRTLoutput::getState(){
@@ -49,6 +75,11 @@ void OutputModule::saveSettings(DynamicJsonDocument& settings) {
 
     saving["controlId"] = control;
     saving["pin"] = pin;
+    saving["pwm"] = pwm;
+
+    if (!pwm) return;
+    saving["channel"] = channel;
+    saving["frequency"] = frequency;
 }
 
 void OutputModule::loadSettings(DynamicJsonDocument& settings) {
@@ -56,6 +87,7 @@ void OutputModule::loadSettings(DynamicJsonDocument& settings) {
 
     control = loaded["controlId"].as<String>();
     pin = loaded["pin"].as<uint8_t>();
+    pwm = loaded["pwm"].as<bool>();
 
     if (strcmp(control.c_str(), "null") == 0){
         control = id;
@@ -63,6 +95,19 @@ void OutputModule::loadSettings(DynamicJsonDocument& settings) {
     if (pin == 0) {
         pin = 27;
     }
+
+    if (pwm) {
+        channel = loaded["channel"].as<uint8_t>();
+        frequency = loaded["frequency"].as<uint16_t>();
+
+        if ( (channel < 0) or (channel > 15) ) {
+            channel = 5;
+        }
+        if ( (frequency != 1000) and (frequency != 5000) and (frequency != 8000) and (frequency != 10000)) { // only 1, 5, 8 and 10 kHz allowed
+            frequency = 1000;
+        }
+    }
+
 
     if (!debugging) return;
     Serial.println("");
@@ -73,13 +118,21 @@ void OutputModule::loadSettings(DynamicJsonDocument& settings) {
 
     Serial.printf("controlId: %s\n",control.c_str());
     Serial.printf("pin: %d\n",pin);
+    Serial.printf(pwm ? "PWM output\n" : "relay output\n");
+
+    if (!pwm) return;
+
+    Serial.printf("PWM channel: %d\n", channel);
+    Serial.printf("PWM frequency: %d Hz\n", frequency);
 }
 
 void OutputModule::getStatus(JsonObject& payload, JsonObject& status){
-    if (out == NULL) return; // avoid errors: status might be called in setup before init
+    if (out == NULL) return; // avoid errors: status might be called in setup before init occured
+    JsonObject outputState = status.createNestedObject(control); 
 
-    status[control] = out->getState();
-    return;
+    outputState["isOn"] = out->getState();
+    if (!pwm) return;
+    outputState["pwm"] = out->read();
 }
 
 void OutputModule::setViaSerial() {
@@ -90,6 +143,11 @@ void OutputModule::setViaSerial() {
     Serial.println("");
 
     control = serialInput("controlId: ");
+    pwm = (strcmp(serialInput("pwm (y/n): ").c_str(),"y") == 0);
+    if (pwm) {
+        channel = serialInput("channel: ").toInt();
+        frequency = serialInput("frequency: ").toInt();
+    }
 
     if ( strcmp(serialInput("change pin binding (y/n): ").c_str(),"y") != 0) return;
 
@@ -97,7 +155,15 @@ void OutputModule::setViaSerial() {
 }
 
 void OutputModule::setup() {
-    out->attach(pin);
+    out = new XRTLoutput(pwm);
+
+    if (!pwm) {
+        out->attach(pin);
+    }
+    else {
+        out->attach(pin, channel, frequency);
+    }
+
     out->toggle(false);
 }
 
@@ -115,6 +181,7 @@ void OutputModule::stop() {
 }
 
 void OutputModule::handleInternal(internalEvent event){
+    if ( out == NULL) return;
     switch(event) {
         case socket_disconnected: {
             out->toggle(false);
@@ -135,20 +202,24 @@ void OutputModule::handleInternal(internalEvent event){
 bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
     if (strcmp(control.c_str(), controlId.c_str() ) != 0) return false;
 
+    auto pwmField = command["pwm"];
+
+    if (pwmField.is<int>()) {
+        uint8_t powerLvl = pwmField.as<uint8_t>();
+        out->write(powerLvl);
+        
+    }
+
     auto valField = command["val"];
 
     if (valField.is<bool>()) {
         bool val = valField.as<bool>();
 
         out->toggle(val);
-        sendStatus();
-        return true;
     }
     else if (valField.is<int>()) {
         uint16_t val = valField.as<uint16_t>();
         pulse(val);
-        sendStatus();
-        return true;
     }
     else {
         String error = "[";
@@ -158,7 +229,8 @@ bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
         return true;
     }
     
-    return false;
+    sendStatus();
+    return true;
 }
 
 template<typename... Args>

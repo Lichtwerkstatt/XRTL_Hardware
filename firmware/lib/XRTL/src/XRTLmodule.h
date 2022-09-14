@@ -4,7 +4,7 @@
 #include "Arduino.h"
 #include "ArduinoJson.h"
 
-//which module to initiate?
+// internal reference for module type
 enum moduleType {
   socket,
   wifi,
@@ -16,6 +16,7 @@ enum moduleType {
   output
 };
 
+// display names for modules
 static const char* moduleNames[8] = {
   "socket",
   "wifi",

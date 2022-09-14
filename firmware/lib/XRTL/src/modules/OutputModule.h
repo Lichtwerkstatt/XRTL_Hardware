@@ -6,21 +6,23 @@
 class XRTLoutput {
     private:
     bool state = false;
-    bool pwm;
-    uint8_t power;
+    uint8_t power = 0;
 
     uint8_t pin;
+    bool pwm;
     uint8_t channel;
     uint16_t frequency;
 
     public:
 
+    XRTLoutput(bool isPWM);
+
     void attach(uint8_t controlPin);
     void attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency);
     // turn on/off
     void toggle(bool targetState);
-    // set powerlevel if PWM
-    void set(uint8_t powerLvl);
+    // set powerlevel for PWM
+    void write(uint8_t powerLvl);
     uint8_t read();
     bool getState();
 
@@ -31,14 +33,16 @@ class OutputModule: public XRTLmodule {
     String control;
 
     uint8_t pin;
+
+    bool pwm = false;
     uint8_t channel;
-    uint8_t frequency;
+    uint16_t frequency;
 
-    int64_t switchTime = 300 * 1000 * 1000;
+    int64_t switchTime = 0;
 
 
 
-    XRTLoutput* out = new XRTLoutput; 
+    XRTLoutput* out = NULL; 
 
     public:
 
