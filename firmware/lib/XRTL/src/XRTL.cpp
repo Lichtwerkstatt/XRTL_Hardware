@@ -107,7 +107,7 @@ XRTLmodule* XRTL::operator[](String moduleName) {
 }
 
 void XRTL::saveSettings() {
-  DynamicJsonDocument doc(1024);
+  DynamicJsonDocument doc(2048);
 
   for (int i = 0; i < moduleCount; i++) {
     module[i]->saveSettings(doc);
@@ -447,6 +447,8 @@ void XRTL::editConfig() {
   Serial.println(centerString("",39,'='));
   Serial.println(centerString("config saved",39,' '));
   Serial.println(centerString("",39,'='));
+
+  ESP.restart();
 }
 
 template<typename... Args>

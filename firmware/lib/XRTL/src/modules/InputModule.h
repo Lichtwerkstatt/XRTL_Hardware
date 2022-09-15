@@ -3,6 +3,7 @@
 
 #include "XRTLmodule.h"
 
+// collecting and averaging 
 class XRTLinput {
     private:
     uint8_t pin = 35;
@@ -13,7 +14,7 @@ class XRTLinput {
 
     uint16_t sampleCount = 0;
     uint32_t buffer = 0;
-    double voltage = 0;
+    double voltage = 0.0;
 
     public:
 
@@ -31,11 +32,13 @@ class InputModule: public XRTLmodule {
 
     bool isStreaming = false;
     int64_t next;
-    uint32_t intervalMicroSeconds;
+    uint32_t intervalMicroSeconds = 0;
 
-    bool rangeChecking;
-    double loBound = 142.0; // lowest output value of ADC
-    double hiBound = 3300.0; // voltage reference
+    bool rangeChecking = false;
+    double loBound = 0.0; // lowest ADC output: 142 mV, 0 will never get triggered
+    double hiBound = 3300.0; // voltage reference, will never get triggered
+    uint32_t deadTimeMicroSeconds = 0;
+    int64_t nextCheck;
 
     public:
 
@@ -43,6 +46,7 @@ class InputModule: public XRTLmodule {
 
     void setup();
     void loop();
+    void stop();
 
     void saveSettings(DynamicJsonDocument& settings);
     void loadSettings(DynamicJsonDocument& settings);
