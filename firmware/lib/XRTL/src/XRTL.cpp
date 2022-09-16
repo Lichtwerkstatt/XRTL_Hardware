@@ -8,6 +8,7 @@ void XRTL::setup(){
   loadConfig();
   loadSettings();
 
+  // execute setup of all modules
   for (int i = 0; i < moduleCount; i++){
     module[i]->setup();
   }
@@ -17,6 +18,7 @@ void XRTL::setup(){
 
 void XRTL::loop(){
   if ( Serial.available() ) {
+    //allow to switch into debug mode
     String input = Serial.readStringUntil('\n');
     if ( strcmp(input.c_str(), "debug") == 0 ) {
       debugging = !debugging;
@@ -24,6 +26,7 @@ void XRTL::loop(){
       else notify(debug_off);
     }
 
+    //only allow inputs if debugging
     if (debugging) {
       if (strcmp(input.c_str(),"setup") == 0){
         setViaSerial();
@@ -46,6 +49,7 @@ void XRTL::loop(){
     }
   }
 
+  // execute loop of each module
   for (int i = 0; i < moduleCount; i++) {
     module[i]->loop();
   }
