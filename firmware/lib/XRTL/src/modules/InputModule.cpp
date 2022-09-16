@@ -27,8 +27,7 @@ void XRTLinput::loop() {
             sampleCount++;
         }
         voltage = ((double) buffer) / ((double)sampleCount);
-        // Serial.printf("[input] %dx oversampling, voltage: %f\n", sampleCount, voltage);
-        Serial.printf("[input] new voltage aquired: %f mV (%d x oversampling)\n", voltage, sampleCount);
+        //Serial.printf("[input] new voltage aquired: %f mV (%d x oversampling)\n", voltage, sampleCount);
         buffer = 0;
         sampleCount = 0;
     }
@@ -54,32 +53,36 @@ void InputModule::setup() {
 
 void InputModule::loop() {
     input->loop();
+    
+    int64_t now = esp_timer_get_time();
+    double value = input->readMilliVolts();
 
     // check for violation of input bounds
     if (rangeChecking) {
-        if (esp_timer_get_time() > nextCheck) {
-
-            double value = input->readMilliVolts();
+        if (now > nextCheck) {
 
             if (value >= hiBound) {
                 notify(input_trigger_high);
-                nextCheck = esp_timer_get_time() + deadTimeMicroSeconds;
+                nextCheck = now + deadTimeMicroSeconds;
             }
 
             if (value <= loBound) {
                 notify(input_trigger_low);
-                nextCheck = esp_timer_get_time() + deadTimeMicroSeconds;
+                nextCheck = now + deadTimeMicroSeconds;
             }
 
         }
     }
 
     if (!isStreaming) return;
-    //send voltage
+
+    if (now < next) return;
+    debug("[%s] reporting voltage: %f mV\n", id.c_str(), value);
+    // TODO: send voltage
 }
 
 void InputModule::stop() {
-    isStreaming = false;
+    stopStreaming();
 }
 
 void InputModule::saveSettings(DynamicJsonDocument& settings){
@@ -89,6 +92,7 @@ void InputModule::saveSettings(DynamicJsonDocument& settings){
     saving["time"] = time;
 
     saving["rangeChecking"] = rangeChecking;
+
     if (!rangeChecking) return;
     saving["loBound"] = loBound;
     saving["hiBound"] = hiBound;
@@ -158,6 +162,14 @@ void InputModule::setStreamTimeCap(uint32_t milliSeconds) {
 
 void InputModule::startStreaming() {
     next = esp_timer_get_time() + intervalMicroSeconds;
+    isStreaming = true;
+    debug("[%s] starting to stream value", id.c_str());
+    // TODO: setting up message for sending binary
+}
+
+void InputModule::stopStreaming() {
+    isStreaming = false;
+    debug("[%s] stopped streaming values", id.c_str());
 }
 
 bool InputModule::handleCommand(String& command) {
@@ -165,7 +177,12 @@ bool InputModule::handleCommand(String& command) {
 }
 
 bool InputModule::handleCommand(String& controlId, JsonObject& command) {
-    return false;
+    if (strcmp(controlId.c_str(),id.c_str()) != 0) return false;
+
+    if (isStreaming) stopStreaming();
+    else startStreaming();
+
+    return true;
 }
 
 void InputModule::handleInternal(internalEvent event) {

@@ -27,12 +27,15 @@ class XRTLinput {
 class InputModule: public XRTLmodule {
     private:
     XRTLinput* input;
+
+    String control;
+
     uint8_t pin;
     uint16_t time;
 
     bool isStreaming = false;
     int64_t next;
-    uint32_t intervalMicroSeconds = 0;
+    uint32_t intervalMicroSeconds = 2000000; // TODO: add interface for streaming interval
 
     bool rangeChecking = false;
     double loBound = 0.0; // lowest ADC output: 142 mV, 0 will never get triggered
