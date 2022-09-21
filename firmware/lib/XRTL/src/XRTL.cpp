@@ -176,6 +176,13 @@ void XRTL::loadSettings() {
   LittleFS.end();
 
   for (int i = 0; i < moduleCount; i++) {
+    if (debugging) {
+      Serial.println("");
+      Serial.println(centerString("", 39, '-'));
+      Serial.println(centerString(module[i]->getID(), 39, ' '));
+      Serial.println(centerString("", 39, '-'));
+      Serial.println("");
+    }
     module[i]->loadSettings(doc);
   }
 

@@ -33,13 +33,8 @@ void WifiModule::loadSettings(DynamicJsonDocument& settings) {
   enterprise = loadValue<bool>("enterprise", loaded, false);
   ssid = loadValue<String>("ssid", loaded, "");
   password = loadValue<String>("password", loaded, "");
+  
   if (debugging) {
-    Serial.println("");
-    Serial.println(centerString("",39, '-').c_str());
-    Serial.println(centerString(id,39, ' ').c_str());
-    Serial.println(centerString("",39, '-').c_str());
-    Serial.println("");
-
     Serial.printf(enterprise ? centerString("enterprise WiFi", 39, ' ').c_str() : centerString("regular WiFi", 39, ' ').c_str());
     Serial.println("");
 

@@ -43,12 +43,6 @@ void StepperModule::loadSettings(DynamicJsonDocument& settings) {
 
   if (!debugging) return;
 
-  Serial.println("");
-  Serial.println(centerString("",39, '-'));
-  Serial.println(centerString(id,39, ' '));
-  Serial.println(centerString("",39, '-'));
-  Serial.println("");
-
   Serial.printf("controlId: %s\n",control.c_str());
   Serial.printf("acceleration: %i\n", accel);
   Serial.printf("speed: %i\n", speed);

@@ -272,11 +272,6 @@ void SocketModule::loadSettings(DynamicJsonDocument& settings) {
   alias = loadValue<String>("alias", loaded, "");
 
   if (!debugging) return;
-  Serial.println("");
-  Serial.println(centerString("",39, '-'));
-  Serial.println(centerString(id,39, ' '));
-  Serial.println(centerString("",39, '-'));
-  Serial.println("");
 
   Serial.printf("ip: %s\n", ip.c_str());
   Serial.printf("port: %i\n", port);

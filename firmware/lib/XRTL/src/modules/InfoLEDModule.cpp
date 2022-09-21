@@ -211,19 +211,12 @@ void InfoLEDModule::saveSettings(DynamicJsonDocument& settings) {
 
 void InfoLEDModule::loadSettings(DynamicJsonDocument& settings) {
   JsonObject loaded = settings[id];
-  
+
   pin = loadValue<uint8_t>("pin", loaded, 32);
   pixel = loadValue<uint8_t>("pixel", loaded, 12);
 
   if (!debugging) return;
-  Serial.println("");
-  Serial.println(centerString("",39,'-'));
-  Serial.println(centerString(id, 39, ' '));
-  Serial.println(centerString("",39,'-'));
-  Serial.println("");
-
   Serial.printf("control pin: %i\n", pin);
-
   Serial.printf("pixel number: %i\n", pixel);
 }
 

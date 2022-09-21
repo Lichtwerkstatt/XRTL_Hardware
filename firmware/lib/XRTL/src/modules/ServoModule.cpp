@@ -33,12 +33,6 @@ void ServoModule::loadSettings(DynamicJsonDocument& settings){
   
   if (!debugging) return;
 
-  Serial.println("");
-  Serial.println(centerString("",39,'-'));
-  Serial.println(centerString(id,39, ' '));
-  Serial.println(centerString("",39, '-'));
-  Serial.println("");
-
   Serial.printf("controlId: %s\n", control.c_str());
   Serial.printf("frequency: %d Hz\n", frequency);
   Serial.printf("minimum duty time: %d µs\n", minDuty);
