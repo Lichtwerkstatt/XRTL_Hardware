@@ -76,7 +76,7 @@ void InputModule::loop() {
     if (!isStreaming) return;
 
     if (now < next) return;
-    //debug("[%s] reporting voltage: %f mV", id.c_str(), value);
+    //debug("reporting voltage: %f mV", value);
     next = now + intervalMicroSeconds;
 
     DynamicJsonDocument doc(512);
@@ -170,12 +170,12 @@ void InputModule::setViaSerial() {
 void InputModule::startStreaming() {
     next = esp_timer_get_time(); // immediately deliver first value
     isStreaming = true;
-    debug("[%s] starting to stream value", id.c_str());
+    debug("starting to stream value");
 }
 
 void InputModule::stopStreaming() {
     isStreaming = false;
-    debug("[%s] stopped streaming values", id.c_str());
+    debug("stopped streaming values");
 }
 
 bool InputModule::handleCommand(String& command) {
@@ -255,16 +255,16 @@ void InputModule::handleInternal(internalEvent event) {
             //stop streaming
             if (!isStreaming) return;
             isStreaming = false;
-            debug("[%s] stream stopped due to disconnect event",id.c_str());
+            debug("stream stopped due to disconnect event");
             return;
         }
         
         case input_trigger_high: {
-            debug("[%s] high level trigger tripped", id.c_str());
+            debug("high level trigger tripped");
             return;
         }
         case input_trigger_low: {
-            debug("[%s] low level trigger tripped", id.c_str());
+            debug("low level trigger tripped");
             return;
         }
 

@@ -28,37 +28,33 @@ void WifiModule::saveSettings(DynamicJsonDocument& settings) {
 }
 
 void WifiModule::loadSettings(DynamicJsonDocument& settings) {
-  debug("");
-  debug(centerString("",39, '-').c_str());
-  debug(centerString(id,39, ' ').c_str());
-  debug(centerString("",39, '-').c_str());
-  debug("");
-
   JsonObject loaded = settings[id];
 
   enterprise = loadValue<bool>("enterprise", loaded, false);
   ssid = loadValue<String>("ssid", loaded, "");
   password = loadValue<String>("password", loaded, "");
+  if (debugging) {
+    Serial.println("");
+    Serial.println(centerString("",39, '-').c_str());
+    Serial.println(centerString(id,39, ' ').c_str());
+    Serial.println(centerString("",39, '-').c_str());
+    Serial.println("");
 
-  if (enterprise) {
-    debug(centerString("enterprise WiFi",39,' ').c_str());
-  }
-  else {  
-    debug(centerString("regular WiFi",39,' ').c_str());
-  }
+    Serial.printf(enterprise ? centerString("enterprise WiFi", 39, ' ').c_str() : centerString("regular WiFi", 39, ' ').c_str());
+    Serial.println("");
 
-  debug("SSID: %s",ssid.c_str());
-  debug("password: %s", password.c_str());
+    Serial.printf("SSID: %s\n",ssid.c_str());
+    Serial.printf("password: %s\n", password.c_str());
+  }
   
-  if (!enterprise) {
-    return;
-  }
+  if (!enterprise) return;
 
   username = loadValue<String>("username", loaded, "");
   anonymous = loadValue<String>("anonymous", loaded, "");
 
-  debug("username: %s", username.c_str());
-  debug("anonymous: %s", anonymous.c_str());
+  if (!debugging) return;
+  Serial.printf("username: %s\n", username.c_str());
+  Serial.printf("anonymous: %s\n", anonymous.c_str());
 }
 
 void WifiModule::setViaSerial() {
@@ -86,17 +82,17 @@ void WifiModule::setup() {
 
   if (enterprise) {
     if ( (username == 0) or (strcmp(username.c_str(),"null") == 0) ){
-      debug("[%s] WARNING! username not set -- falling back to regular WiFi", id.c_str());
+      debug("WARNING! username not set -- falling back to regular WiFi");
 
       enterprise = false;
     }
     else if ( (anonymous == 0) or (strcmp(anonymous.c_str(),"null") == 0) ) {
-      debug("[%s] WARNING! anonymous identiy not set -- falling back to regular WiFi", id.c_str());
+      debug("WARNING! anonymous identiy not set -- falling back to regular WiFi");
 
       enterprise = false;
     }
     else {
-      debug("[%s] starting enterprise level WiFi", id.c_str());
+      debug("starting enterprise level WiFi");
 
       WiFi.begin(ssid.c_str(), WPA2_AUTH_PEAP, anonymous.c_str(), username.c_str(), password.c_str());
     }
@@ -104,10 +100,10 @@ void WifiModule::setup() {
 
   if (!enterprise) {
     if ( (ssid == 0) or (strcmp(ssid.c_str(),"null") == 0) ) {
-      debug("[%s] WARNING! SSID not set -- unable to start WiFi", id.c_str());
+      debug("WARNING! SSID not set -- unable to start WiFi");
     }
     else {
-      debug("[%s] starting regular WiFi", id.c_str());
+      debug("starting regular WiFi");
 
       WiFi.begin(ssid.c_str(), password.c_str());
     }

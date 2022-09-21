@@ -23,7 +23,7 @@ class XRTL {
   // endpoint for sending
   SocketModule* socketIO = NULL;
 
-  // enable serial output
+  // enable serial debug output
   bool debugging = true;
 
   public:
@@ -42,7 +42,12 @@ class XRTL {
 
   // send string over Serial if debugging is activated (printf syntax)
   template<typename... Args>
-  void debug(Args... args);
+  void debug(Args... args) {
+    if (!debugging) return;
+    Serial.print("[core] ");
+    Serial.printf(args...);
+    Serial.print('\n');
+  };
 
   // manage active modules
   void loadConfig();

@@ -40,11 +40,11 @@ void CameraModule::setup() {
   //initialize the camera
   esp_err_t err = esp_camera_init(&camera_config);
   if (err != ESP_OK) {
-    debug("[%s] camera init failed: %s", id.c_str(), err);
+    debug("camera init failed: %s", err);
     return;
   }
   settings = esp_camera_sensor_get();
-  debug("[%s] camera initialized", id.c_str());
+  debug("camera initialized");
 }
 
 void CameraModule::virtualPTZ() {

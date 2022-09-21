@@ -115,9 +115,11 @@ class XRTLmodule {
   virtual void loadSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be read from settings file
   virtual void setViaSerial(); // directly poll parameters via serial monitor
 
+  // debug message printing the module ID
   template<typename... Args>
   void debug(Args... args) {
     if (!debugging) return;
+    Serial.printf("[%s] ", id.c_str());
     Serial.printf(args...);
     Serial.print('\n');
   }

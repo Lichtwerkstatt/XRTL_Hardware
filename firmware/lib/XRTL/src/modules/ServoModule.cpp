@@ -39,37 +39,19 @@ void ServoModule::loadSettings(DynamicJsonDocument& settings){
   Serial.println(centerString("",39, '-'));
   Serial.println("");
 
-  Serial.print("controlId: ");
-  Serial.println(control.c_str());
-
-  Serial.print("frequency: ");
-  Serial.println(frequency);
-
-  Serial.print("minmum duty time: ");
-  Serial.println(minDuty);
-
-  Serial.print("maximum duty time: ");
-  Serial.println(maxDuty);
-
-  Serial.print("minmum angle: ");
-  Serial.println(minAngle);
-
-  Serial.print("maximum angle: ");
-  Serial.println(maxAngle);
-
-  Serial.print("initial position: ");
-  Serial.println(initial);
-
-  if (relativeCtrl) {
-    Serial.println("servo control is relative");
-  }
-  else {
-    Serial.println("servo controled by angle");
-  }
+  Serial.printf("controlId: %s\n", control.c_str());
+  Serial.printf("frequency: %d Hz\n", frequency);
+  Serial.printf("minimum duty time: %d µs\n", minDuty);
+  Serial.printf("maximum duty time: %d µs\n", maxDuty);
+  Serial.printf("minimum angle: %d\n", minAngle);
+  Serial.printf("maximum angle: %d\n", maxAngle);
+  Serial.printf("initial position: %d\n", initial);
 
   Serial.println("");
-  Serial.print("control pin: ");
-  Serial.println(pin);
+  Serial.printf(relativeCtrl ? "servo controle is relative\n" : "servo controle is absolute\n");
+
+  Serial.println("");
+  Serial.printf("control pin: %d\n", pin);
 }
 
 void ServoModule::setViaSerial(){

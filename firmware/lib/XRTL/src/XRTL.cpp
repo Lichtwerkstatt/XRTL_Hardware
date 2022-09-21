@@ -3,7 +3,7 @@
 void XRTL::setup(){ 
   Serial.begin(115200);
 
-  debug("[core] starting setup");
+  debug("starting setup");
 
   loadConfig();
   loadSettings();
@@ -13,7 +13,7 @@ void XRTL::setup(){
     module[i]->setup();
   }
   
-  debug("[%s] setup complete", "core");
+  debug("setup complete");
 }
 
 void XRTL::loop(){
@@ -60,42 +60,42 @@ void XRTL::addModule(String moduleName, moduleType category) {
     case socket: {
       socketIO = new SocketModule(moduleName,this);
       module[moduleCount++] = socketIO;
-      debug("[core] socket module added: <%s>", moduleName);
+      debug("socket module added: <%s>", moduleName);
       return;
     }
     case wifi: {
       module[moduleCount++] = new WifiModule(moduleName,this);
-      debug("[core] wifi module added: <%s>", moduleName);
+      debug("wifi module added: <%s>", moduleName);
       return;
     }
     case infoLED: {
       module[moduleCount++] = new InfoLEDModule(moduleName,this);
-      debug("[core] infoLED module added: <%s>", moduleName);
+      debug("infoLED module added: <%s>", moduleName);
       return;
     }
     case stepper: {
       module[moduleCount++] = new StepperModule(moduleName,this);
-      debug("[core] stepper module added: <%s>", moduleName);
+      debug("stepper module added: <%s>", moduleName);
       return;
     }
     case servo: {
       module[moduleCount++] = new ServoModule(moduleName,this);
-      debug("[core] servo module added: <%s>", moduleName);
+      debug("servo module added: <%s>", moduleName);
       return;
     }
     case camera: {
       module[moduleCount++] = new CameraModule(moduleName,this);
-      debug("[core] camera module added: <%s>", moduleName);
+      debug("camera module added: <%s>", moduleName);
       return;
     }
     case output: {
       module[moduleCount++] = new OutputModule(moduleName,this);
-      debug("[core] output module added: <%s>", moduleName);
+      debug("output module added: <%s>", moduleName);
       return;
     }
     case input: {
       module[moduleCount++] = new InputModule(moduleName,this);
-      debug("[core] input module added: <%s>", moduleName);
+      debug("input module added: <%s>", moduleName);
       return;
     }
   }
@@ -118,23 +118,23 @@ void XRTL::saveSettings() {
   }
 
   if (!LittleFS.begin(false)) {
-    debug("[core] failed to mount LittleFS");
-    debug("[core] trying to format LittleFS");
+    debug("failed to mount LittleFS");
+    debug("trying to format LittleFS");
     if (!LittleFS.begin(true)) {
-      debug("[core] failed to mount LittleFS again");
-      debug("[core] unable to format LittleFS");
-      debug("[core] unable to save settings");
+      debug("failed to mount LittleFS again");
+      debug("unable to format LittleFS");
+      debug("unable to save settings");
       return;
     }
   }
 
   File file = LittleFS.open("/settings.txt", "w");
   if (serializeJsonPretty(doc, file) == 0) {
-    debug("[core] failed to write file");
-    debug("[core] could not save settings");
+    debug("failed to write file");
+    debug("could not save settings");
   }
   else {
-    debug("[core] settings successfully saved");
+    debug("settings successfully saved");
   }
   file.close();
   LittleFS.end();
@@ -150,17 +150,17 @@ void XRTL::loadSettings() {
   }
   
   if (!LittleFS.begin(false)) {
-    debug("[core] failed to mount LittleFS");
-    debug("[core] trying to format LittleFS");
+    debug("failed to mount LittleFS");
+    debug("trying to format LittleFS");
     if(!LittleFS.begin(true)) {
-      debug("[core] failed to mount LittleFS again");
-      debug("[core] unable to format LittleFS");
-      debug("[core] could not load settings");
+      debug("failed to mount LittleFS again");
+      debug("unable to format LittleFS");
+      debug("could not load settings");
       return;
     }
     else {
-      debug("[core] successfully formated file system");
-      debug("[core] creating new settings file");
+      debug("successfully formated file system");
+      debug("creating new settings file");
 
       saveSettings();
     }
@@ -170,7 +170,7 @@ void XRTL::loadSettings() {
   DynamicJsonDocument doc(2048);
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
-    debug("[core] deserializeJson() failed while loading settings: <%s>", error.c_str());
+    debug("deserializeJson() failed while loading settings: <%s>", error.c_str());
   }
   file.close();
   LittleFS.end();
@@ -225,7 +225,7 @@ void XRTL::setViaSerial() {
 }
 
 void XRTL::stop(){
-  debug("[core] stopping all modules");
+  debug("stopping all modules");
 
   for (int i = 0; i < moduleCount; i++) {
     module[i]->stop();
@@ -375,18 +375,18 @@ void XRTL::loadConfig() {
   }
   
   if (!LittleFS.begin(false)) {
-    debug("[core] failed to mount LittleFS");
-    debug("[core] trying to format LittleFS");
+    debug("failed to mount LittleFS");
+    debug("trying to format LittleFS");
 
     if(!LittleFS.begin(true)) {
-      debug("[core] failed to mount LittleFS again");
-      debug("[core] unable to format LittleFS");
-      debug("[core] could not load config");
+      debug("failed to mount LittleFS again");
+      debug("unable to format LittleFS");
+      debug("could not load config");
       return;
     }
     else {
-      debug("[core] successfully formated file system");
-      debug("[core] creating new config file");
+      debug("successfully formated file system");
+      debug("creating new config file");
     }
   }
 
@@ -394,7 +394,7 @@ void XRTL::loadConfig() {
   DynamicJsonDocument doc(1024);
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
-    debug("[core] deserializeJson() failed while loading config: <%s>", error.c_str());
+    debug("deserializeJson() failed while loading config: <%s>", error.c_str());
   }
   file.close();
   LittleFS.end();
@@ -405,7 +405,7 @@ void XRTL::loadConfig() {
     addModule(it->key().c_str(), it->value());
   }
 
-  debug("[core] config loaded, modules: %d", moduleCount);
+  debug("config loaded, modules: %d", moduleCount);
 }
 
 void XRTL::editConfig() {
@@ -435,23 +435,23 @@ void XRTL::editConfig() {
   }
 
   if (!LittleFS.begin(false)) {
-    debug("[core] failed to mount LittleFS");
-    debug("[core] trying to format LittleFS");
+    debug("failed to mount LittleFS");
+    debug("trying to format LittleFS");
     if (!LittleFS.begin(true)) {
-      debug("[core] failed to mount LittleFS again");
-      debug("[core] unable to format LittleFS");
-      debug("[core] unable to save settings");
+      debug("failed to mount LittleFS again");
+      debug("unable to format LittleFS");
+      debug("unable to save settings");
       return;
     }
   }
 
   File file = LittleFS.open("/config.txt", "w");
   if (serializeJsonPretty(doc, file) == 0) {
-    debug("[core] failed to write file");
-    debug("[core] could not save settings");
+    debug("failed to write file");
+    debug("could not save settings");
   }
   else {
-    debug("[core] config successfully saved");
+    debug("config successfully saved");
   }
   file.close();
   LittleFS.end();
@@ -462,10 +462,3 @@ void XRTL::editConfig() {
 
   ESP.restart();
 }
-
-template<typename... Args>
-void XRTL::debug(Args... args) {
-  if (!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};
