@@ -29,10 +29,9 @@ class InputModule: public XRTLmodule {
     XRTLinput* input;
 
     String control;
-    String binaryLeadFrame;
 
     uint8_t pin;
-    uint16_t time;
+    uint16_t averageTime;
 
     bool isStreaming = false;
     int64_t next;
@@ -56,7 +55,6 @@ class InputModule: public XRTLmodule {
     void loadSettings(DynamicJsonDocument& settings);
     void setViaSerial();
 
-    void setStreamTimeCap(uint32_t milliSeconds);
     void startStreaming();
     void stopStreaming();
 
@@ -64,9 +62,6 @@ class InputModule: public XRTLmodule {
     bool handleCommand(String& command);
 
     void handleInternal(internalEvent event);
-
-    template<typename... Args>
-    void debug(Args... args);
 };
 
 #endif

@@ -38,9 +38,6 @@ class StepperModule : public XRTLmodule {
 
   bool handleCommand(String& command);
   bool handleCommand(String& controlId, JsonObject& command);
-
-  template<typename... Args>
-  void debug(Args... args);
 };
 
 #endif

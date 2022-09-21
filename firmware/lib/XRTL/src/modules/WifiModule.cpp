@@ -28,16 +28,17 @@ void WifiModule::saveSettings(DynamicJsonDocument& settings) {
 }
 
 void WifiModule::loadSettings(DynamicJsonDocument& settings) {
-    debug("");
-    debug(centerString("",39, '-').c_str());
-    debug(centerString(id,39, ' ').c_str());
-    debug(centerString("",39, '-').c_str());
-    debug("");
+  debug("");
+  debug(centerString("",39, '-').c_str());
+  debug(centerString(id,39, ' ').c_str());
+  debug(centerString("",39, '-').c_str());
+  debug("");
 
   JsonObject loaded = settings[id];
-  enterprise = loaded["enterprise"].as<bool>();
-  ssid = loaded["ssid"].as<String>();
-  password = loaded["password"].as<String>();
+
+  enterprise = loadValue<bool>("enterprise", loaded, false);
+  ssid = loadValue<String>("ssid", loaded, "");
+  password = loadValue<String>("password", loaded, "");
 
   if (enterprise) {
     debug(centerString("enterprise WiFi",39,' ').c_str());
@@ -53,8 +54,8 @@ void WifiModule::loadSettings(DynamicJsonDocument& settings) {
     return;
   }
 
-  username = loaded["username"].as<String>();
-  anonymous = loaded["anonymous"].as<String>();
+  username = loadValue<String>("username", loaded, "");
+  anonymous = loadValue<String>("anonymous", loaded, "");
 
   debug("username: %s", username.c_str());
   debug("anonymous: %s", anonymous.c_str());
@@ -146,10 +147,3 @@ void WifiModule::handleInternal(internalEvent event) {
     }
   }
 }
-
-template<typename... Args>
-void WifiModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};

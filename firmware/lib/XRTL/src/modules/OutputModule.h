@@ -61,9 +61,6 @@ class OutputModule: public XRTLmodule {
 
     void handleInternal(internalEvent state);
     bool handleCommand(String& controlId, JsonObject& command);
-
-    template<typename... Args>
-    void debug(Args... args);
 };
 
 #endif

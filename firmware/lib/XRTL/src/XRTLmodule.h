@@ -4,6 +4,16 @@
 #include "Arduino.h"
 #include "ArduinoJson.h"
 
+template <typename T>
+T loadValue(String name, JsonObject& file, T defaultValue) {
+  auto field = file[name];
+  if ( field.isNull() ) {
+    Serial.printf("WARNING: %s not set, using default value\n", name.c_str());
+    return defaultValue;
+  }
+  return field.as<T>();
+}
+
 // internal reference for module type
 enum moduleType {
   socket,
@@ -66,6 +76,9 @@ enum componentError {
 String serialInput(String query);
 // filler = +    ==>  ++++str++++
 String centerString(String str, uint8_t targetLength, char filler);
+// warning message
+String missingValue(String name);
+//
 // rescale floats
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max);
 
@@ -101,6 +114,13 @@ class XRTLmodule {
   virtual void saveSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be written in settings file
   virtual void loadSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be read from settings file
   virtual void setViaSerial(); // directly poll parameters via serial monitor
+
+  template<typename... Args>
+  void debug(Args... args) {
+    if (!debugging) return;
+    Serial.printf(args...);
+    Serial.print('\n');
+  }
 };
 
 #endif

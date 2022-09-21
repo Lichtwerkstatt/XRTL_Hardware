@@ -75,9 +75,6 @@ class InfoLEDModule : public XRTLmodule {
   void stop();
 
   void handleInternal(internalEvent event);
-
-  template<typename... Args>
-  void debug(Args... args);
 };
 
 

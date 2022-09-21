@@ -85,24 +85,15 @@ void OutputModule::saveSettings(DynamicJsonDocument& settings) {
 void OutputModule::loadSettings(DynamicJsonDocument& settings) {
     JsonObject loaded = settings[id];
 
-    control = loaded["controlId"].as<String>();
-    pin = loaded["pin"].as<uint8_t>();
+    control = loadValue<String>("controlId", loaded, id);
+    pin = loadValue<uint8_t>("pin", loaded, 27);
     pwm = loaded["pwm"].as<bool>();
-
-    if (strcmp(control.c_str(), "null") == 0){
-        control = id;
-    }
-    if (pin == 0) {
-        pin = 27;
-    }
+    pwm = loadValue<bool>("pwm", loaded, false);;
 
     if (pwm) {
-        channel = loaded["channel"].as<uint8_t>();
-        frequency = loaded["frequency"].as<uint16_t>();
+        channel = loadValue<uint8_t>("channel", loaded, 5);
+        frequency = loadValue<uint16_t>("frequency", loaded, 1000);
 
-        if ( (channel < 0) or (channel > 15) ) {
-            channel = 5;
-        }
         if ( (frequency != 1000) and (frequency != 5000) and (frequency != 8000) and (frequency != 10000)) { // only 1, 5, 8 and 10 kHz allowed
             frequency = 1000;
         }
@@ -232,10 +223,3 @@ bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
     sendStatus();
     return true;
 }
-
-template<typename... Args>
-void OutputModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};

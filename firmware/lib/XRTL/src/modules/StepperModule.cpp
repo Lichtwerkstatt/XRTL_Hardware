@@ -25,28 +25,20 @@ void StepperModule::saveSettings(DynamicJsonDocument& settings) {
 
 void StepperModule::loadSettings(DynamicJsonDocument& settings) {
   JsonObject loaded = settings[id];
-  control = loaded["control"].as<String>();
-  accel = loaded["accel"].as<uint16_t>();
-  speed = loaded["speed"].as<uint16_t>();
-  position = loaded["position"].as<int32_t>();
-  minimum = loaded["minimum"].as<int32_t>();
-  maximum = loaded["maximum"].as<int32_t>();
-  initial = loaded["initial"].as<int32_t>();
-  relativeCtrl = loaded["relativeCtrl"].as<bool>();
 
-  pin[0] = loaded["pin1"].as<uint8_t>();
-  pin[1] = loaded["pin2"].as<uint8_t>();
-  pin[2] = loaded["pin3"].as<uint8_t>();
-  pin[3] = loaded["pin4"].as<uint8_t>();
+  control = loadValue<String>("control", loaded, id);
+  accel = loadValue<uint16_t>("accel", loaded, 500);
+  speed = loadValue<uint16_t>("speed", loaded, 500);
+  position = loadValue<int32_t>("position", loaded, 0);
+  minimum = loadValue<int32_t>("minimum", loaded, -2048);
+  maximum = loadValue<int32_t>("maximum", loaded, 2048);
+  initial = loadValue<int32_t>("initial", loaded, 0);
+  relativeCtrl = loadValue<bool>("relativeCtrl", loaded, false);
 
-  //check validity where applicable, change violations to default
-  if (!strcmp(control.c_str(),"null")) {control = id;}
-  if (!accel) {accel = 500;}
-  if (!speed) {speed = 500;}
-  if (!pin[0]) {pin[0] = 19;}
-  if (!pin[1]) {pin[1] = 22;}
-  if (!pin[2]) {pin[2] = 21;}
-  if (!pin[3]) {pin[3] = 23;}
+  pin[0] = loadValue<uint8_t>("pin1", loaded, 19);
+  pin[1] = loadValue<uint8_t>("pin2", loaded, 22);
+  pin[2] = loadValue<uint8_t>("pin3", loaded, 21);
+  pin[3] = loadValue<uint8_t>("pin4", loaded, 23);
 
   if (!debugging) return;
 
@@ -64,30 +56,14 @@ void StepperModule::loadSettings(DynamicJsonDocument& settings) {
   Serial.printf("maximum: %i\n", maximum);
   Serial.printf("initial steps: %i\n", initial);
 
-  if (relativeCtrl) {
-    Serial.println("motor control is relative");
-  }
-  else {
-    Serial.println("motor is step controled");
-  }
-
+  Serial.println("");
+  Serial.printf(relativeCtrl ? "motor control is relative\n" : "motor controle is absolute\n");
   Serial.println("");
 
-  Serial.print("pin 1: ");
-  Serial.print(pin[0]);
-  Serial.print("\n");
-
-  Serial.print("pin 2: ");
-  Serial.print(pin[1]);
-  Serial.print("\n");
-
-  Serial.print("pin 3: ");
-  Serial.print(pin[2]);
-  Serial.print("\n");
-
-  Serial.print("pin 4: ");
-  Serial.print(pin[3]);
-  Serial.print("\n");
+  Serial.printf("pin 1: %d\n", pin[0]);
+  Serial.printf("pin 2: %d\n", pin[1]);
+  Serial.printf("pin 3: %d\n", pin[2]);
+  Serial.printf("pin 4: %d\n", pin[3]);
 }
 
 void StepperModule::setViaSerial() {
@@ -204,13 +180,6 @@ bool StepperModule::handleCommand(String& controlId, JsonObject& command) {
   driveStepper(command);
   return true;
 }
-
-template<typename... Args>
-void StepperModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};
 
 void StepperModule::driveStepper(JsonObject& command) {
   auto valField = command["val"];

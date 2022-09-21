@@ -27,9 +27,6 @@ class CameraModule : public XRTLmodule {
     //void getStatus();
 
     void virtualPTZ();
-
-    template<typename... Args>
-    void debug(Args... args);
 };
 
 #endif

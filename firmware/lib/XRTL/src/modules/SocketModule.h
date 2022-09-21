@@ -47,9 +47,6 @@ class SocketModule : public XRTLmodule {
   void stop();
 
   void handleInternal(internalEvent event);
-  
-  template<typename... Args>
-  void debug(Args... args);
 };
 
 void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length);

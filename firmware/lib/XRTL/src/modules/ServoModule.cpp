@@ -20,19 +20,16 @@ void ServoModule::saveSettings(DynamicJsonDocument& settings){
 
 void ServoModule::loadSettings(DynamicJsonDocument& settings){
   JsonObject loaded = settings[id];
-  control = loaded["control"].as<String>();
-  frequency = loaded["frequency"].as<uint16_t>();
-  minDuty = loaded["minDuty"].as<uint16_t>();
-  maxDuty = loaded["maxDuty"].as<uint16_t>();
-  minAngle = loaded["minAngle"].as<int16_t>();
-  maxAngle = loaded["maxAngle"].as<int16_t>();
-  initial = loaded["initial"].as<int16_t>();
-  relativeCtrl = loaded["relativeCtrl"].as<bool>();
-  pin = loaded["pin"].as<uint8_t>();
 
-  if (pin < 1) {
-    pin = 32;
-  }
+  control = loadValue<String>("control", loaded, id);
+  frequency = loadValue<uint16_t>("frequency", loaded, 50);
+  minDuty = loadValue<uint16_t>("minDuty", loaded, 1000);
+  maxDuty = loadValue<uint16_t>("maxDuty", loaded, 2000);
+  minAngle = loadValue<int16_t>("minAngle", loaded, 0);
+  maxAngle = loadValue<int16_t>("maxAngle", loaded, 90);
+  initial = loadValue<int16_t>("initial", loaded, 0);
+  relativeCtrl = loadValue<bool>("relativeCtrl", loaded, 0);
+  pin = loadValue<uint8_t>("pin", loaded, 32);
   
   if (!debugging) return;
 
@@ -182,10 +179,3 @@ void ServoModule::driveServo(JsonObject& command) {
   write(target);
   sendStatus();
 }
-
-template<typename... Args>
-void ServoModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};

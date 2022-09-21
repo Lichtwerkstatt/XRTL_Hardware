@@ -21,9 +21,6 @@ class WifiModule : public XRTLmodule {
   public:
   WifiModule(String moduleName, XRTL* source);
 
-  template<typename... Args>
-  void debug(Args... args);
-
   void saveSettings(DynamicJsonDocument& settings);
   void loadSettings(DynamicJsonDocument& settings);
   void setViaSerial();

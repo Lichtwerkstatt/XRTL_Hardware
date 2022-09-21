@@ -264,12 +264,12 @@ void SocketModule::saveSettings(DynamicJsonDocument& settings) {
 void SocketModule::loadSettings(DynamicJsonDocument& settings) {
   JsonObject loaded = settings[id];
 
-  ip = loaded["ip"].as<String>();
-  port = loaded["port"].as<uint16_t>();
-  url = loaded["url"].as<String>();
-  key = loaded["key"].as<String>();
-  component = loaded["component"].as<String>();
-  alias = loaded["alias"].as<String>();
+  ip = loadValue<String>("ip", loaded, "192.168.1.1");
+  port = loadValue<uint16_t>("port", loaded, 3000);
+  url = loadValue<String>("url", loaded, "/socket.io/?EIO=4");
+  key = loadValue<String>("key", loaded, "");
+  component = loadValue<String>("component", loaded, "NAME ME!");
+  alias = loadValue<String>("alias", loaded, "");
 
   if (!debugging) return;
   Serial.println("");
@@ -392,10 +392,3 @@ void SocketModule::handleInternal(internalEvent event) {
     }
   }
 }
-
-template<typename... Args>
-void SocketModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};

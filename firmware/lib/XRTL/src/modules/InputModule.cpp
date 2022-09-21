@@ -44,7 +44,7 @@ InputModule::InputModule(String moduleName, XRTL* source) {
 void InputModule::setup() {
     input = new XRTLinput;
     input->attach(pin);
-    input->averageTime(time);//in ms
+    input->averageTime(averageTime);//in ms
 
     next = esp_timer_get_time(); // start streaming immediately
     nextCheck = esp_timer_get_time();
@@ -101,9 +101,10 @@ void InputModule::stop() {
 
 void InputModule::saveSettings(DynamicJsonDocument& settings){
     JsonObject saving = settings.createNestedObject(id);
-    
+
+    saving["control"] = control;
     saving["pin"] = pin;
-    saving["time"] = time;
+    saving["averageTime"] = averageTime;
 
     saving["rangeChecking"] = rangeChecking;
 
@@ -116,21 +117,15 @@ void InputModule::saveSettings(DynamicJsonDocument& settings){
 void InputModule::loadSettings(DynamicJsonDocument& settings) {
     JsonObject loaded = settings[id];
 
-    pin = loaded["pin"].as<uint8_t>();
-    time = loaded["time"].as<uint16_t>();
+    control = loadValue<String>("control", loaded, id);
+    pin = loadValue<uint8_t>("pin", loaded, 35);
+    averageTime = loadValue<uint16_t>("averageTime", loaded, 0);
 
-    rangeChecking = loaded["rangeChecking"].as<bool>();
+    rangeChecking = loadValue<bool>("rangeChecking", loaded, false);
     if (rangeChecking) {
-        loBound = loaded["loBound"].as<double>();
-        hiBound = loaded["hiBound"].as<double>();
-        deadMicroSeconds = loaded["deadMicroSeconds"].as<uint32_t>();
-
-        if (loBound < 0) {// 
-            loBound = 0.0;
-        }
-        if (hiBound > 3300) {
-            hiBound = 3300.0;
-        }
+        loBound = loadValue<double>("loBound", loaded, 0);
+        hiBound = loadValue<double>("hiBound", loaded, 3300);
+        deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", loaded, 0);
     }
 
     if (!debugging) return;
@@ -140,8 +135,9 @@ void InputModule::loadSettings(DynamicJsonDocument& settings) {
     Serial.println(centerString("",39,'-').c_str());
     Serial.println("");
 
+    Serial.printf("controlId: %s\n", control.c_str());
     Serial.printf("pin: %d\n", pin);
-    Serial.printf("time: %d\n", time);
+    Serial.printf("averaging time: %d\n", averageTime);
 
     Serial.printf(rangeChecking ? "triggers active\n" : "triggers inactive\n");
     Serial.printf("low bound: %f\n", loBound);
@@ -156,13 +152,14 @@ void InputModule::setViaSerial() {
     Serial.println(centerString("",39,'-').c_str());
     Serial.println("");
 
-    time = serialInput("averaging time: ").toInt();
+    control = serialInput("controlId: ");
+    averageTime = serialInput("averaging time: ").toInt();
 
     rangeChecking = (strcmp(serialInput("check range (y/n): ").c_str(), "y") == 0);
     if (rangeChecking) {
         loBound = serialInput("low bound: ").toDouble();
         hiBound = serialInput("high bound: ").toDouble();
-        deadMicroSeconds = serialInput("dead time: ").toInt();
+        deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
     }
 
     if (strcmp(serialInput("change pin binding (y/n): ").c_str(), "y") == 0) {
@@ -170,18 +167,10 @@ void InputModule::setViaSerial() {
     }
 }
 
-void InputModule::setStreamTimeCap(uint32_t milliSeconds) {
-    intervalMicroSeconds = 1000 * milliSeconds;
-}
-
 void InputModule::startStreaming() {
-    binaryLeadFrame = "451-[\"data\",{\"componentId\":\"";
-    binaryLeadFrame += "test"; // TODO: get componentId from socket module
-    binaryLeadFrame += "\",\"type\":\"double\",\"dataId\":\"voltage\",\"data\":{\"_placeholder\":true,\"num\":0}}]";
     next = esp_timer_get_time(); // immediately deliver first value
     isStreaming = true;
     debug("[%s] starting to stream value", id.c_str());
-    // TODO: setting up message for sending binary
 }
 
 void InputModule::stopStreaming() {
@@ -194,10 +183,68 @@ bool InputModule::handleCommand(String& command) {
 }
 
 bool InputModule::handleCommand(String& controlId, JsonObject& command) {
-    if (strcmp(controlId.c_str(),id.c_str()) != 0) return false;
+    if (strcmp(controlId.c_str(),control.c_str()) != 0) return false;
 
-    if (isStreaming) stopStreaming();
-    else startStreaming();
+    auto streamField = command["stream"];
+    if ( streamField.isNull() ) {
+        // key unused
+    }
+    else if ( !streamField.is<bool>() ) {
+        String errormsg = "[";
+        errormsg += control;
+        errormsg += "] command rejected: <stream> is no boolean";
+        sendError(wrong_type, errormsg);
+    }
+    else {
+        if ( streamField.as<bool>() ) {
+            startStreaming();
+        }
+        else {
+            stopStreaming();
+        }
+    }
+
+    auto intervalField = command["interval"];
+    if ( intervalField.isNull() ) {
+        // key unused
+    }
+    else if ( !intervalField.is<int>() ) {
+        String errormsg = "[";
+        errormsg += control;
+        errormsg += "] command rejected: <interval> is no integer";
+        sendError(wrong_type, errormsg);
+    }
+    else {
+        intervalMicroSeconds = 1000 * intervalField.as<uint32_t>();// milli second resolution is sufficient, micro seconds only needed for esp_timer
+    }
+
+    auto lowerBoundField = command["lowerBound"];
+    if ( lowerBoundField.isNull() ) {
+        // key unused
+    }
+    else if ( !( lowerBoundField.is<float>() or lowerBoundField.is<int>() ) ) {
+        String errormsg = "[";
+        errormsg += control;
+        errormsg += "] command rejected: <lowerBound> is no float or int";
+        sendError(wrong_type, errormsg);
+    }
+    else {
+        loBound = lowerBoundField.as<double>();
+    }
+
+    auto upperBoundField = command["upperBound"];
+    if ( upperBoundField.isNull() ) {
+        // key unused
+    }
+    else if ( !(upperBoundField.is<float>() or upperBoundField.is<int>() ) ) {
+        String errormsg = "[";
+        errormsg += control;
+        errormsg += "] command rejected: <lowerBound> is no float or int";
+        sendError(wrong_type, errormsg);
+    }
+    else {
+        hiBound = upperBoundField.as<double>();
+    }
 
     return true;
 }
@@ -231,10 +278,3 @@ void InputModule::handleInternal(internalEvent event) {
         }
     }
 }
-
-template<typename... Args>
-void InputModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};

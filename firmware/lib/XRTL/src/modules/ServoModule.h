@@ -36,9 +36,6 @@ class ServoModule : public XRTLmodule {
 
   void setup();
   void loop();
-
-  template<typename... Args>
-  void debug(Args... args);
 };
 
 #endif

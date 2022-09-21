@@ -211,16 +211,9 @@ void InfoLEDModule::saveSettings(DynamicJsonDocument& settings) {
 
 void InfoLEDModule::loadSettings(DynamicJsonDocument& settings) {
   JsonObject loaded = settings[id];
-  pin = loaded["pin"].as<uint8_t>();
-  pixel = loaded["pixel"].as<uint8_t>();
-
-  if (pin == 0) {
-    pin = 32;
-  }
-
-  if (pixel == 0) {
-    pixel = 12;
-  }
+  
+  pin = loadValue<uint8_t>("pin", loaded, 32);
+  pixel = loadValue<uint8_t>("pixel", loaded, 12);
 
   if (!debugging) return;
   Serial.println("");
@@ -308,10 +301,3 @@ void InfoLEDModule::handleInternal(internalEvent event) {
     }
   }
 }
-
-template<typename... Args>
-void InfoLEDModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};

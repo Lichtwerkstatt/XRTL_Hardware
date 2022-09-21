@@ -66,10 +66,3 @@ void CameraModule::virtualPTZ() {
 
   settings->set_res_raw(settings, 0, 0, 0, 0, xOffset, yOffset, xLength, yLength, xLength, yLength, true, true);
 }
-
-template<typename... Args>
-void CameraModule::debug(Args... args) {
-  if(!debugging) return;
-  Serial.printf(args...);
-  Serial.print('\n');
-};
