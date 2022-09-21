@@ -29,18 +29,19 @@ class InputModule: public XRTLmodule {
     XRTLinput* input;
 
     String control;
+    String binaryLeadFrame;
 
     uint8_t pin;
     uint16_t time;
 
     bool isStreaming = false;
     int64_t next;
-    uint32_t intervalMicroSeconds = 2000000; // TODO: add interface for streaming interval
+    uint32_t intervalMicroSeconds = 1000000; // TODO: add interface for streaming interval
 
     bool rangeChecking = false;
     double loBound = 0.0; // lowest ADC output: 142 mV, 0 will never get triggered
-    double hiBound = 3300.0; // voltage reference, will never get triggered
-    uint32_t deadTimeMicroSeconds = 0;
+    double hiBound = 3300.0; // voltage reference, will never get triggered due to cut off
+    uint32_t deadMicroSeconds = 0;
     int64_t nextCheck;
 
     public:

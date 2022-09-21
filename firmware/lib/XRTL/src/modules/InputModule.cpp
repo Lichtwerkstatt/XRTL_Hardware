@@ -4,7 +4,7 @@ void XRTLinput::attach(uint8_t inputPin) {
     pin = inputPin;
     pinMode(pin, INPUT);
 
-    voltage = analogReadMilliVolts(pin); // make sure an appropriate value is initialized (avoiding trigger thresholds)
+    voltage = analogReadMilliVolts(pin); // make sure voltage is initialized with real value (avoiding trigger thresholds)
 
     next = esp_timer_get_time() + averageMicroSeconds;
 }
@@ -27,7 +27,6 @@ void XRTLinput::loop() {
             sampleCount++;
         }
         voltage = ((double) buffer) / ((double)sampleCount);
-        //Serial.printf("[input] new voltage aquired: %f mV (%d x oversampling)\n", voltage, sampleCount);
         buffer = 0;
         sampleCount = 0;
     }
@@ -47,7 +46,7 @@ void InputModule::setup() {
     input->attach(pin);
     input->averageTime(time);//in ms
 
-    next = esp_timer_get_time() + intervalMicroSeconds;
+    next = esp_timer_get_time(); // start streaming immediately
     nextCheck = esp_timer_get_time();
 }
 
@@ -63,12 +62,12 @@ void InputModule::loop() {
 
             if (value >= hiBound) {
                 notify(input_trigger_high);
-                nextCheck = now + deadTimeMicroSeconds;
+                nextCheck = now + deadMicroSeconds;
             }
 
             if (value <= loBound) {
                 notify(input_trigger_low);
-                nextCheck = now + deadTimeMicroSeconds;
+                nextCheck = now + deadMicroSeconds;
             }
 
         }
@@ -77,8 +76,23 @@ void InputModule::loop() {
     if (!isStreaming) return;
 
     if (now < next) return;
-    debug("[%s] reporting voltage: %f mV\n", id.c_str(), value);
-    // TODO: send voltage
+    //debug("[%s] reporting voltage: %f mV", id.c_str(), value);
+    next = now + intervalMicroSeconds;
+
+    DynamicJsonDocument doc(512);
+    JsonArray event = doc.to<JsonArray>();
+
+    event.add("data");
+    JsonObject payload = event.createNestedObject();
+    payload["componentId"] = "test"; // TODO: get componentId from socket module
+    payload["type"] = "double";
+    payload["dataId"] = id;
+
+    JsonObject data = payload.createNestedObject("data");
+    data["type"] = "Buffer";
+    data["data"] = value;
+
+    sendEvent(event); 
 }
 
 void InputModule::stop() {
@@ -96,7 +110,7 @@ void InputModule::saveSettings(DynamicJsonDocument& settings){
     if (!rangeChecking) return;
     saving["loBound"] = loBound;
     saving["hiBound"] = hiBound;
-    saving["deadTimeMicroSeconds"] = deadTimeMicroSeconds;
+    saving["deadMicroSeconds"] = deadMicroSeconds;
 }
 
 void InputModule::loadSettings(DynamicJsonDocument& settings) {
@@ -109,7 +123,7 @@ void InputModule::loadSettings(DynamicJsonDocument& settings) {
     if (rangeChecking) {
         loBound = loaded["loBound"].as<double>();
         hiBound = loaded["hiBound"].as<double>();
-        deadTimeMicroSeconds = loaded["deadTimeMicroSeconds"].as<uint32_t>();
+        deadMicroSeconds = loaded["deadMicroSeconds"].as<uint32_t>();
 
         if (loBound < 0) {// 
             loBound = 0.0;
@@ -132,7 +146,7 @@ void InputModule::loadSettings(DynamicJsonDocument& settings) {
     Serial.printf(rangeChecking ? "triggers active\n" : "triggers inactive\n");
     Serial.printf("low bound: %f\n", loBound);
     Serial.printf("high bound: %f\n", hiBound);
-    Serial.printf("dead time: %d\n", deadTimeMicroSeconds);
+    Serial.printf("dead time: %d\n", deadMicroSeconds);
 }
 
 void InputModule::setViaSerial() {
@@ -148,7 +162,7 @@ void InputModule::setViaSerial() {
     if (rangeChecking) {
         loBound = serialInput("low bound: ").toDouble();
         hiBound = serialInput("high bound: ").toDouble();
-        deadTimeMicroSeconds = serialInput("dead time: ").toInt();
+        deadMicroSeconds = serialInput("dead time: ").toInt();
     }
 
     if (strcmp(serialInput("change pin binding (y/n): ").c_str(), "y") == 0) {
@@ -161,7 +175,10 @@ void InputModule::setStreamTimeCap(uint32_t milliSeconds) {
 }
 
 void InputModule::startStreaming() {
-    next = esp_timer_get_time() + intervalMicroSeconds;
+    binaryLeadFrame = "451-[\"data\",{\"componentId\":\"";
+    binaryLeadFrame += "test"; // TODO: get componentId from socket module
+    binaryLeadFrame += "\",\"type\":\"double\",\"dataId\":\"voltage\",\"data\":{\"_placeholder\":true,\"num\":0}}]";
+    next = esp_timer_get_time(); // immediately deliver first value
     isStreaming = true;
     debug("[%s] starting to stream value", id.c_str());
     // TODO: setting up message for sending binary

@@ -87,6 +87,7 @@ class XRTLmodule {
 
   void sendEvent(JsonArray& event); // send event via endpoint
   void sendError(componentError err, String message); // send error via endpoint
+  void sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length); // send binary via endpoint
   void sendStatus(); // tell core to send status
 
   void notify(internalEvent state); // send internal event to all modules

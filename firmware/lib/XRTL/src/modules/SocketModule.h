@@ -35,6 +35,7 @@ class SocketModule : public XRTLmodule {
   
   void sendEvent(JsonArray& event);
   void sendError(componentError err, String msg);
+  void sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length);
 
   void saveSettings(DynamicJsonDocument& settings);
   void loadSettings(DynamicJsonDocument& settings);

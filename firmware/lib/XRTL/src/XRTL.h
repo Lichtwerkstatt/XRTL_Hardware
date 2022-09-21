@@ -38,6 +38,7 @@ class XRTL {
   // send stuff via endpoint
   void sendEvent(JsonArray& event);
   void sendError(componentError err, String msg);
+  void sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length);
 
   // send string over Serial if debugging is activated (printf syntax)
   template<typename... Args>

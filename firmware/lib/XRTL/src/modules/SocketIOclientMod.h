@@ -8,12 +8,11 @@ class SocketModule;
 
 class SocketIOclientMod : public SocketIOclient {
   private:
-  char binaryLeadFrame[128];
   SocketModule* owner;
   
   public:
-  bool sendBIN(uint8_t * payload, size_t length, bool headerToPayload = false);
-  bool sendBIN(const uint8_t * payload, size_t length);
+  bool sendBIN(String* binaryLeadFrame, uint8_t * payload, size_t length, bool headerToPayload = false);
+  bool sendBIN(String* binaryLeadFrame, const uint8_t * payload, size_t length);
   bool disconnect();
 };
 

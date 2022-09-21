@@ -42,7 +42,7 @@ void XRTL::loop(){
           Serial.printf("[core] deserializeJson() failed on serial input: %s\n", error.c_str());
           Serial.printf("[core] input: %s\n", input.c_str());
         }
-        else if (socketIO != NULL) {
+        else if (socketIO != NULL) { // make sure the socket is initialized
           socketIO->handleEvent(serialEvent);
         }
       }
@@ -259,6 +259,14 @@ void XRTL::sendEvent(JsonArray& event){
 
 void XRTLmodule::sendEvent(JsonArray& event){
   xrtl->sendEvent(event);
+}
+
+void XRTL::sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length) {
+  socketIO->sendBinary(binaryLeadFrame, payload, length);
+}
+
+void XRTLmodule::sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length) {
+  xrtl->sendBinary(binaryLeadFrame, payload, length);
 }
 
 void XRTL::notify(internalEvent event) {
