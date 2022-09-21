@@ -9,6 +9,7 @@ StepperModule::StepperModule(String moduleName, XRTL* source) {
 
 void StepperModule::saveSettings(DynamicJsonDocument& settings) {
   JsonObject saving = settings.createNestedObject(id);
+  
   saving["control"] = control;
   saving["accel"] = accel;
   saving["speed"] = speed;
@@ -114,7 +115,7 @@ void StepperModule::loop() {
     wasRunning = false;
     notify(ready);
 
-    debug("[%s] done moving", id);
+    debug("done moving");
   }
 }
 
@@ -152,14 +153,14 @@ bool StepperModule::handleCommand(String& command){
   }
 
   else if (strcmp(command.c_str(),"reset") == 0) {
-    debug("[%s] reset: moving from %d to 0", id.c_str(), stepper->currentPosition());
+    debug("reset: moving from %d to 0", stepper->currentPosition());
     stepper->moveTo(0);
     stepper->enableOutputs();
     while (stepper->isRunning()) {
       stepper->run();
     }
     stepper->disableOutputs();
-    debug("[%s] reset: done", id.c_str());
+    debug("reset: done");
     return true;
   }
 

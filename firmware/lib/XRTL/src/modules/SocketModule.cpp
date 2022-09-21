@@ -124,14 +124,14 @@ void SocketModule::sendEvent(JsonArray& event){
     if (!debugging) return;
     String output;
     serializeJson(event,output);
-    debug("[%s] disconnected, unable to sent event: %s", id.c_str(), output.c_str());
+    debug("disconnected, unable to sent event: %s", output.c_str());
     return;
   }
 
   String output;
   serializeJson(event,output);
   socket->sendEVENT(output);
-  debug("[%s] sent event: %s", id.c_str(), output.c_str());
+  debug("sent event: %s", output.c_str());
 }
 
 void SocketModule::sendError(componentError err, String msg){
@@ -158,20 +158,20 @@ void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) 
         return;
       }
     case sIOtype_CONNECT: {
-        owner->debug("[%s] connected to <%s>", owner->id.c_str(),payload);
+        owner->debug("connected to <%s>",payload);
         owner->failedConnectionCount = 0;
         owner->notify(socket_connected);
    
         String token = "{\"token\":\"";
         token += owner->createJWT();
         token += "\"}";
-        owner->debug("[%s] sending token: %s", owner->id.c_str(), token.c_str());
+        owner->debug("sending token: %s", token.c_str());
         owner->socket->send(sIOtype_CONNECT, token);
-        owner->debug("[%s] waiting for authentication", owner->id.c_str());
+        owner->debug("waiting for authentication");
         return;
       }
     case sIOtype_EVENT: {
-      owner->debug("[%s] got event: %s", owner->getID().c_str(), payload);
+      owner->debug("got event: %s", payload);
       DynamicJsonDocument incommingEvent(1024);
       DeserializationError error = deserializeJson(incommingEvent,payload,length);
       if (error) {
@@ -179,7 +179,7 @@ void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) 
         String errormsg = "deserialization failed: ";
         errormsg += error.c_str();
         owner->sendError(deserialize_failed, errormsg);
-        owner->debug("[%s] deserializeJson() failed to analyze event: <%s>", owner->getID().c_str(), error.c_str());
+        owner->debug("deserializeJson() failed to analyze event: <%s>", error.c_str());
       }
 
       owner->handleEvent(incommingEvent);
@@ -200,7 +200,7 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
 
   String eventName = doc[0].as<String>();
   if (strcmp(eventName.c_str(), "Auth") == 0){
-    debug("[%s] authenticated by server",id.c_str());
+    debug("authenticated by server");
     notify(socket_authed);
     return;
   }
@@ -234,13 +234,13 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
     or (strcmp(componentName.c_str(),"*") == 0) ) {
 
     if (commandField.is<String>()) {
-      debug("[%s] pushing simple command to modules", id.c_str());
+      debug("pushing simple command to modules");
       String command = commandField.as<String>();
       pushCommand(command);
     }
     else {
       JsonObject command = commandField.as<JsonObject>();
-      debug("[%s] pushing complex command to modules", id.c_str());
+      debug("pushing complex command to modules");
       pushCommand(command);
     }
   }
@@ -321,7 +321,7 @@ void SocketModule::loop(){
       return;
     }
     if (esp_timer_get_time() > 300000000) {// 5 minutes after start -> WiFi not working?
-      debug("[%s] unable to sync time, restating device\n", id.c_str());
+      debug("unable to sync time -- restating device");
       ESP.restart(); 
     }
   }
@@ -337,9 +337,9 @@ void SocketModule::handleInternal(internalEvent event) {
   switch(event) {
     case socket_disconnected: {
       failedConnectionCount++;
-        debug("[%s] disconnected, connection attempt: %i", id.c_str(), failedConnectionCount);
+        debug("disconnected, connection attempt: %i", failedConnectionCount);
       if (failedConnectionCount > 49) {
-        debug("[%s] unable to connect -- restarting device", id.c_str());
+        debug("unable to connect -- restarting device");
         ESP.restart();
       }
       return;
@@ -347,7 +347,7 @@ void SocketModule::handleInternal(internalEvent event) {
     case socket_connected: {
       failedConnectionCount = 0;
 
-      debug("[%s] succesfully connected to server", id.c_str());
+      debug("succesfully connected to server");
       return;
     }
     case socket_authed: {
@@ -374,7 +374,7 @@ void SocketModule::handleInternal(internalEvent event) {
     case time_synced: {
       socket->begin(ip.c_str(), port, url.c_str());
       socket->onEvent(socketHandler);
-      if (!debugging) return;
+      if (!debugging) return; // no need to fetch time here if not debugging
       time_t now;
       time(&now);
       Serial.printf("[%s] time synced: %d\n", id.c_str(), now);
