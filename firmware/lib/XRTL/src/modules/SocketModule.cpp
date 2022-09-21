@@ -146,6 +146,10 @@ void SocketModule::sendError(componentError err, String msg){
   sendEvent(payload);
 }
 
+void SocketModule::sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length) {
+  socket->sendBIN(binaryLeadFrame, payload, length);
+}
+
 void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) {
   SocketModule* owner = SocketModule::lastModule;
   switch(type) {
@@ -161,17 +165,21 @@ void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) 
         String token = "{\"token\":\"";
         token += owner->createJWT();
         token += "\"}";
-        owner->debug("[%s] token sent: %s", owner->id.c_str(), token.c_str());
+        owner->debug("[%s] sending token: %s", owner->id.c_str(), token.c_str());
         owner->socket->send(sIOtype_CONNECT, token);
+        owner->debug("[%s] waiting for authentication", owner->id.c_str());
         return;
       }
     case sIOtype_EVENT: {
-      owner->debug("[%s] got event:  %s", owner->getID().c_str(), payload);
+      owner->debug("[%s] got event: %s", owner->getID().c_str(), payload);
       DynamicJsonDocument incommingEvent(1024);
       DeserializationError error = deserializeJson(incommingEvent,payload,length);
       if (error) {
         //owner->sendError();
-        owner->debug("[%s] deserializeJson() failed to analyze event: <%s>",owner->getID().c_str(),error.c_str());
+        String errormsg = "deserialization failed: ";
+        errormsg += error.c_str();
+        owner->sendError(deserialize_failed, errormsg);
+        owner->debug("[%s] deserializeJson() failed to analyze event: <%s>", owner->getID().c_str(), error.c_str());
       }
 
       owner->handleEvent(incommingEvent);
@@ -191,7 +199,8 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
   }
 
   String eventName = doc[0].as<String>();
-  if (strcmp(eventName.c_str(), "XRTLAuth") == 0){
+  if (strcmp(eventName.c_str(), "Auth") == 0){
+    debug("[%s] authenticated by server",id.c_str());
     notify(socket_authed);
     return;
   }
@@ -338,13 +347,16 @@ void SocketModule::handleInternal(internalEvent event) {
     case socket_connected: {
       failedConnectionCount = 0;
 
+      debug("[%s] succesfully connected to server", id.c_str());
+      return;
+    }
+    case socket_authed: {
       int64_t waitTime = esp_timer_get_time() + random(100000,300000);
       while ( esp_timer_get_time() < waitTime) {
         yield();
       }
       sendStatus();
 
-      debug("[%s] succesfully connected to server", id.c_str());
       return;
     }
 
