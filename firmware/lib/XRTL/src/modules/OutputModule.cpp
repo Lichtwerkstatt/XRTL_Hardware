@@ -73,7 +73,7 @@ void OutputModule::pulse(uint16_t milliSeconds) {
 void OutputModule::saveSettings(DynamicJsonDocument& settings) {
     JsonObject saving = settings.createNestedObject(id);
 
-    saving["controlId"] = control;
+    saving["controlId"] = controlId;
     saving["pin"] = pin;
     saving["pwm"] = pwm;
 
@@ -85,7 +85,7 @@ void OutputModule::saveSettings(DynamicJsonDocument& settings) {
 void OutputModule::loadSettings(DynamicJsonDocument& settings) {
     JsonObject loaded = settings[id];
 
-    control = loadValue<String>("controlId", loaded, id);
+    controlId = loadValue<String>("controlId", loaded, id);
     pin = loadValue<uint8_t>("pin", loaded, 27);
     pwm = loaded["pwm"].as<bool>();
     pwm = loadValue<bool>("pwm", loaded, false);;
@@ -102,7 +102,7 @@ void OutputModule::loadSettings(DynamicJsonDocument& settings) {
 
     if (!debugging) return;
 
-    Serial.printf("controlId: %s\n",control.c_str());
+    Serial.printf("controlId: %s\n",controlId.c_str());
     Serial.printf("pin: %d\n",pin);
     Serial.printf(pwm ? "PWM output\n" : "relay output\n");
 
@@ -114,7 +114,7 @@ void OutputModule::loadSettings(DynamicJsonDocument& settings) {
 
 void OutputModule::getStatus(JsonObject& payload, JsonObject& status){
     if (out == NULL) return; // avoid errors: status might be called in setup before init occured
-    JsonObject outputState = status.createNestedObject(control); 
+    JsonObject outputState = status.createNestedObject(controlId); 
 
     outputState["isOn"] = out->getState();
     if (!pwm) return;
@@ -128,7 +128,7 @@ void OutputModule::setViaSerial() {
     Serial.println(centerString("",39,'-'));
     Serial.println("");
 
-    control = serialInput("controlId: ");
+    controlId = serialInput("controlId: ");
     pwm = (strcmp(serialInput("pwm (y/n): ").c_str(),"y") == 0);
     if (pwm) {
         channel = serialInput("channel: ").toInt();
@@ -185,7 +185,7 @@ void OutputModule::handleInternal(internalEvent event){
     }
 }
 
-bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
+bool OutputModule::handleCommand(String& control, JsonObject& command) {
     if (strcmp(control.c_str(), controlId.c_str() ) != 0) return false;
 
     auto pwmField = command["pwm"];
@@ -209,7 +209,7 @@ bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
     }
     else {
         String error = "[";
-        error += id;
+        error += controlId;
         error += "] command rejected: <val> is neither bool nor int";
         sendError(wrong_type, error);
         return true;

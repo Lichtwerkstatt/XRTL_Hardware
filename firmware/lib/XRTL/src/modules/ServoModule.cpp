@@ -7,7 +7,7 @@ ServoModule::ServoModule(String moduleName, XRTL* source) {
 
 void ServoModule::saveSettings(DynamicJsonDocument& settings){
   JsonObject saving = settings.createNestedObject(id);
-  saving["control"] = control;
+  saving["controlId"] = controlId;
   saving["frequency"] = frequency;
   saving["minDuty"] = minDuty;
   saving["maxDuty"] = maxDuty;
@@ -21,7 +21,7 @@ void ServoModule::saveSettings(DynamicJsonDocument& settings){
 void ServoModule::loadSettings(DynamicJsonDocument& settings){
   JsonObject loaded = settings[id];
 
-  control = loadValue<String>("control", loaded, id);
+  controlId = loadValue<String>("controlId", loaded, id);
   frequency = loadValue<uint16_t>("frequency", loaded, 50);
   minDuty = loadValue<uint16_t>("minDuty", loaded, 1000);
   maxDuty = loadValue<uint16_t>("maxDuty", loaded, 2000);
@@ -33,7 +33,7 @@ void ServoModule::loadSettings(DynamicJsonDocument& settings){
   
   if (!debugging) return;
 
-  Serial.printf("controlId: %s\n", control.c_str());
+  Serial.printf("controlId: %s\n", controlId.c_str());
   Serial.printf("frequency: %d Hz\n", frequency);
   Serial.printf("minimum duty time: %d µs\n", minDuty);
   Serial.printf("maximum duty time: %d µs\n", maxDuty);
@@ -55,7 +55,7 @@ void ServoModule::setViaSerial(){
   Serial.println(centerString("",39, '-'));
   Serial.println("");
 
-  control = serialInput("controlId: ");
+  controlId = serialInput("controlId: ");
   frequency = serialInput("Frequency (Hz): ").toInt();
   minDuty = serialInput("minimum duty time (µs): ").toInt();
   maxDuty = serialInput("maximum tuty time (µs): ").toInt();
@@ -71,7 +71,7 @@ void ServoModule::setViaSerial(){
 }
 
 void ServoModule::getStatus(JsonObject& payload, JsonObject& status){
-  JsonObject position = status.createNestedObject(control);
+  JsonObject position = status.createNestedObject(controlId);
 
   int16_t angle = read();
   position["absolute"] = angle;
@@ -103,7 +103,7 @@ bool ServoModule::handleCommand(String& command) {
   return false;
 }
 
-bool ServoModule::handleCommand(String& controlId, JsonObject& command) {
+bool ServoModule::handleCommand(String& control, JsonObject& command) {
   if (strcmp(controlId.c_str(),control.c_str()) == 0) {
     driveServo(command);
     return true;
@@ -142,7 +142,7 @@ void ServoModule::driveServo(JsonObject& command) {
     target = constrain(target,minAngle,maxAngle);
 
     String error = "[";
-    error += control;
+    error += controlId;
     error += "] target position was constrained to (";
     error += minAngle;
     error += ",";

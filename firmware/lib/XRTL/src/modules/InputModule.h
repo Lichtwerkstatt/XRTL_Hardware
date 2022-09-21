@@ -28,7 +28,7 @@ class InputModule: public XRTLmodule {
     private:
     XRTLinput* input;
 
-    String control;
+    String controlId;
 
     uint8_t pin;
     uint16_t averageTime;
@@ -58,7 +58,7 @@ class InputModule: public XRTLmodule {
     void startStreaming();
     void stopStreaming();
 
-    bool handleCommand(String& controlId, JsonObject& command);
+    bool handleCommand(String& control, JsonObject& command);
     bool handleCommand(String& command);
 
     void handleInternal(internalEvent event);

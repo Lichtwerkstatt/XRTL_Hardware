@@ -102,7 +102,7 @@ void InputModule::stop() {
 void InputModule::saveSettings(DynamicJsonDocument& settings){
     JsonObject saving = settings.createNestedObject(id);
 
-    saving["control"] = control;
+    saving["controlId"] = controlId;
     saving["pin"] = pin;
     saving["averageTime"] = averageTime;
 
@@ -117,7 +117,7 @@ void InputModule::saveSettings(DynamicJsonDocument& settings){
 void InputModule::loadSettings(DynamicJsonDocument& settings) {
     JsonObject loaded = settings[id];
 
-    control = loadValue<String>("control", loaded, id);
+    controlId = loadValue<String>("controlId", loaded, id);
     pin = loadValue<uint8_t>("pin", loaded, 35);
     averageTime = loadValue<uint16_t>("averageTime", loaded, 0);
 
@@ -130,7 +130,7 @@ void InputModule::loadSettings(DynamicJsonDocument& settings) {
 
     if (!debugging) return;
 
-    Serial.printf("controlId: %s\n", control.c_str());
+    Serial.printf("controlId: %s\n", controlId.c_str());
     Serial.printf("pin: %d\n", pin);
     Serial.printf("averaging time: %d\n", averageTime);
 
@@ -147,7 +147,7 @@ void InputModule::setViaSerial() {
     Serial.println(centerString("",39,'-').c_str());
     Serial.println("");
 
-    control = serialInput("controlId: ");
+    controlId = serialInput("controlId: ");
     averageTime = serialInput("averaging time: ").toInt();
 
     rangeChecking = (strcmp(serialInput("check range (y/n): ").c_str(), "y") == 0);
@@ -177,7 +177,7 @@ bool InputModule::handleCommand(String& command) {
     return false;
 }
 
-bool InputModule::handleCommand(String& controlId, JsonObject& command) {
+bool InputModule::handleCommand(String& control, JsonObject& command) {
     if (strcmp(controlId.c_str(),control.c_str()) != 0) return false;
 
     auto streamField = command["stream"];
@@ -186,7 +186,7 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
     }
     else if ( !streamField.is<bool>() ) {
         String errormsg = "[";
-        errormsg += control;
+        errormsg += controlId;
         errormsg += "] command rejected: <stream> is no boolean";
         sendError(wrong_type, errormsg);
     }
@@ -205,7 +205,7 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
     }
     else if ( !intervalField.is<int>() ) {
         String errormsg = "[";
-        errormsg += control;
+        errormsg += controlId;
         errormsg += "] command rejected: <interval> is no integer";
         sendError(wrong_type, errormsg);
     }
@@ -219,7 +219,7 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
     }
     else if ( !( lowerBoundField.is<float>() or lowerBoundField.is<int>() ) ) {
         String errormsg = "[";
-        errormsg += control;
+        errormsg += controlId;
         errormsg += "] command rejected: <lowerBound> is no float or int";
         sendError(wrong_type, errormsg);
     }
@@ -233,7 +233,7 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
     }
     else if ( !(upperBoundField.is<float>() or upperBoundField.is<int>() ) ) {
         String errormsg = "[";
-        errormsg += control;
+        errormsg += controlId;
         errormsg += "] command rejected: <lowerBound> is no float or int";
         sendError(wrong_type, errormsg);
     }

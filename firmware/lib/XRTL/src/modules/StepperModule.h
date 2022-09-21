@@ -6,7 +6,7 @@
 
 class StepperModule : public XRTLmodule {
   private:
-  String control;
+  String controlId;
   uint16_t accel;
   uint16_t speed;
   int32_t position;
@@ -37,7 +37,7 @@ class StepperModule : public XRTLmodule {
   void stop();
 
   bool handleCommand(String& command);
-  bool handleCommand(String& controlId, JsonObject& command);
+  bool handleCommand(String& control, JsonObject& command);
 };
 
 #endif

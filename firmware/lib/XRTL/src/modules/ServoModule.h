@@ -6,7 +6,7 @@
 
 class ServoModule : public XRTLmodule {
   private:
-  String control;
+  String controlId;
   uint16_t frequency;
   uint16_t minDuty;
   uint16_t maxDuty;
@@ -27,7 +27,7 @@ class ServoModule : public XRTLmodule {
   void driveServo(JsonObject& command);
   
   bool handleCommand(String& command);
-  bool handleCommand(String& controlId, JsonObject& command);
+  bool handleCommand(String& control, JsonObject& command);
 
   void saveSettings(DynamicJsonDocument& settings);
   void loadSettings(DynamicJsonDocument& settings);

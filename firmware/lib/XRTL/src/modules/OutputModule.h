@@ -30,7 +30,7 @@ class XRTLoutput {
 
 class OutputModule: public XRTLmodule {
     private:
-    String control;
+    String controlId;
 
     uint8_t pin;
 
@@ -60,7 +60,7 @@ class OutputModule: public XRTLmodule {
     void getStatus(JsonObject& payload, JsonObject& status);
 
     void handleInternal(internalEvent state);
-    bool handleCommand(String& controlId, JsonObject& command);
+    bool handleCommand(String& control, JsonObject& command);
 };
 
 #endif

@@ -10,7 +10,7 @@ StepperModule::StepperModule(String moduleName, XRTL* source) {
 void StepperModule::saveSettings(DynamicJsonDocument& settings) {
   JsonObject saving = settings.createNestedObject(id);
   
-  saving["control"] = control;
+  saving["controlId"] = controlId;
   saving["accel"] = accel;
   saving["speed"] = speed;
   saving["position"] = stepper->currentPosition();
@@ -27,7 +27,7 @@ void StepperModule::saveSettings(DynamicJsonDocument& settings) {
 void StepperModule::loadSettings(DynamicJsonDocument& settings) {
   JsonObject loaded = settings[id];
 
-  control = loadValue<String>("control", loaded, id);
+  controlId = loadValue<String>("controlId", loaded, id);
   accel = loadValue<uint16_t>("accel", loaded, 500);
   speed = loadValue<uint16_t>("speed", loaded, 500);
   position = loadValue<int32_t>("position", loaded, 0);
@@ -43,7 +43,7 @@ void StepperModule::loadSettings(DynamicJsonDocument& settings) {
 
   if (!debugging) return;
 
-  Serial.printf("controlId: %s\n",control.c_str());
+  Serial.printf("controlId: %s\n",controlId.c_str());
   Serial.printf("acceleration: %i\n", accel);
   Serial.printf("speed: %i\n", speed);
   Serial.printf("position: %i\n", position);
@@ -68,7 +68,7 @@ void StepperModule::setViaSerial() {
   Serial.println(centerString("",39, '-'));
   Serial.println("");
 
-  control = serialInput("controlId: ");
+  controlId = serialInput("controlId: ");
   accel = serialInput("acceleration (steps/s²): ").toInt();
   speed = serialInput("speed (steps/s): ").toInt();
   position = serialInput("current position (steps): ").toInt();
@@ -120,7 +120,7 @@ void StepperModule::getStatus(JsonObject& payload, JsonObject& status) {
     status["busy"] = true;
   }
 
-  JsonObject position = status.createNestedObject(control);
+  JsonObject position = status.createNestedObject(controlId);
   position["absolute"] = stepper->currentPosition();
   position["relative"] = mapFloat(stepper->currentPosition(), minimum, maximum, 0, 100);
   return;
@@ -161,12 +161,12 @@ bool StepperModule::handleCommand(String& command){
   return false;
 }
 
-bool StepperModule::handleCommand(String& controlId, JsonObject& command) {
+bool StepperModule::handleCommand(String& control, JsonObject& command) {
   if (strcmp(control.c_str(),controlId.c_str()) != 0) return false;
   
   if (stepper->isRunning()) {
     String error = "[";
-    error += id;
+    error += controlId;
     error += "] command rejected: stepper already moving";
     sendError(is_busy, error);
     return true;
@@ -207,7 +207,7 @@ void StepperModule::driveStepper(JsonObject& command) {
     stepper->moveTo(target);
 
     String error = "[";
-    error += control;
+    error += controlId;
     error += "] target position was constrained to (";
     error += minimum;
     error += ",";
