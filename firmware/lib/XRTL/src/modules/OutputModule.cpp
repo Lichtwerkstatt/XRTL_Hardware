@@ -164,6 +164,7 @@ void OutputModule::loop() {
 
 void OutputModule::stop() {
     out->toggle(false);
+    debug("module stopped, power off");
 }
 
 void OutputModule::handleInternal(internalEvent event){
@@ -171,6 +172,7 @@ void OutputModule::handleInternal(internalEvent event){
     switch(event) {
         case socket_disconnected: {
             out->toggle(false);
+            debug("output powered down for safety reasons");
             return;
         }
 

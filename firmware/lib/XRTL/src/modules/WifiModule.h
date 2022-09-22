@@ -16,7 +16,6 @@ class WifiModule : public XRTLmodule {
   String anonymous;
 
   WiFiEventId_t eventIdDisconnected; // use this when attaching the disconnected handler; needed for deinit
-  WiFiEventId_t eventIdGotIP; // use this when attaching the gotIP handler
 
   public:
   WifiModule(String moduleName, XRTL* source);
@@ -32,8 +31,7 @@ class WifiModule : public XRTLmodule {
   void handleInternal(internalEvent event);
 };
 
+// callback used for automatically reconnecting
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
-
-void WiFiStationGotIP(WiFiEvent_t event, WiFiEventInfo_t info);
 
 #endif

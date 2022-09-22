@@ -9,10 +9,6 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   WiFi.reconnect();
 }
 
-void WiFiStationGotIP(WiFiEvent_t event, WiFiEventInfo_t info) {
-  Serial.print("[wifi] connected to WiFi with local IP: ");
-  Serial.println(WiFi.localIP());
-}
 
 void WifiModule::saveSettings(DynamicJsonDocument& settings) {
   JsonObject saving = settings.createNestedObject(id);
@@ -71,7 +67,6 @@ void WifiModule::setViaSerial() {
 
 void WifiModule::setup() {
   eventIdDisconnected = WiFi.onEvent(WiFiStationDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);//SYSTEM_EVENT_STA_DISCONNECTED for older version
-  eventIdGotIP = WiFi.onEvent(WiFiStationGotIP, ARDUINO_EVENT_WIFI_STA_GOT_IP);//SYSTEM_EVENT_STA_GOT_IP for older version
   //WiFi.setHostname(xrtl=>get hostname from socket module);
   WiFi.mode(WIFI_STA);
 
@@ -108,6 +103,9 @@ void WifiModule::setup() {
 void WifiModule::loop() {
   if (checkConnection) {
     if (WiFi.isConnected()) {
+      uint8_t nullAddress[4] = {0,0,0,0};
+      if ( WiFi.localIP() == nullAddress ) return; // no IP yet, can't use online resources
+      debug("connected to WiFi with local IP: %s", WiFi.localIP().toString().c_str());
       notify(wifi_connected);
       checkConnection = false; // only stop checking once connection is made
     }
@@ -118,16 +116,16 @@ void WifiModule::loop() {
 }
 
 void WifiModule::stop() {
-  WiFi.removeEvent(eventIdGotIP); // get rid of autoamtic reconnect to avoid error messages
+  // get rid of automatic reconnect to avoid error messages in serial monitor, preparing for shutdown
   WiFi.removeEvent(eventIdDisconnected);
-  WiFi.disconnect(true); // disconnecting from WiFi should prevent unrelated output on serial
+  WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
 }
 
 void WifiModule::handleInternal(internalEvent event) {
   switch(event) {
     case socket_disconnected: {
-      checkConnection = true; // check if wifi is down too
+      checkConnection = true; // check if WiFi is down in next loop
     }
 
     case debug_on: {

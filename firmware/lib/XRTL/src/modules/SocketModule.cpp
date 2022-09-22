@@ -331,7 +331,7 @@ void SocketModule::stop() {
 void SocketModule::handleInternal(internalEvent event) {
   switch(event) {
     case socket_disconnected: {
-      failedConnectionCount++;
+      failedConnectionCount++; // TODO: is there a way to avoid the 5s BLOCKING!!! timeout?
         debug("disconnected, connection attempt: %i", failedConnectionCount);
       if (failedConnectionCount > 49) {
         debug("unable to connect -- restarting device");

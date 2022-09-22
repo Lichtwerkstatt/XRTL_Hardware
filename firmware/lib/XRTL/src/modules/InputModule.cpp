@@ -165,11 +165,13 @@ void InputModule::setViaSerial() {
 void InputModule::startStreaming() {
     next = esp_timer_get_time(); // immediately deliver first value
     isStreaming = true;
+    sendStatus();
     debug("starting to stream value");
 }
 
 void InputModule::stopStreaming() {
     isStreaming = false;
+    sendStatus();
     debug("stopped streaming values");
 }
 
