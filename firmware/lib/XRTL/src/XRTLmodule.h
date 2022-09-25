@@ -5,10 +5,10 @@
 #include "ArduinoJson.h"
 
 template <typename T>
-T loadValue(String name, JsonObject& file, T defaultValue) {
-  auto field = file[name];
+T loadValue(String key, JsonObject& file, T defaultValue) {
+  auto field = file[key];
   if ( field.isNull() ) {
-    Serial.printf("WARNING: %s not set, using default value\n", name.c_str());
+    Serial.printf("WARNING: %s not set, using default value\n", key.c_str());
     return defaultValue;
   }
   return field.as<T>();

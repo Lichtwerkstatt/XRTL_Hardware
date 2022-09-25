@@ -408,8 +408,8 @@ void XRTL::loadConfig() {
 
   JsonObject config = doc.as<JsonObject>();
 
-  for (JsonObject::iterator it=config.begin(); it!=config.end(); ++it) {
-    addModule(it->key().c_str(), it->value());
+  for (JsonPair kv : config) {
+    addModule(kv.key().c_str(), kv.value());
   }
 
   debug("config loaded, modules: %d", moduleCount);

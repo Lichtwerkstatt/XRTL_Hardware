@@ -47,7 +47,7 @@ void InputModule::setup() {
     input->averageTime(averageTime);//in ms
 
     next = esp_timer_get_time(); // start streaming immediately
-    nextCheck = esp_timer_get_time();
+    nextCheck = esp_timer_get_time(); // check immediately
 }
 
 void InputModule::loop() {
@@ -55,6 +55,10 @@ void InputModule::loop() {
     
     int64_t now = esp_timer_get_time();
     double value = input->readMilliVolts();
+    // apply conversion if defined
+    for (int i = 0; i < conversionCount; i++) {
+        conversion[i]->convert(value);
+    }
 
     // check for violation of input bounds
     if (rangeChecking) {
@@ -108,10 +112,18 @@ void InputModule::saveSettings(DynamicJsonDocument& settings){
 
     saving["rangeChecking"] = rangeChecking;
 
-    if (!rangeChecking) return;
-    saving["loBound"] = loBound;
-    saving["hiBound"] = hiBound;
-    saving["deadMicroSeconds"] = deadMicroSeconds;
+    if (rangeChecking) {
+        saving["loBound"] = loBound;
+        saving["hiBound"] = hiBound;
+        saving["deadMicroSeconds"] = deadMicroSeconds;
+    }
+
+    // conversion settings
+    if (conversionCount == 0) return;
+    JsonArray savingConversion = saving.createNestedArray("conversions");
+    for (int i = 0; i < conversionCount; i++) {
+        conversion[i]->saveSettings(savingConversion);
+    }
 }
 
 void InputModule::loadSettings(DynamicJsonDocument& settings) {
@@ -126,6 +138,17 @@ void InputModule::loadSettings(DynamicJsonDocument& settings) {
         loBound = loadValue<double>("loBound", loaded, 0);
         hiBound = loadValue<double>("hiBound", loaded, 3300);
         deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", loaded, 0);
+    }
+
+    // load conversions
+    JsonArray loadedConversion = loaded["conversions"];
+    if (!loadedConversion.isNull()) {
+        for (JsonVariant var : loadedConversion) {
+            JsonObject initializer = var.as<JsonObject>();
+            conversion_t type = loadValue<conversion_t>("type", initializer, thermistor);
+            addConversion(type);
+            conversion[conversionCount - 1]->loadSettings(initializer, debugging);
+        }
     }
 
     if (!debugging) return;
@@ -159,6 +182,27 @@ void InputModule::setViaSerial() {
 
     if (strcmp(serialInput("change pin binding (y/n): ").c_str(), "y") == 0) {
         pin = serialInput("pin: ").toInt();
+    }
+
+    if (strcmp(serialInput("change conversion (y/n): ").c_str(), "y") != 0) return;
+    for (int i = 0; i < conversionCount; i++) {
+        delete conversion[i];
+        conversion[i] = NULL;
+    }
+    conversionCount = 0;
+
+    Serial.println("");
+    Serial.println(centerString("conversions available",39,' ').c_str());
+    for (int i = 0; i < 5; i++) {
+        Serial.printf("%d: %s\n", i, conversionName[i]);
+    }
+
+    while (strcmp(serialInput("add conversion (y/n): ").c_str(), "y") == 0) {
+        conversion_t type = (conversion_t) serialInput("conversion: ").toInt();
+        Serial.printf("trying to add conversion: %s\n", conversionName[type]);
+        addConversion(type);
+        Serial.printf("conversionCount: %d\n", conversionCount);
+        conversion[conversionCount - 1]->setViaSerial();
     }
 }
 
@@ -272,6 +316,39 @@ void InputModule::handleInternal(internalEvent event) {
         case debug_on: {
           debugging = true;
           return;
+        }
+    }
+}
+
+void InputModule::addConversion(conversion_t type) {
+    if (conversionCount == 8) {
+        Serial.println("WARNING: maximum number of conversions reached");
+    }
+
+    switch (type) {
+        case thermistor: {          
+            conversion[conversionCount++] = new Thermistor;
+            return;
+        }
+        
+        case resistance_voltage_divider: {
+            conversion[conversionCount++] = new ResistanceDivider;
+            return;
+        }
+
+        case map_value: {
+            conversion[conversionCount++] = new MapValue;
+            return;
+        }
+        
+        case offset: {
+            conversion[conversionCount++] = new Offset;
+            return;
+        }
+
+        case multiplication: {
+            conversion[conversionCount++] = new Multiplication;
+            return;
         }
     }
 }
