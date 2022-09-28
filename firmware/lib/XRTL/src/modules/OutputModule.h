@@ -30,7 +30,6 @@ class XRTLoutput {
 
 class OutputModule: public XRTLmodule {
     private:
-    String controlId;
 
     uint8_t pin;
 

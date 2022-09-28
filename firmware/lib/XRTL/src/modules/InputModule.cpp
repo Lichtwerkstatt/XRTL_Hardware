@@ -224,20 +224,11 @@ bool InputModule::handleCommand(String& command) {
 }
 
 bool InputModule::handleCommand(String& control, JsonObject& command) {
-    if (strcmp(controlId.c_str(),control.c_str()) != 0) return false;
+    if (strcmp(controlId.c_str(), control.c_str()) != 0) return false;
 
-    auto streamField = command["stream"];
-    if ( streamField.isNull() ) {
-        // key unused
-    }
-    else if ( !streamField.is<bool>() ) {
-        String errormsg = "[";
-        errormsg += controlId;
-        errormsg += "] command rejected: <stream> is no boolean";
-        sendError(wrong_type, errormsg);
-    }
-    else {
-        if ( streamField.as<bool>() ) {
+    bool stream = false;
+    if ( getValue<bool>("stream", command, stream) ) { 
+        if (stream) {
             startStreaming();
         }
         else {
@@ -245,47 +236,17 @@ bool InputModule::handleCommand(String& control, JsonObject& command) {
         }
     }
 
-    auto intervalField = command["interval"];
-    if ( intervalField.isNull() ) {
-        // key unused
-    }
-    else if ( !intervalField.is<int>() ) {
-        String errormsg = "[";
-        errormsg += controlId;
-        errormsg += "] command rejected: <interval> is no integer";
-        sendError(wrong_type, errormsg);
-    }
-    else {
-        intervalMicroSeconds = 1000 * intervalField.as<uint32_t>();// milli second resolution is sufficient, micro seconds only needed for esp_timer
+    getValue("averageTime", command, averageTime);
+
+    uint32_t interval;
+    if ( getValue<uint32_t>("updateTime", command, interval) ) {
+        intervalMicroSeconds = 1000 * interval;
     }
 
-    auto lowerBoundField = command["lowerBound"];
-    if ( lowerBoundField.isNull() ) {
-        // key unused
-    }
-    else if ( !( lowerBoundField.is<float>() or lowerBoundField.is<int>() ) ) {
-        String errormsg = "[";
-        errormsg += controlId;
-        errormsg += "] command rejected: <lowerBound> is no float or int";
-        sendError(wrong_type, errormsg);
-    }
-    else {
-        loBound = lowerBoundField.as<double>();
-    }
+    if (!rangeChecking) return true;
 
-    auto upperBoundField = command["upperBound"];
-    if ( upperBoundField.isNull() ) {
-        // key unused
-    }
-    else if ( !(upperBoundField.is<float>() or upperBoundField.is<int>() ) ) {
-        String errormsg = "[";
-        errormsg += controlId;
-        errormsg += "] command rejected: <lowerBound> is no float or int";
-        sendError(wrong_type, errormsg);
-    }
-    else {
-        hiBound = upperBoundField.as<double>();
-    }
+    getValue<double>("upperBound", command, hiBound);
+    getValue<double>("lowerBound", command, loBound);
 
     return true;
 }

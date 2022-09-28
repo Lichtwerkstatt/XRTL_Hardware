@@ -190,12 +190,9 @@ void OutputModule::handleInternal(internalEvent event){
 bool OutputModule::handleCommand(String& control, JsonObject& command) {
     if (strcmp(control.c_str(), controlId.c_str() ) != 0) return false;
 
-    auto pwmField = command["pwm"];
-
-    if (pwmField.is<int>()) {
-        uint8_t powerLvl = pwmField.as<uint8_t>();
-        out->write(powerLvl);
-        
+    uint8_t powerLvl;
+    if (pwm) {
+        if (getValue<uint8_t>("pwm", command, powerLvl)) out->write(powerLvl);
     }
 
     auto valField = command["val"];

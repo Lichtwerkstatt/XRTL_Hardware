@@ -177,26 +177,19 @@ bool StepperModule::handleCommand(String& control, JsonObject& command) {
 }
 
 void StepperModule::driveStepper(JsonObject& command) {
-  auto valField = command["val"];
-  if (valField.isNull()){
-    sendError(field_is_null,"command rejected: <val> is NULL");
-    return;
-  }
-
-  if ( !valField.is<int>() and !valField.is<float>() ) {
-    sendError(wrong_type,"command rejected: <val> is neither int nor float");
-    return;
-  }
-
-  // all functional checks passed, prepare for moving
-  stepper->enableOutputs();
-
+  
   if (relativeCtrl) {
-    float val = valField.as<float>() / 100;//position in percent
+    float val;
+
+    if ( !getValue<float, int>("val", command, val, true) ) return;
+    stepper->enableOutputs();
     stepper->moveTo(minimum + round(val * (maximum - minimum) ) );
   }
   else {
-    int val = valField.as<int>();
+    int val;
+
+    if ( !getValue<int,float>("val", command, val, true) ) return;
+    stepper->enableOutputs();
     stepper->move(val);
   }
 

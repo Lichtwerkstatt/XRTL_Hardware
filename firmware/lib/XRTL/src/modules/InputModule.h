@@ -228,8 +228,6 @@ class InputModule: public XRTLmodule {
     conversion_t conversionType[8];
     Converter* conversion[8]; // store conversions here
 
-    String controlId;
-
     uint8_t pin;
     uint16_t averageTime;
 

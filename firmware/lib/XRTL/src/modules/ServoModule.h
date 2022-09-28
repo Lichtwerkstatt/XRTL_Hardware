@@ -6,7 +6,6 @@
 
 class ServoModule : public XRTLmodule {
   private:
-  String controlId;
   uint16_t frequency;
   uint16_t minDuty;
   uint16_t maxDuty;

@@ -88,6 +88,7 @@ class XRTL; // declare for using core pointer
 class XRTLmodule {
   protected:
   String id; // must be unique per ESP; assigned when constructed
+  String controlId; // can potentially be uinified with ID?
   XRTL* xrtl; // core address, must be assigned when constructed: XRTLmodule(String id, XRTLmodule* source)
   bool debugging = true; // print status messages via serial monitor; debug methode can't be inherited and must be implemented for every module type
 
@@ -122,6 +123,65 @@ class XRTLmodule {
     Serial.printf("[%s] ", id.c_str());
     Serial.printf(args...);
     Serial.print('\n');
+  }
+
+  // get value of type A from JsonObject 
+  template<typename A>
+  bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
+    auto field = file[name];
+    if (field.isNull()) {
+      if (!reportMissingField) return false;
+
+      String errormsg = "[";
+      errormsg += controlId;
+      errormsg += "] command rejected: <";
+      errormsg += name;
+      errormsg += "> could not be found";
+      sendError(field_is_null, errormsg);
+      return false;
+    }
+
+    if (!field.is<A>()) {
+      String errormsg = "[";
+      errormsg += controlId;
+      errormsg += "] command rejected: <";
+      errormsg += name;
+      errormsg += "> is of wrong type";
+      sendError(wrong_type, errormsg);
+      return false;
+    }
+    
+    target = field.as<A>();
+    return true;
+  }
+
+  // get value of type A or B from JsonObject -- A is the return type, make sure B can be cast to A
+  template<typename A, typename B>
+  bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
+    auto field = file[name];
+    if (field.isNull()) {
+      if (!reportMissingField) return false;
+
+      String errormsg = "[";
+      errormsg += controlId;
+      errormsg += "] command rejected: <";
+      errormsg += name;
+      errormsg += "> could not be found";
+      sendError(field_is_null, errormsg);
+    }
+
+    if (!(field.is<A>() or field.is<B>())) {
+      String errormsg = "[";
+      errormsg += controlId;
+      errormsg += "] command rejected: <";
+      errormsg += name;
+      errormsg += "> is of wrong type";
+      sendError(wrong_type, errormsg);
+      return false;
+    }
+
+    target = field.as<A>();
+    return true;
   }
 };
 

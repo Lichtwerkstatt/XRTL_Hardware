@@ -127,13 +127,14 @@ void ServoModule::write(int16_t target) {
 }
 
 void ServoModule::driveServo(JsonObject& command) {
-  auto valField = command["val"];
+  /*auto valField = command["val"];
   if ( (!valField.is<String>()) and (!valField.is<float>()) ) {
     sendError(wrong_type, "command rejected: <val> is neither int nor float");
     return;
-  }
+  }*/
 
-  int16_t target = valField.as<int>();
+  int16_t target;// = valField.as<int>();
+  getValue<int16_t, float>("val", command, target);
   if (relativeCtrl) {
     target += read();
   }

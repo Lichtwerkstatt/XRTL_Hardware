@@ -6,7 +6,6 @@
 
 class StepperModule : public XRTLmodule {
   private:
-  String controlId;
   uint16_t accel;
   uint16_t speed;
   int32_t position;
