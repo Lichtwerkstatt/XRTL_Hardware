@@ -53,7 +53,7 @@ class InfoLED {
   void constant();
 
   // check the selected pattern and change the corresponding values if necessary
-  // must be called frequently whenever a none constant light pattern should be displayed
+  // must be called frequently whenever a none constant light pattern is intended to show
   void loop();
 };
 
@@ -75,6 +75,7 @@ class InfoLEDModule : public XRTLmodule {
   void stop();
 
   void handleInternal(internalEvent event);
+  bool handleCommand(String& command);
 };
 
 

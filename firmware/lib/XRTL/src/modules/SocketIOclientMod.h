@@ -11,8 +11,8 @@ class SocketIOclientMod : public SocketIOclient {
   SocketModule* owner;
   
   public:
-  bool sendBIN(String* binaryLeadFrame, uint8_t * payload, size_t length, bool headerToPayload = false);
-  bool sendBIN(String* binaryLeadFrame, const uint8_t * payload, size_t length);
+  bool sendBIN(String& binaryLeadFrame, uint8_t * payload, size_t length, bool headerToPayload = false);
+  bool sendBIN(String& binaryLeadFrame, const uint8_t * payload, size_t length);
   bool disconnect();
 };
 

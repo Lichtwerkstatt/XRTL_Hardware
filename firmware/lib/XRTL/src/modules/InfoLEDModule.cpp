@@ -239,6 +239,16 @@ void InfoLEDModule::stop() {
   led->loop();
 }
 
+bool InfoLEDModule::handleCommand(String& command) {
+  if (strcmp(command.c_str(),"reset") != 0) return false;
+
+  led->hsv(8000,255,255);
+  led->constant();
+  led->loop();
+
+  return true;
+}
+
 void InfoLEDModule::handleInternal(internalEvent event) {
   if (led == NULL) return;
   switch(event) {

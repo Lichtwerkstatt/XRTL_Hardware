@@ -31,6 +31,8 @@ class XRTL {
   void addModule(String moduleName, moduleType category);
   XRTLmodule* operator[](String moduleName); // returns pointer to module with specified ID
 
+  String& getComponent();
+
   // offer command events to modules
   void pushCommand(JsonObject& command);
   void pushCommand(String& command);
@@ -38,7 +40,7 @@ class XRTL {
   // send stuff via endpoint
   void sendEvent(JsonArray& event);
   void sendError(componentError err, String msg);
-  void sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length);
+  void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length);
 
   // send string over Serial if debugging is activated (printf syntax)
   template<typename... Args>

@@ -146,7 +146,7 @@ void SocketModule::sendError(componentError err, String msg){
   sendEvent(payload);
 }
 
-void SocketModule::sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length) {
+void SocketModule::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length) {
   socket->sendBIN(binaryLeadFrame, payload, length);
 }
 
@@ -300,6 +300,10 @@ void SocketModule::getStatus(JsonObject& payload, JsonObject& status) {
   payload["componentId"] = component;
 }
 
+String& SocketModule::getComponent() {
+  return component;
+}
+
 void SocketModule::setup(){
   configTime(0,0,"pool.ntp.org");
 }
@@ -346,6 +350,7 @@ void SocketModule::handleInternal(internalEvent event) {
       return;
     }
     case socket_authed: {
+      // wait randomly between 100 and 300 ms to make it less likely too many ESP fire simultaneously after WiFi failure
       int64_t waitTime = esp_timer_get_time() + random(100000,300000);
       while ( esp_timer_get_time() < waitTime) {
         yield();
@@ -367,6 +372,7 @@ void SocketModule::handleInternal(internalEvent event) {
     }
     
     case time_synced: {
+      // configuration for JWT complete, starting socket client and registering event handler 
       socket->begin(ip.c_str(), port, url.c_str());
       socket->onEvent(socketHandler);
       if (!debugging) return; // no need to fetch time here if not debugging

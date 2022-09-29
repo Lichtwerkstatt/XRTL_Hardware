@@ -268,11 +268,11 @@ void XRTLmodule::sendEvent(JsonArray& event){
   xrtl->sendEvent(event);
 }
 
-void XRTL::sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length) {
+void XRTL::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length) {
   socketIO->sendBinary(binaryLeadFrame, payload, length);
 }
 
-void XRTLmodule::sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length) {
+void XRTLmodule::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length) {
   xrtl->sendBinary(binaryLeadFrame, payload, length);
 }
 
@@ -290,6 +290,14 @@ void XRTL::notify(internalEvent event) {
 
 void XRTLmodule::notify(internalEvent state) {
   xrtl->notify(state);
+}
+
+String& XRTL::getComponent() {
+  return socketIO->getComponent();
+}
+
+String& XRTLmodule::getComponent() {
+  return xrtl->getComponent();
 }
 
 void XRTL::pushCommand(JsonObject& command){

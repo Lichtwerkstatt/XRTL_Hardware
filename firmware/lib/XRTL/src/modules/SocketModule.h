@@ -24,6 +24,8 @@ class SocketModule : public XRTLmodule {
   public:
   SocketModule(String moduleName, XRTL* source);
 
+  String& getComponent();
+
   friend void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length);
   void handleEvent(DynamicJsonDocument& doc);
   
@@ -35,7 +37,7 @@ class SocketModule : public XRTLmodule {
   
   void sendEvent(JsonArray& event);
   void sendError(componentError err, String msg);
-  void sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length);
+  void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length);
 
   void saveSettings(DynamicJsonDocument& settings);
   void loadSettings(DynamicJsonDocument& settings);

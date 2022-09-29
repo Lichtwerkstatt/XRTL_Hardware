@@ -171,6 +171,7 @@ void OutputModule::handleInternal(internalEvent event){
     if ( out == NULL) return;
     switch(event) {
         case socket_disconnected: {
+            if (!out->getState()) return;
             out->toggle(false);
             debug("output powered down for safety reasons");
             return;

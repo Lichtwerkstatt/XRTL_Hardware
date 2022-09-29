@@ -117,7 +117,10 @@ void StepperModule::getStatus(JsonObject& payload, JsonObject& status) {
   if (stepper == NULL) return;// avoid errors: status might be called during setup
 
   if (stepper->isRunning()) {
-    status["busy"] = true;
+    auto busyField = status["busy"];
+    if (!busyField.as<bool>()) {// only edit if necessary -- don't waste JsonObject memory!
+      busyField = true;
+    }
   }
 
   JsonObject position = status.createNestedObject(controlId);

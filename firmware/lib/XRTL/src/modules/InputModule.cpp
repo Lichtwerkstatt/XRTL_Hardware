@@ -88,7 +88,7 @@ void InputModule::loop() {
 
     event.add("data");
     JsonObject payload = event.createNestedObject();
-    payload["componentId"] = "test"; // TODO: get componentId from socket module
+    payload["componentId"] = getComponent(); // TODO: check function
     payload["type"] = "double";
     payload["dataId"] = id;
 

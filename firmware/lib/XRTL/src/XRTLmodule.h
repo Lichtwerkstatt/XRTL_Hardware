@@ -94,6 +94,7 @@ class XRTLmodule {
 
   public:
   String getID(); // return id
+  String& getComponent();
   bool isModule(String& moduleName);//  return (id == moduleName)
 
   virtual bool handleCommand(String& command); // react on a simple command offered by the core, return false if command is unkown
@@ -101,7 +102,7 @@ class XRTLmodule {
 
   void sendEvent(JsonArray& event); // send event via endpoint
   void sendError(componentError err, String message); // send error via endpoint
-  void sendBinary(String* binaryLeadFrame, uint8_t* payload, size_t length); // send binary via endpoint
+  void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length); // send binary via endpoint
   void sendStatus(); // tell core to send status
 
   void notify(internalEvent state); // send internal event to all modules
@@ -155,7 +156,31 @@ class XRTLmodule {
     return true;
   }
 
+  template<typename A>
+  bool getValue(String name, JsonObject& file, A&target, A minValue, A maxValue, bool reportMissingField = false) {
+    bool ret = getValue<A>(name, file, target, reportMissingField);
+    if (!ret) return ret;
+
+    if ( (target < minValue) or (target > maxValue) ) {
+      target = constrain(target,minValue,maxValue);
+
+      String errormsg = "[";
+      errormsg += controlId;
+      errormsg += "] out of bounds: <";
+      errormsg += name;
+      errormsg += "> was constrained to (";
+      errormsg += minValue;
+      errormsg += ",";
+      errormsg += maxValue;
+      errormsg += ")";
+      sendError(out_of_bounds, errormsg);
+    }
+
+    return ret;
+  }
+
   // get value of type A or B from JsonObject -- A is the return type, make sure B can be cast to A
+  // deprecated with new command structure?
   template<typename A, typename B>
   bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
     auto field = file[name];
