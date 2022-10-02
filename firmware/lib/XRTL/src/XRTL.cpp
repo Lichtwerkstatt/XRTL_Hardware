@@ -51,6 +51,14 @@ void XRTL::loop(){
 }
 
 void XRTL::addModule(String moduleName, moduleType category) {
+  if (moduleCount == 16) {
+    debug("maximum number of modules reached");
+    return;
+  }
+  if (this->operator[](moduleName) != NULL) {
+    debug("unable to add module <%s>: id already in use", moduleName);
+    return;  
+  }
   switch(category) {
     case xrtl_socket: {
       socketIO = new SocketModule(moduleName,this);

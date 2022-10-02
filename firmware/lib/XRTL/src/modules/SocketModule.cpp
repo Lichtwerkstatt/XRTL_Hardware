@@ -229,19 +229,17 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
   JsonObject commandJson;
   String commandStr;
 
-  if (getValue<String>("command", payload, commandStr)) {
-    pushCommand(commandStr);
-  }
-  else if (getValue<JsonObject>("command", payload, commandJson)) {
-    String controlId;
-    if (!getValue("controlId", payload, controlId, true)) return;
-    pushCommand(controlId, commandJson);
-  }
-  else {
-    String errormsg = "[";
-    errormsg += id;
-    errormsg += "] command rejected: <command> is no String or JsonObject";
-    sendError(wrong_type, errormsg);
+  switch(getValue<String,JsonObject>("command", payload, commandStr, commandJson)) {
+    case is_first: {
+      pushCommand(commandStr);
+      return;
+    }
+    case is_second: {
+      String controlId;
+      if (!getValue("controlId", commandJson, controlId, true)) return;
+      pushCommand(controlId,commandJson);
+      return;
+    }
   }
 }
 

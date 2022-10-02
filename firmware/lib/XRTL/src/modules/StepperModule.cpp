@@ -190,15 +190,45 @@ void StepperModule::driveStepper(JsonObject& command) {
   
   if (relativeCtrl) {
     float val;
+    float valFloat;
+    int valInt;
 
-    if ( !getValue<float, int>("val", command, val, true) ) return;
+    switch(getValue<int,float>("val", command, valInt, valFloat, true)) {
+      case is_first: {
+        val = (float) valInt;
+        break;
+      }
+      case is_second: {
+        val = valFloat;
+        break;
+      }
+      case is_wrong_type: {
+        return;
+      }
+    }
+
     stepper->enableOutputs();
     stepper->moveTo(minimum + round(val * (maximum - minimum) ) );
   }
   else {
     int val;
+    float valFloat;
+    int valInt;
 
-    if ( !getValue<int,float>("val", command, val, true) ) return;
+    switch(getValue<int,float>("val", command, valInt, valFloat, true)) {
+      case is_first: {
+        val = valInt;
+        break;
+      }
+      case is_second: {
+        val = (int) round(valFloat);
+        break;
+      }
+      case is_wrong_type: {
+        return;
+      }
+    }
+
     stepper->enableOutputs();
     stepper->move(val);
   }
@@ -220,6 +250,7 @@ void StepperModule::driveStepper(JsonObject& command) {
     sendError(out_of_bounds, error);
   }
 
+  debug("moving from %d to %d", stepper->currentPosition(), stepper->targetPosition());
   wasRunning = true;
   notify(busy);
   return;

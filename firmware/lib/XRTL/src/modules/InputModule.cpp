@@ -112,7 +112,6 @@ void InputModule::saveSettings(JsonObject& settings){
 
     settings["pin"] = pin;
     settings["averageTime"] = averageTime;
-
     settings["rangeChecking"] = rangeChecking;
 
     if (rangeChecking) {
@@ -134,8 +133,8 @@ void InputModule::loadSettings(JsonObject& settings) {
 
     pin = loadValue<uint8_t>("pin", settings, 35);
     averageTime = loadValue<uint16_t>("averageTime", settings, 0);
-
     rangeChecking = loadValue<bool>("rangeChecking", settings, false);
+    
     if (rangeChecking) {
         loBound = loadValue<double>("loBound", settings, 0);
         hiBound = loadValue<double>("hiBound", settings, 3300);

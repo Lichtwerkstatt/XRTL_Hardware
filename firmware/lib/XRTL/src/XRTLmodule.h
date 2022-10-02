@@ -72,6 +72,14 @@ enum componentError {
   is_busy
 };
 
+// return type for reading values from JsonObjects
+enum getValueReturn_t {
+  is_missing,
+  is_first,
+  is_second,
+  is_wrong_type
+};
+
 // poll input via serial monitor
 String serialInput(String query);
 // filler = +    ==>  ++++str++++
@@ -136,7 +144,7 @@ class XRTLmodule {
       errormsg += id;
       errormsg += "] command rejected: <";
       errormsg += name;
-      errormsg += "> could not be found";
+      errormsg += "> is missing";
       sendError(field_is_null, errormsg);
       return false;
     }
@@ -153,6 +161,43 @@ class XRTLmodule {
     
     target = field.as<A>();
     return true;
+  }
+
+  template<typename A, typename B>
+  getValueReturn_t getValue(String name, JsonObject& file, A& targetA, B& targetB, bool reportMissingField = false) {
+    auto field = file[name];
+    if (field.isNull()) {
+      if (!reportMissingField) return is_missing;
+
+      String errormsg = "[";
+      errormsg += id;
+      errormsg += "] command rejected: <";
+      errormsg += name;
+      errormsg += "> is missing";
+      
+      sendError(field_is_null, errormsg);
+      return is_missing;
+    }
+
+    if (field.is<A>()) {
+      targetA = field.as<A>();
+      return is_first;
+    }
+    else if (field.is<B>()) {
+      targetB = field.as<B>();
+      return is_second;
+    }
+    else {
+      String errormsg = "[";
+      errormsg += id;
+      errormsg += "] command rejected: <";
+      errormsg += name;
+      errormsg += "> is wrong type";
+
+      sendError(wrong_type, errormsg);
+    }
+    
+    return is_wrong_type;
   }
 
   template<typename A>
@@ -176,36 +221,6 @@ class XRTLmodule {
     }
 
     return ret;
-  }
-
-  // get value of type A or B from JsonObject -- A is the return type, make sure B can be cast to A
-  // deprecated with new command structure?
-  template<typename A, typename B>
-  bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
-    auto field = file[name];
-    if (field.isNull()) {
-      if (!reportMissingField) return false;
-
-      String errormsg = "[";
-      errormsg += id;
-      errormsg += "] command rejected: <";
-      errormsg += name;
-      errormsg += "> could not be found";
-      sendError(field_is_null, errormsg);
-    }
-
-    if (!(field.is<A>() or field.is<B>())) {
-      String errormsg = "[";
-      errormsg += id;
-      errormsg += "] command rejected: <";
-      errormsg += name;
-      errormsg += "> is of wrong type";
-      sendError(wrong_type, errormsg);
-      return false;
-    }
-
-    target = field.as<A>();
-    return true;
   }
 };
 
