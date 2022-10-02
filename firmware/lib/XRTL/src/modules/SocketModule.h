@@ -23,6 +23,7 @@ class SocketModule : public XRTLmodule {
 
   public:
   SocketModule(String moduleName, XRTL* source);
+  moduleType getType();
 
   String& getComponent();
 
@@ -30,7 +31,7 @@ class SocketModule : public XRTLmodule {
   void handleEvent(DynamicJsonDocument& doc);
   
   void pushCommand(String& command);
-  void pushCommand(JsonObject& command);
+  void pushCommand(String& controlId, JsonObject& command);
 
   String createJWT();
   void sendConnect();
@@ -39,8 +40,8 @@ class SocketModule : public XRTLmodule {
   void sendError(componentError err, String msg);
   void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length);
 
-  void saveSettings(DynamicJsonDocument& settings);
-  void loadSettings(DynamicJsonDocument& settings);
+  void saveSettings(JsonObject& settings);
+  void loadSettings(JsonObject& settings);
   void setViaSerial();
   void getStatus(JsonObject& payload, JsonObject& status);
 

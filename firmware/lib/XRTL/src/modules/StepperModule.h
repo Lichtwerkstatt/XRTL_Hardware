@@ -23,11 +23,12 @@ class StepperModule : public XRTLmodule {
   
   public:
   StepperModule(String moduleName, XRTL* source);
+  moduleType getType();
 
   void driveStepper(JsonObject& command);
 
-  void saveSettings(DynamicJsonDocument& settings);
-  void loadSettings(DynamicJsonDocument& settings);
+  void saveSettings(JsonObject& settings);
+  void loadSettings(JsonObject& settings);
   void setViaSerial();
   void getStatus(JsonObject& payload, JsonObject& status);
 
@@ -36,7 +37,7 @@ class StepperModule : public XRTLmodule {
   void stop();
 
   bool handleCommand(String& command);
-  bool handleCommand(String& control, JsonObject& command);
+  bool handleCommand(String& controlId, JsonObject& command);
 };
 
 #endif

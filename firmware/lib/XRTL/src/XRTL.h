@@ -27,14 +27,17 @@ class XRTL {
   bool debugging = true;
 
   public:
-  // add and address module
+  // manage Modules
+  void listModules();
   void addModule(String moduleName, moduleType category);
+  void delModule(uint8_t number);
+  void swapModules(uint8_t numberX, uint8_t numberY);
   XRTLmodule* operator[](String moduleName); // returns pointer to module with specified ID
 
   String& getComponent();
 
   // offer command events to modules
-  void pushCommand(JsonObject& command);
+  void pushCommand(String& controlId, JsonObject& command);
   void pushCommand(String& command);
 
   // send stuff via endpoint
@@ -50,10 +53,6 @@ class XRTL {
     Serial.printf(args...);
     Serial.print('\n');
   };
-
-  // manage active modules
-  void loadConfig();
-  void editConfig();
 
   // manage module settings
   void loadSettings();

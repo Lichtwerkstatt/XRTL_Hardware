@@ -21,19 +21,16 @@ String centerString(String str, uint8_t targetLength, char filler = ' ') {
   return String(output);
 }
 
-String missingValue(String name) {
-  String ret = "WARNING: ";
-  ret += name;
-  ret += "not set, using default value";
-  return ret;
-}
-
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 String XRTLmodule::getID(){
   return id;
+}
+
+moduleType XRTLmodule::getType() {
+  return xrtl_socket;// TODO: add "xrtl_none" and set as default, adjust all setting handling functions accordingly 
 }
 
 bool XRTLmodule::isModule(String& moduleName){
@@ -52,11 +49,13 @@ void XRTLmodule::getStatus(JsonObject& payload, JsonObject& status) {
   return;
 }
 
-void XRTLmodule::saveSettings(DynamicJsonDocument& settings) {
+//void XRTLmodule::saveSettings(DynamicJsonDocument& settings) {
+void XRTLmodule::saveSettings(JsonObject& settings) {
   return;
 }
 
-void XRTLmodule::loadSettings(DynamicJsonDocument& settings) {
+//void XRTLmodule::loadSettings(DynamicJsonDocument& settings) {
+void XRTLmodule::loadSettings(JsonObject& settings) {
   return;
 }
 

@@ -191,6 +191,10 @@ InfoLEDModule::InfoLEDModule(String modulName, XRTL* source) {
   xrtl = source;
 }
 
+moduleType InfoLEDModule::getType() {
+  return xrtl_infoLED;
+}
+
 void InfoLEDModule::setup() {
   led = new InfoLED(pixel,pin);
   led->begin();
@@ -203,17 +207,17 @@ void InfoLEDModule::loop() {
   led->loop();
 }
 
-void InfoLEDModule::saveSettings(DynamicJsonDocument& settings) {
-  JsonObject saving = settings.createNestedObject(id);
-  saving["pin"] = pin;
-  saving["pixel"] = pixel;
+void InfoLEDModule::saveSettings(JsonObject& settings) {
+  //JsonObject saving = settings.createNestedObject(id);
+  settings["pin"] = pin;
+  settings["pixel"] = pixel;
 }
 
-void InfoLEDModule::loadSettings(DynamicJsonDocument& settings) {
-  JsonObject loaded = settings[id];
+void InfoLEDModule::loadSettings(JsonObject& settings) {
+  //JsonObject loaded = settings[id];
 
-  pin = loadValue<uint8_t>("pin", loaded, 32);
-  pixel = loadValue<uint8_t>("pixel", loaded, 12);
+  pin = loadValue<uint8_t>("pin", settings, 32);
+  pixel = loadValue<uint8_t>("pixel", settings, 12);
 
   if (!debugging) return;
   Serial.printf("control pin: %i\n", pin);

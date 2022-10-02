@@ -20,16 +20,17 @@ class ServoModule : public XRTLmodule {
 
   public:
   ServoModule(String moduleName, XRTL* source);
+  moduleType getType();
 
   int16_t read();
   void write(int16_t target);
   void driveServo(JsonObject& command);
   
   bool handleCommand(String& command);
-  bool handleCommand(String& control, JsonObject& command);
+  bool handleCommand(String& controlId, JsonObject& command);
 
-  void saveSettings(DynamicJsonDocument& settings);
-  void loadSettings(DynamicJsonDocument& settings);
+  void saveSettings(JsonObject& settings);
+  void loadSettings(JsonObject& settings);
   void setViaSerial();
   void getStatus(JsonObject& payload, JsonObject& status);
 

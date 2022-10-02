@@ -65,34 +65,36 @@ OutputModule::OutputModule(String moduleName, XRTL* source) {
     xrtl = source;
 }
 
+moduleType OutputModule::getType() {
+    return xrtl_output;
+}
+
 void OutputModule::pulse(uint16_t milliSeconds) {
     switchTime = esp_timer_get_time() + 1000 * milliSeconds;
     out->toggle(true);
 }
 
-void OutputModule::saveSettings(DynamicJsonDocument& settings) {
-    JsonObject saving = settings.createNestedObject(id);
+void OutputModule::saveSettings(JsonObject& settings) {
+    //JsonObject saving = settings.createNestedObject(id);
 
-    saving["controlId"] = controlId;
-    saving["pin"] = pin;
-    saving["pwm"] = pwm;
+    settings["pin"] = pin;
+    settings["pwm"] = pwm;
 
     if (!pwm) return;
-    saving["channel"] = channel;
-    saving["frequency"] = frequency;
+    settings["channel"] = channel;
+    settings["frequency"] = frequency;
 }
 
-void OutputModule::loadSettings(DynamicJsonDocument& settings) {
-    JsonObject loaded = settings[id];
+void OutputModule::loadSettings(JsonObject& settings) {
+    //JsonObject loaded = settings[id];
 
-    controlId = loadValue<String>("controlId", loaded, id);
-    pin = loadValue<uint8_t>("pin", loaded, 27);
-    pwm = loaded["pwm"].as<bool>();
-    pwm = loadValue<bool>("pwm", loaded, false);;
+    pin = loadValue<uint8_t>("pin", settings, 27);
+    pwm = settings["pwm"].as<bool>();
+    pwm = loadValue<bool>("pwm", settings, false);;
 
     if (pwm) {
-        channel = loadValue<uint8_t>("channel", loaded, 5);
-        frequency = loadValue<uint16_t>("frequency", loaded, 1000);
+        channel = loadValue<uint8_t>("channel", settings, 5);
+        frequency = loadValue<uint16_t>("frequency", settings, 1000);
 
         if ( (frequency != 1000) and (frequency != 5000) and (frequency != 8000) and (frequency != 10000)) { // only 1, 5, 8 and 10 kHz allowed
             frequency = 1000;
@@ -102,7 +104,7 @@ void OutputModule::loadSettings(DynamicJsonDocument& settings) {
 
     if (!debugging) return;
 
-    Serial.printf("controlId: %s\n",controlId.c_str());
+    Serial.printf("controlId: %s\n",id.c_str());
     Serial.printf("pin: %d\n",pin);
     Serial.printf(pwm ? "PWM output\n" : "relay output\n");
 
@@ -114,7 +116,7 @@ void OutputModule::loadSettings(DynamicJsonDocument& settings) {
 
 void OutputModule::getStatus(JsonObject& payload, JsonObject& status){
     if (out == NULL) return; // avoid errors: status might be called in setup before init occured
-    JsonObject outputState = status.createNestedObject(controlId); 
+    JsonObject outputState = status.createNestedObject(id); 
 
     outputState["isOn"] = out->getState();
     if (!pwm) return;
@@ -128,7 +130,7 @@ void OutputModule::setViaSerial() {
     Serial.println(centerString("",39,'-'));
     Serial.println("");
 
-    controlId = serialInput("controlId: ");
+    id = serialInput("controlId: ");
     pwm = (strcmp(serialInput("pwm (y/n): ").c_str(),"y") == 0);
     if (pwm) {
         channel = serialInput("channel: ").toInt();
@@ -188,8 +190,8 @@ void OutputModule::handleInternal(internalEvent event){
     }
 }
 
-bool OutputModule::handleCommand(String& control, JsonObject& command) {
-    if (strcmp(control.c_str(), controlId.c_str() ) != 0) return false;
+bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
+    if (!isModule(controlId)) return false;
 
     uint8_t powerLvl;
     if (pwm) {
@@ -209,7 +211,7 @@ bool OutputModule::handleCommand(String& control, JsonObject& command) {
     }
     else {
         String error = "[";
-        error += controlId;
+        error += id;
         error += "] command rejected: <val> is neither bool nor int";
         sendError(wrong_type, error);
         return true;

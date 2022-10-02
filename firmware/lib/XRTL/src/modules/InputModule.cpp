@@ -41,6 +41,10 @@ InputModule::InputModule(String moduleName, XRTL* source) {
     xrtl = source;
 }
 
+moduleType InputModule::getType() {
+    return xrtl_input;
+}
+
 void InputModule::setup() {
     input = new XRTLinput;
     input->attach(pin);
@@ -103,57 +107,56 @@ void InputModule::stop() {
     stopStreaming();
 }
 
-void InputModule::saveSettings(DynamicJsonDocument& settings){
-    JsonObject saving = settings.createNestedObject(id);
+void InputModule::saveSettings(JsonObject& settings){
+    //JsonObject saving = settings.createNestedObject(id);
 
-    saving["controlId"] = controlId;
-    saving["pin"] = pin;
-    saving["averageTime"] = averageTime;
+    settings["pin"] = pin;
+    settings["averageTime"] = averageTime;
 
-    saving["rangeChecking"] = rangeChecking;
+    settings["rangeChecking"] = rangeChecking;
 
     if (rangeChecking) {
-        saving["loBound"] = loBound;
-        saving["hiBound"] = hiBound;
-        saving["deadMicroSeconds"] = deadMicroSeconds;
+        settings["loBound"] = loBound;
+        settings["hiBound"] = hiBound;
+        settings["deadMicroSeconds"] = deadMicroSeconds;
     }
 
     // conversion settings
     if (conversionCount == 0) return;
-    JsonArray savingConversion = saving.createNestedArray("conversions");
+    JsonArray savingConversion = settings.createNestedArray("conversions");
     for (int i = 0; i < conversionCount; i++) {
         conversion[i]->saveSettings(savingConversion);
     }
 }
 
-void InputModule::loadSettings(DynamicJsonDocument& settings) {
-    JsonObject loaded = settings[id];
+void InputModule::loadSettings(JsonObject& settings) {
+    //JsonObject loaded = settings[id];
 
-    controlId = loadValue<String>("controlId", loaded, id);
-    pin = loadValue<uint8_t>("pin", loaded, 35);
-    averageTime = loadValue<uint16_t>("averageTime", loaded, 0);
+    pin = loadValue<uint8_t>("pin", settings, 35);
+    averageTime = loadValue<uint16_t>("averageTime", settings, 0);
 
-    rangeChecking = loadValue<bool>("rangeChecking", loaded, false);
+    rangeChecking = loadValue<bool>("rangeChecking", settings, false);
     if (rangeChecking) {
-        loBound = loadValue<double>("loBound", loaded, 0);
-        hiBound = loadValue<double>("hiBound", loaded, 3300);
-        deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", loaded, 0);
+        loBound = loadValue<double>("loBound", settings, 0);
+        hiBound = loadValue<double>("hiBound", settings, 3300);
+        deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", settings, 0);
     }
 
     // load conversions
-    JsonArray loadedConversion = loaded["conversions"];
+    JsonArray loadedConversion = settings["conversions"];
     if (!loadedConversion.isNull()) {
         for (JsonVariant var : loadedConversion) {
             JsonObject initializer = var.as<JsonObject>();
             conversion_t type = loadValue<conversion_t>("type", initializer, thermistor);
             addConversion(type);
             conversion[conversionCount - 1]->loadSettings(initializer, debugging);
+            if (debugging) Serial.println("");
         }
     }
 
     if (!debugging) return;
 
-    Serial.printf("controlId: %s\n", controlId.c_str());
+    Serial.printf("controlId: %s\n", id.c_str());
     Serial.printf("pin: %d\n", pin);
     Serial.printf("averaging time: %d\n", averageTime);
 
@@ -170,7 +173,7 @@ void InputModule::setViaSerial() {
     Serial.println(centerString("",39,'-').c_str());
     Serial.println("");
 
-    controlId = serialInput("controlId: ");
+    id = serialInput("controlId: ");
     averageTime = serialInput("averaging time: ").toInt();
 
     rangeChecking = (strcmp(serialInput("check range (y/n): ").c_str(), "y") == 0);
@@ -207,6 +210,10 @@ void InputModule::setViaSerial() {
 }
 
 void InputModule::startStreaming() {
+    if (isStreaming) {
+        debug("stream already active");
+        return;
+    }
     next = esp_timer_get_time(); // immediately deliver first value
     isStreaming = true;
     sendStatus();
@@ -214,6 +221,10 @@ void InputModule::startStreaming() {
 }
 
 void InputModule::stopStreaming() {
+    if (!isStreaming) {
+        debug("stream already inactive");
+        return;
+    }
     isStreaming = false;
     sendStatus();
     debug("stopped streaming values");
@@ -223,8 +234,8 @@ bool InputModule::handleCommand(String& command) {
     return false;
 }
 
-bool InputModule::handleCommand(String& control, JsonObject& command) {
-    if (strcmp(controlId.c_str(), control.c_str()) != 0) return false;
+bool InputModule::handleCommand(String& controlId, JsonObject& command) {
+    if (!isModule(controlId)) return false;
 
     bool stream = false;
     if ( getValue<bool>("stream", command, stream) ) { 

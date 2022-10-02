@@ -5,30 +5,34 @@ WifiModule::WifiModule(String moduleName, XRTL* source) {
   xrtl = source;
 }
 
+moduleType WifiModule::getType() {
+  return xrtl_wifi;
+}
+
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   WiFi.reconnect();
 }
 
 
-void WifiModule::saveSettings(DynamicJsonDocument& settings) {
-  JsonObject saving = settings.createNestedObject(id);
+void WifiModule::saveSettings(JsonObject& settings) {
+  //JsonObject saving = settings.createNestedObject(id);
 
-  saving["enterprise"] = enterprise;
-  saving["ssid"] = ssid;
-  saving["password"] = password;
+  settings["enterprise"] = enterprise;
+  settings["ssid"] = ssid;
+  settings["password"] = password;
 
   if (enterprise) {
-    saving["username"] = username;
-    saving["anonymous"] = anonymous;
+    settings["username"] = username;
+    settings["anonymous"] = anonymous;
   }
 }
 
-void WifiModule::loadSettings(DynamicJsonDocument& settings) {
-  JsonObject loaded = settings[id];
+void WifiModule::loadSettings(JsonObject& settings) {
+  //JsonObject loaded = settings[id];
 
-  enterprise = loadValue<bool>("enterprise", loaded, false);
-  ssid = loadValue<String>("ssid", loaded, "");
-  password = loadValue<String>("password", loaded, "");
+  enterprise = loadValue<bool>("enterprise", settings, false);
+  ssid = loadValue<String>("ssid", settings, "");
+  password = loadValue<String>("password", settings, "");
   
   if (debugging) {
     Serial.printf(enterprise ? centerString("enterprise WiFi", 39, ' ').c_str() : centerString("regular WiFi", 39, ' ').c_str());
@@ -40,8 +44,8 @@ void WifiModule::loadSettings(DynamicJsonDocument& settings) {
   
   if (!enterprise) return;
 
-  username = loadValue<String>("username", loaded, "");
-  anonymous = loadValue<String>("anonymous", loaded, "");
+  username = loadValue<String>("username", settings, "");
+  anonymous = loadValue<String>("anonymous", settings, "");
 
   if (!debugging) return;
   Serial.printf("username: %s\n", username.c_str());

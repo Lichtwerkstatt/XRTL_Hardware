@@ -46,6 +46,7 @@ class OutputModule: public XRTLmodule {
     public:
 
     OutputModule(String moduleName, XRTL* source);
+    moduleType getType();
 
     void pulse(uint16_t milliSeconds);
 
@@ -53,13 +54,13 @@ class OutputModule: public XRTLmodule {
     void loop();
     void stop();
 
-    void saveSettings(DynamicJsonDocument& settings);
-    void loadSettings(DynamicJsonDocument& settings);
+    void saveSettings(JsonObject& settings);
+    void loadSettings(JsonObject& settings);
     void setViaSerial();
     void getStatus(JsonObject& payload, JsonObject& status);
 
     void handleInternal(internalEvent state);
-    bool handleCommand(String& control, JsonObject& command);
+    bool handleCommand(String& controlId, JsonObject& command);
 };
 
 #endif

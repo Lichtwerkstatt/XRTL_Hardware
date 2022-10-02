@@ -21,19 +21,20 @@ class CameraModule : public XRTLmodule {
 
     public:
     CameraModule(String moduleName, XRTL* source);
+    moduleType getType();
 
     void setup();
     void loop();
 
-    virtual void getStatus(JsonObject& payload, JsonObject& status);
-    virtual void saveSettings(DynamicJsonDocument& settings);
-    virtual void loadSettings(DynamicJsonDocument& settings);
-    virtual void setViaSerial();
+    void getStatus(JsonObject& payload, JsonObject& status);
+    void saveSettings(JsonObject& settings);
+    void loadSettings(JsonObject& settings);
+    void setViaSerial();
     
     void startStreaming();
     void stopStreaming();
     bool handleCommand(String& command);
-    bool handleCommand(String& control, JsonObject& command);
+    bool handleCommand(String& controlId, JsonObject& command);
     void handleInternal(internalEvent event);
 
     //void getStatus();

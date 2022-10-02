@@ -2,8 +2,11 @@
 
 CameraModule::CameraModule(String moduleName, XRTL* source){
     id = moduleName;
-    controlId = id;
     xrtl = source;
+}
+
+moduleType CameraModule::getType() {
+  return xrtl_camera;
 }
 
 camera_config_t CameraModule::camera_config = {
@@ -65,20 +68,20 @@ void CameraModule::loop() {
 void CameraModule::getStatus(JsonObject& payload, JsonObject& status) {
   if (isStreaming) {
     auto busyField = status["busy"];
-    if (!busyField.as<bool>()) {// don't waste RAM
+    if (!busyField.as<bool>()) {// don't waste JSsonObject memory
       busyField = true;
     }
   }
 
-  JsonObject moduleStatus = status.createNestedObject(controlId);
+  JsonObject moduleStatus = status.createNestedObject(id);
   moduleStatus["stream"] = isStreaming;
 }
 
-void CameraModule::saveSettings(DynamicJsonDocument& settings) {
+void CameraModule::saveSettings(JsonObject& settings) {
 
 }
 
-void CameraModule::loadSettings(DynamicJsonDocument& settings) {
+void CameraModule::loadSettings(JsonObject& settings) {
 
 }
 
@@ -160,22 +163,22 @@ bool CameraModule::handleCommand(String& command) {
   return false;
 }
 
-bool CameraModule::handleCommand(String& control, JsonObject& command) {
-  //if (strcmp(control.c_str(),controlId.c_str()) != 0) return false;
+bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
+  //if (strcmp(!isModule(controlId)) return false;
   //remove these later?
-  if (strcmp(control.c_str(),"gray") == 0) {
+  if (strcmp(controlId.c_str(),"gray") == 0) {
     bool val;
     if (getValue<bool>("val", command, val)) {
       command["gray"] = val;
     }
   }
-  else if (strcmp(control.c_str(),"brightness") == 0) {
+  else if (strcmp(controlId.c_str(),"brightness") == 0) {
     int val;
     if (getValue<int>("val", command, val)) {
       command["brightness"] = val;
     }
   }
-  else if (strcmp(control.c_str(),"contrast") == 0) {
+  else if (strcmp(controlId.c_str(),"contrast") == 0) {
     int val;
     if (getValue<int>("val", command, val)) {
       command["contrast"] = val;
@@ -260,7 +263,7 @@ bool CameraModule::handleCommand(String& control, JsonObject& command) {
     }
     else {
       String errormsg = "[";
-      errormsg += controlId;
+      errormsg += id;
       errormsg += "] <frame size> has unknown value, complete list: UXGA, QVGA, CIF, VGA, SVGA, XGA, SXGA";
       sendError(out_of_bounds,errormsg);
     }

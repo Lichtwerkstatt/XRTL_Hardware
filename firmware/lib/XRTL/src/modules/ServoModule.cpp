@@ -5,35 +5,37 @@ ServoModule::ServoModule(String moduleName, XRTL* source) {
   xrtl = source;
 }
 
-void ServoModule::saveSettings(DynamicJsonDocument& settings){
-  JsonObject saving = settings.createNestedObject(id);
-  saving["controlId"] = controlId;
-  saving["frequency"] = frequency;
-  saving["minDuty"] = minDuty;
-  saving["maxDuty"] = maxDuty;
-  saving["minAngle"] = minAngle;
-  saving["maxAngle"] = maxAngle;
-  saving["initial"] = initial;
-  saving["relativeCtrl"] = relativeCtrl;
-  saving["pin"] = pin;
+moduleType ServoModule::getType() {
+  return xrtl_servo;
 }
 
-void ServoModule::loadSettings(DynamicJsonDocument& settings){
-  JsonObject loaded = settings[id];
+void ServoModule::saveSettings(JsonObject& settings){
+  //JsonObject saving = settings.createNestedObject(id);
+  settings["frequency"] = frequency;
+  settings["minDuty"] = minDuty;
+  settings["maxDuty"] = maxDuty;
+  settings["minAngle"] = minAngle;
+  settings["maxAngle"] = maxAngle;
+  settings["initial"] = initial;
+  settings["relativeCtrl"] = relativeCtrl;
+  settings["pin"] = pin;
+}
 
-  controlId = loadValue<String>("controlId", loaded, id);
-  frequency = loadValue<uint16_t>("frequency", loaded, 50);
-  minDuty = loadValue<uint16_t>("minDuty", loaded, 1000);
-  maxDuty = loadValue<uint16_t>("maxDuty", loaded, 2000);
-  minAngle = loadValue<int16_t>("minAngle", loaded, 0);
-  maxAngle = loadValue<int16_t>("maxAngle", loaded, 90);
-  initial = loadValue<int16_t>("initial", loaded, 0);
-  relativeCtrl = loadValue<bool>("relativeCtrl", loaded, 0);
-  pin = loadValue<uint8_t>("pin", loaded, 32);
+void ServoModule::loadSettings(JsonObject& settings){
+  //JsonObject loaded = settings[id];
+
+  frequency = loadValue<uint16_t>("frequency", settings, 50);
+  minDuty = loadValue<uint16_t>("minDuty", settings, 1000);
+  maxDuty = loadValue<uint16_t>("maxDuty", settings, 2000);
+  minAngle = loadValue<int16_t>("minAngle", settings, 0);
+  maxAngle = loadValue<int16_t>("maxAngle", settings, 90);
+  initial = loadValue<int16_t>("initial", settings, 0);
+  relativeCtrl = loadValue<bool>("relativeCtrl", settings, 0);
+  pin = loadValue<uint8_t>("pin", settings, 32);
   
   if (!debugging) return;
 
-  Serial.printf("controlId: %s\n", controlId.c_str());
+  Serial.printf("controlId: %s\n", id.c_str());
   Serial.printf("frequency: %d Hz\n", frequency);
   Serial.printf("minimum duty time: %d µs\n", minDuty);
   Serial.printf("maximum duty time: %d µs\n", maxDuty);
@@ -55,7 +57,7 @@ void ServoModule::setViaSerial(){
   Serial.println(centerString("",39, '-'));
   Serial.println("");
 
-  controlId = serialInput("controlId: ");
+  id = serialInput("controlId: ");
   frequency = serialInput("Frequency (Hz): ").toInt();
   minDuty = serialInput("minimum duty time (µs): ").toInt();
   maxDuty = serialInput("maximum tuty time (µs): ").toInt();
@@ -71,7 +73,7 @@ void ServoModule::setViaSerial(){
 }
 
 void ServoModule::getStatus(JsonObject& payload, JsonObject& status){
-  JsonObject position = status.createNestedObject(controlId);
+  JsonObject position = status.createNestedObject(id);
 
   int16_t angle = read();
   position["absolute"] = angle;
@@ -103,26 +105,22 @@ bool ServoModule::handleCommand(String& command) {
   return false;
 }
 
-bool ServoModule::handleCommand(String& control, JsonObject& command) {
-  if (strcmp(controlId.c_str(),control.c_str()) == 0) {
-    driveServo(command);
-    return true;
-  }
+bool ServoModule::handleCommand(String& controlId, JsonObject& command) {
+  if (!isModule(controlId)) return false;
 
-  return false;
+  driveServo(command);
+  return true;
 }
 
 int16_t ServoModule::read() {
-  if (servo == NULL) {
-    return 0;
-  }
+  if (servo == NULL) return 0;
+
   return round(mapFloat(servo->readMicroseconds(), minDuty, maxDuty, minAngle, maxAngle));
 }
 
 void ServoModule::write(int16_t target) {
-  if (servo == NULL) {
-    return;
-  }
+  if (servo == NULL) return;
+
   servo->writeMicroseconds(round(mapFloat(target,minAngle,maxAngle,minDuty,maxDuty)));
 }
 
@@ -143,7 +141,7 @@ void ServoModule::driveServo(JsonObject& command) {
     target = constrain(target,minAngle,maxAngle);
 
     String error = "[";
-    error += controlId;
+    error += id;
     error += "] target position was constrained to (";
     error += minAngle;
     error += ",";

@@ -244,19 +244,20 @@ class InputModule: public XRTLmodule {
     public:
 
     InputModule(String moduleName, XRTL* source);
+    moduleType getType();
 
     void setup();
     void loop();
     void stop();
 
-    void saveSettings(DynamicJsonDocument& settings);
-    void loadSettings(DynamicJsonDocument& settings);
+    void saveSettings(JsonObject& settings);
+    void loadSettings(JsonObject& settings);
     void setViaSerial();
 
     void startStreaming();
     void stopStreaming();
 
-    bool handleCommand(String& control, JsonObject& command);
+    bool handleCommand(String& controlId, JsonObject& command);
     bool handleCommand(String& command);
 
     void handleInternal(internalEvent event);

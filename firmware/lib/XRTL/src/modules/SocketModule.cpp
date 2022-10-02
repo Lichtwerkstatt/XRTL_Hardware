@@ -119,6 +119,10 @@ SocketModule::SocketModule(String moduleName, XRTL* source) {
   lastModule = this;
 }
 
+moduleType SocketModule::getType() {
+  return xrtl_socket;
+}
+
 void SocketModule::sendEvent(JsonArray& event){
   if (!socket->isConnected()) {
     if (!debugging) return;
@@ -194,82 +198,75 @@ void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) 
 
 void SocketModule::handleEvent(DynamicJsonDocument& doc) {
   if (!doc[0].is<String>()) {
-    sendError(wrong_type, "event rejected: <event name> was expected to be a string");
+    String errormsg = "[";
+    errormsg += id;
+    errormsg += "] event rejected: <event name> was expected to be a String";
+    sendError(wrong_type, errormsg);
     return;
   }
 
   String eventName = doc[0].as<String>();
+
   if (strcmp(eventName.c_str(), "Auth") == 0){
     debug("authenticated by server");
     notify(socket_authed);
     return;
   }
 
-  if ( !(strcmp(eventName.c_str(), "command") == 0) ) return;
+  if ( strcmp(eventName.c_str(), "command") != 0 ) return;
+
+  JsonObject payload = doc[1];
 
   //command:
-  auto componentField = doc[1]["componentId"];
-  if (!componentField.is<String>()) {
-    sendError(wrong_type, "command rejected: <componentId> is no string");
-    return;
+
+  String componentId;
+  if (!getValue<String>("componentId", payload, componentId)) return;
+  
+  if ( (strcmp(componentId.c_str(), component.c_str()) != 0)
+    and (strcmp(componentId.c_str(), alias.c_str()) != 0)
+    and (strcmp(componentId.c_str(), "*") != 0) ) return;
+
+  JsonObject commandJson;
+  String commandStr;
+
+  if (getValue<String>("command", payload, commandStr)) {
+    pushCommand(commandStr);
   }
-
-  String componentName = componentField.as<String>();
-  if (strcmp(componentName.c_str(),"null") == 0) {
-    String error = "[";
-    error += id;
-    error += "] componentId is null";
-    sendError(field_is_null, error);
-    return;
+  else if (getValue<JsonObject>("command", payload, commandJson)) {
+    String controlId;
+    if (!getValue("controlId", payload, controlId, true)) return;
+    pushCommand(controlId, commandJson);
   }
-
-  auto commandField = doc[1]["command"];
-  if (!commandField.is<String>() and !commandField.is<JsonObject>() ){
-    sendError(wrong_type, "command rejected: <command> is neither a string nor a nested Object");
-    return;
+  else {
+    String errormsg = "[";
+    errormsg += id;
+    errormsg += "] command rejected: <command> is no String or JsonObject";
+    sendError(wrong_type, errormsg);
   }
-
-  if ( (strcmp(componentName.c_str(),component.c_str()) == 0)
-    or (strcmp(componentName.c_str(),alias.c_str()) == 0)
-    or (strcmp(componentName.c_str(),"*") == 0) ) {
-
-    if (commandField.is<String>()) {
-      debug("pushing simple command to modules");
-      String command = commandField.as<String>();
-      pushCommand(command);
-    }
-    else {
-      JsonObject command = commandField.as<JsonObject>();
-      debug("pushing complex command to modules");
-      pushCommand(command);
-    }
-  }
-
-  return;//not me; don't care
 }
 
-void SocketModule::saveSettings(DynamicJsonDocument& settings) {
-  JsonObject saving = settings.createNestedObject(id);
+void SocketModule::saveSettings(JsonObject& settings) {
+  //JsonObject saving = settings.createNestedObject(id);
   
-  saving["ip"] = ip;
-  saving["port"] = port;
-  saving["url"] = url;
-  saving["key"] = key;
-  saving["component"] = component;
-  saving["alias"] = alias;
+  settings["ip"] = ip;
+  settings["port"] = port;
+  settings["url"] = url;
+  settings["key"] = key;
+  settings["component"] = component;
+  settings["alias"] = alias;
   
   return;
 }
 
-void SocketModule::loadSettings(DynamicJsonDocument& settings) {
-  JsonObject loaded = settings[id];
+void SocketModule::loadSettings(JsonObject& settings) {
+  //JsonObject loaded = settings[id];
 
-  ip = loadValue<String>("ip", loaded, "192.168.1.1");
-  port = loadValue<uint16_t>("port", loaded, 3000);
-  url = loadValue<String>("url", loaded, "/socket.io/?EIO=4");
-  key = loadValue<String>("key", loaded, "");
-  component = loadValue<String>("component", loaded, "NAME ME!");
-  alias = loadValue<String>("alias", loaded, "");
+  ip = loadValue<String>("ip", settings, "192.168.1.1");
+  port = loadValue<uint16_t>("port", settings, 3000);
+  url = loadValue<String>("url", settings, "/socket.io/?EIO=4");
+  key = loadValue<String>("key", settings, "");
+  component = loadValue<String>("component", settings, "NAME ME!");
+  alias = loadValue<String>("alias", settings, "");
 
   if (!debugging) return;
 
@@ -350,7 +347,7 @@ void SocketModule::handleInternal(internalEvent event) {
       return;
     }
     case socket_authed: {
-      // wait randomly between 100 and 300 ms to make it less likely too many ESP fire simultaneously after WiFi failure
+      // wait randomly between 100 and 300 ms to decrease number of simultaneous WiFi usage after outage
       int64_t waitTime = esp_timer_get_time() + random(100000,300000);
       while ( esp_timer_get_time() < waitTime) {
         yield();

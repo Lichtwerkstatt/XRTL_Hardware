@@ -4,8 +4,6 @@ void XRTL::setup(){
   Serial.begin(115200);
 
   debug("starting setup");
-
-  loadConfig();
   loadSettings();
 
   // execute setup of all modules
@@ -31,9 +29,6 @@ void XRTL::loop(){
       if (strcmp(input.c_str(),"setup") == 0){
         setViaSerial();
       }
-      else if (strcmp(input.c_str(), "config") == 0) {
-        editConfig();
-      }
       else if (strcmp(input.c_str(), "debug") == 0) {} // do not interprete debug as event
       else {
         DynamicJsonDocument serialEvent(1024);
@@ -57,48 +52,78 @@ void XRTL::loop(){
 
 void XRTL::addModule(String moduleName, moduleType category) {
   switch(category) {
-    case socket: {
+    case xrtl_socket: {
       socketIO = new SocketModule(moduleName,this);
       module[moduleCount++] = socketIO;
       debug("socket module added: <%s>", moduleName);
       return;
     }
-    case wifi: {
+    case xrtl_wifi: {
       module[moduleCount++] = new WifiModule(moduleName,this);
       debug("wifi module added: <%s>", moduleName);
       return;
     }
-    case infoLED: {
+    case xrtl_infoLED: {
       module[moduleCount++] = new InfoLEDModule(moduleName,this);
       debug("infoLED module added: <%s>", moduleName);
       return;
     }
-    case stepper: {
+    case xrtl_stepper: {
       module[moduleCount++] = new StepperModule(moduleName,this);
       debug("stepper module added: <%s>", moduleName);
       return;
     }
-    case servo: {
+    case xrtl_servo: {
       module[moduleCount++] = new ServoModule(moduleName,this);
       debug("servo module added: <%s>", moduleName);
       return;
     }
-    case camera: {
+    case xrtl_camera: {
       module[moduleCount++] = new CameraModule(moduleName,this);
       debug("camera module added: <%s>", moduleName);
       return;
     }
-    case output: {
+    case xrtl_output: {
       module[moduleCount++] = new OutputModule(moduleName,this);
       debug("output module added: <%s>", moduleName);
       return;
     }
-    case input: {
+    case xrtl_input: {
       module[moduleCount++] = new InputModule(moduleName,this);
       debug("input module added: <%s>", moduleName);
       return;
     }
   }
+}
+
+void XRTL::listModules() {
+  for (int i= 0; i < moduleCount; i++) {
+    Serial.printf("%d: %s\n", i, module[i]->getID().c_str());
+  }
+}
+
+void XRTL::delModule(uint8_t number) {
+  if ((number >= 0) and (number < moduleCount)){
+    Serial.printf("[core] deleting <%s> ... ", module[number]->getID());
+    for (int i = number; i < moduleCount - 1; i++) {
+      module[i] = module[i+1];
+    }
+    moduleCount--;
+    Serial.println("done");
+  }
+}
+
+void XRTL::swapModules(uint8_t numberX, uint8_t numberY) {
+  if ( (numberX != numberY)
+      and (numberX >= 0) and (numberX <= moduleCount)
+      and (numberY >= 0) and (numberY <= moduleCount) ) {
+        XRTLmodule* temp = module[numberX];
+        module[numberX] = module[numberY];
+        module[numberY] = temp;
+
+        debug("swapped <%s> and <%s>", module[numberX]->getID(), module[numberY]->getID());
+      }
+  
 }
 
 XRTLmodule* XRTL::operator[](String moduleName) {
@@ -114,7 +139,10 @@ void XRTL::saveSettings() {
   DynamicJsonDocument doc(2048);
 
   for (int i = 0; i < moduleCount; i++) {
-    module[i]->saveSettings(doc);
+    JsonObject settings = doc.createNestedObject(module[i]->getID());
+    settings["type"] = module[i]->getType();
+    //module[i]->saveSettings(doc);
+    module[i]->saveSettings(settings);
   }
 
   if (!LittleFS.begin(false)) {
@@ -175,15 +203,35 @@ void XRTL::loadSettings() {
   file.close();
   LittleFS.end();
 
-  for (int i = 0; i < moduleCount; i++) {
-    if (debugging) {
-      Serial.println("");
-      Serial.println(centerString("", 39, '-'));
-      Serial.println(centerString(module[i]->getID(), 39, ' '));
-      Serial.println(centerString("", 39, '-'));
-      Serial.println("");
+  JsonObject settings = doc.as<JsonObject>();
+
+  for (JsonPair kv : settings) {
+    moduleType type;
+    if ( (!kv.value().isNull()) and (kv.value().is<JsonObject>()) ) {
+      JsonObject moduleSettings = kv.value().as<JsonObject>();
+      auto typeField = moduleSettings["type"];
+      if ((!typeField.isNull()) and (typeField.is<int>()) ) {
+        type = (moduleType) typeField.as<int>();
+
+        if (debugging) Serial.println("");
+        if (debugging) Serial.println(centerString("", 39, '-'));
+
+        addModule(kv.key().c_str(), type);
+
+        if (debugging) Serial.println(centerString("", 39, '-'));
+        if (debugging) Serial.println("");
+
+        module[moduleCount -1]->loadSettings(moduleSettings);
+      }
     }
-    module[i]->loadSettings(doc);
+  }
+
+  if (moduleCount == 0) { // 
+    debug("WARNING: no modules found, adding socket and wifi module");
+    addModule("socket", xrtl_socket);
+    addModule("wifi", xrtl_wifi);
+    saveSettings();
+    ESP.restart();
   }
 
   if (!debugging) return;
@@ -202,22 +250,66 @@ void XRTL::setViaSerial() {
   Serial.println(centerString("serial setup",39,' '));
   Serial.println(centerString("",39,'='));
   Serial.println("");
-  
+
   Serial.println(centerString("available settings", 39, ' '));
-  Serial.println("0: complete setup");
-  for (int i = 0; i < moduleCount; i++) {
-    Serial.printf("%i: %s\n",i+1,module[i]->getID().c_str());
-  }
-  Serial.print("\n");
+  listModules();
+  Serial.println("");
+  Serial.printf("%d: complete setup\n", moduleCount);
+  Serial.printf("%d: add module\n", moduleCount + 1);
+  Serial.printf("%d: remove module\n", moduleCount + 2);
+  Serial.printf("%d: swap modules\n", moduleCount + 3);
+  Serial.println("");
   uint8_t choice = serialInput("choose setup routine: ").toInt();
 
-  if (choice > 0) {
-    module[choice-1]->setViaSerial();
+  if (choice < moduleCount ) {
+    module[choice]->setViaSerial();
   }
-  else {
+  else if (choice == moduleCount) {
+    Serial.println("starting complete setup");
     for (int i = 0; i < moduleCount; i++) {
       module[i]->setViaSerial();
     }
+  }
+  else if (choice == moduleCount + 1) {
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("adding module");
+    Serial.println("module type is determined by number, available types:");
+    Serial.println("");
+    for (int i = 0; i < 8; i++) {
+      Serial.printf("%d: %s\n",i,moduleNames[i]);
+    }
+    Serial.println("");
+
+    moduleType newModuleType = (moduleType) serialInput("new module type: ").toInt();
+    String newModuleName = serialInput("new module name: ");
+    addModule(newModuleName, newModuleType);
+    module[moduleCount - 1]->setViaSerial();
+  }
+  else if (choice == moduleCount + 2) {
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("available modules: ");
+    Serial.println("");
+    listModules();
+    Serial.printf("%d: exit\n", moduleCount);
+    Serial.println("");
+
+    uint8_t deleteChoice = serialInput("delete: ").toInt();
+    delModule(deleteChoice);
+  }
+  else if (choice == moduleCount + 3) {
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("choose two modules to swap:");
+    Serial.println("");
+    listModules();
+    Serial.printf("%d: exit\n", moduleCount);
+    Serial.println("");
+
+    uint8_t moduleX = serialInput("first module: ").toInt();
+    uint8_t moduleY = serialInput("second module: ").toInt();
+    swapModules(moduleX, moduleY);
+  }
+  else {
+    Serial.printf("setup routine <%d> unknown\n", choice);
   }
 
   saveSettings();
@@ -253,6 +345,10 @@ void XRTL::getStatus(){
     module[i]->getStatus(payload, status);
   }
 
+  if (socketIO == NULL) {
+    debug("unable to send event: no endpoint module");
+    return;
+  }
   socketIO->sendEvent(event);
 }
 
@@ -261,6 +357,10 @@ void XRTLmodule::sendStatus(){
 }
 
 void XRTL::sendEvent(JsonArray& event){
+  if (socketIO == NULL) {
+    debug("unable to send event: no endpoint module");
+    return;
+  }
   socketIO->sendEvent(event);
 }
 
@@ -269,6 +369,9 @@ void XRTLmodule::sendEvent(JsonArray& event){
 }
 
 void XRTL::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length) {
+  if (socketIO == NULL) {
+    debug("unable to send event: no endpoint module");
+  }
   socketIO->sendBinary(binaryLeadFrame, payload, length);
 }
 
@@ -292,7 +395,7 @@ void XRTLmodule::notify(internalEvent state) {
   xrtl->notify(state);
 }
 
-String& XRTL::getComponent() {
+String& XRTL::getComponent() {// TODO: deprecated?
   return socketIO->getComponent();
 }
 
@@ -300,20 +403,8 @@ String& XRTLmodule::getComponent() {
   return xrtl->getComponent();
 }
 
-void XRTL::pushCommand(JsonObject& command){
+void XRTL::pushCommand(String& controlId, JsonObject& command){
   bool ret = false;
-  auto controlIdField = command["controlId"];
-
-  if (!controlIdField.is<String>()) {
-    sendError(wrong_type, "command rejected: <controlId> is no string");
-    return;
-  }
-
-  String controlId = controlIdField.as<String>();
-  if (strcmp(controlId.c_str(), "null") == 0) {
-    sendError(field_is_null, "command rejected: <controlId> is null");
-    return;
-  }
 
   for (int i = 0; i < moduleCount; i++) {
     ret = module[i]->handleCommand(controlId, command) or ret;
@@ -327,8 +418,8 @@ void XRTL::pushCommand(JsonObject& command){
   }
 }
 
-void SocketModule::pushCommand(JsonObject& command) {
-  xrtl->pushCommand(command);
+void SocketModule::pushCommand(String& controlId, JsonObject& command) {
+  xrtl->pushCommand(controlId, command);
 }
 
 void XRTL::pushCommand(String& command){
@@ -373,107 +464,13 @@ void SocketModule::pushCommand(String& command) {
 }
 
 void XRTL::sendError(componentError err, String msg) {
+  if (socketIO == NULL) {
+    debug("unable to send event: no endpoint module");
+    return;
+  }
   socketIO->sendError(err,msg);
 }
 
 void XRTLmodule::sendError(componentError err, String msg) {
   xrtl->sendError(err,msg);
-}
-
-void XRTL::loadConfig() {
-  if (debugging) {
-    Serial.println("");
-    Serial.println(centerString("",39,'='));
-    Serial.println(centerString("loading config",39,' '));
-    Serial.println(centerString("",39,'='));
-    Serial.println("");
-  }
-  
-  if (!LittleFS.begin(false)) {
-    debug("failed to mount LittleFS");
-    debug("trying to format LittleFS");
-
-    if(!LittleFS.begin(true)) {
-      debug("failed to mount LittleFS again");
-      debug("unable to format LittleFS");
-      debug("could not load config");
-      return;
-    }
-    else {
-      debug("successfully formated file system");
-      debug("creating new config file");
-    }
-  }
-
-  File file = LittleFS.open("/config.txt","r");
-  DynamicJsonDocument doc(1024);
-  DeserializationError error = deserializeJson(doc, file);
-  if (error) {
-    debug("deserializeJson() failed while loading config: <%s>", error.c_str());
-  }
-  file.close();
-  LittleFS.end();
-
-  JsonObject config = doc.as<JsonObject>();
-
-  for (JsonPair kv : config) {
-    addModule(kv.key().c_str(), kv.value());
-  }
-
-  debug("config loaded, modules: %d", moduleCount);
-}
-
-void XRTL::editConfig() {
-  Serial.println("");
-  Serial.println(centerString("",39,'='));
-  Serial.println(centerString("writing config",39,' '));
-  Serial.println(centerString("",39,'='));
-  Serial.println("");
-
-  stop();
-
-  Serial.println("module type is determined by number, available types:");
-  for (int i = 0; i < 8; i++) {
-    Serial.printf("%d: %s\n",i,moduleNames[i]);
-  }
-
-  DynamicJsonDocument doc(512);
-  Serial.println("");
-  Serial.println(centerString("",39,'-'));
-  String input = serialInput("module name (\"exit\" to leave): ");
-  while (strcmp(input.c_str(), "exit") != 0) {
-    doc[input] = serialInput("module type: ").toInt();
-    Serial.println(moduleNames[doc[input].as<int>()]);
-    Serial.println(centerString("",39,'-'));
-    Serial.println("");
-    input = serialInput("module name (\"exit\" to leave): ");
-  }
-
-  if (!LittleFS.begin(false)) {
-    debug("failed to mount LittleFS");
-    debug("trying to format LittleFS");
-    if (!LittleFS.begin(true)) {
-      debug("failed to mount LittleFS again");
-      debug("unable to format LittleFS");
-      debug("unable to save settings");
-      return;
-    }
-  }
-
-  File file = LittleFS.open("/config.txt", "w");
-  if (serializeJsonPretty(doc, file) == 0) {
-    debug("failed to write file");
-    debug("could not save settings");
-  }
-  else {
-    debug("config successfully saved");
-  }
-  file.close();
-  LittleFS.end();
-  Serial.println("");
-  Serial.println(centerString("",39,'='));
-  Serial.println(centerString("config saved",39,' '));
-  Serial.println(centerString("",39,'='));
-
-  ESP.restart();
 }

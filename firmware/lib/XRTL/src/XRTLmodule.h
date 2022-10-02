@@ -16,14 +16,14 @@ T loadValue(String key, JsonObject& file, T defaultValue) {
 
 // internal reference for module type
 enum moduleType {
-  socket,
-  wifi,
-  infoLED,
-  stepper,
-  servo,
-  camera,
-  input,
-  output
+  xrtl_socket,
+  xrtl_wifi,
+  xrtl_infoLED,
+  xrtl_stepper,
+  xrtl_servo,
+  xrtl_camera,
+  xrtl_input,
+  xrtl_output
 };
 
 // display names for modules
@@ -76,9 +76,6 @@ enum componentError {
 String serialInput(String query);
 // filler = +    ==>  ++++str++++
 String centerString(String str, uint8_t targetLength, char filler);
-// warning message
-String missingValue(String name);
-//
 // rescale floats
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max);
 
@@ -88,17 +85,17 @@ class XRTL; // declare for using core pointer
 class XRTLmodule {
   protected:
   String id; // must be unique per ESP; assigned when constructed
-  String controlId; // can potentially be uinified with ID?
   XRTL* xrtl; // core address, must be assigned when constructed: XRTLmodule(String id, XRTLmodule* source)
   bool debugging = true; // print status messages via serial monitor; debug methode can't be inherited and must be implemented for every module type
 
   public:
   String getID(); // return id
+  virtual moduleType getType();
   String& getComponent();
   bool isModule(String& moduleName);//  return (id == moduleName)
 
   virtual bool handleCommand(String& command); // react on a simple command offered by the core, return false if command is unkown
-  virtual bool handleCommand(String& controlId, JsonObject& command); // react to a complex command offered by the core, return false if command is unknown
+  virtual bool handleCommand(String& controlId, JsonObject& command); // react to a complex command offered by the core, return false if the module did not recognize it
 
   void sendEvent(JsonArray& event); // send event via endpoint
   void sendError(componentError err, String message); // send error via endpoint
@@ -112,9 +109,11 @@ class XRTLmodule {
   virtual void loop();  // called once in every loop
   virtual void stop();  // deinit
 
-  virtual void getStatus(JsonObject& payload, JsonObject& status); // edit status payload; pointer to status field for conveniance
-  virtual void saveSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be written in settings file
-  virtual void loadSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be read from settings file
+  virtual void getStatus(JsonObject& payload, JsonObject& status); // edit status payload; pointer to status field for efficiency
+  //virtual void saveSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be written in settings file
+  virtual void saveSettings(JsonObject& settings);
+  //virtual void loadSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be read from settings file
+  virtual void loadSettings(JsonObject& settings);
   virtual void setViaSerial(); // directly poll parameters via serial monitor
 
   // debug message printing the module ID
@@ -134,7 +133,7 @@ class XRTLmodule {
       if (!reportMissingField) return false;
 
       String errormsg = "[";
-      errormsg += controlId;
+      errormsg += id;
       errormsg += "] command rejected: <";
       errormsg += name;
       errormsg += "> could not be found";
@@ -144,7 +143,7 @@ class XRTLmodule {
 
     if (!field.is<A>()) {
       String errormsg = "[";
-      errormsg += controlId;
+      errormsg += id;
       errormsg += "] command rejected: <";
       errormsg += name;
       errormsg += "> is of wrong type";
@@ -165,7 +164,7 @@ class XRTLmodule {
       target = constrain(target,minValue,maxValue);
 
       String errormsg = "[";
-      errormsg += controlId;
+      errormsg += id;
       errormsg += "] out of bounds: <";
       errormsg += name;
       errormsg += "> was constrained to (";
@@ -188,7 +187,7 @@ class XRTLmodule {
       if (!reportMissingField) return false;
 
       String errormsg = "[";
-      errormsg += controlId;
+      errormsg += id;
       errormsg += "] command rejected: <";
       errormsg += name;
       errormsg += "> could not be found";
@@ -197,7 +196,7 @@ class XRTLmodule {
 
     if (!(field.is<A>() or field.is<B>())) {
       String errormsg = "[";
-      errormsg += controlId;
+      errormsg += id;
       errormsg += "] command rejected: <";
       errormsg += name;
       errormsg += "> is of wrong type";

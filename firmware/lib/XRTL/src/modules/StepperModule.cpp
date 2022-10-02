@@ -7,43 +7,45 @@ StepperModule::StepperModule(String moduleName, XRTL* source) {
   xrtl = source;
 }
 
-void StepperModule::saveSettings(DynamicJsonDocument& settings) {
-  JsonObject saving = settings.createNestedObject(id);
-  
-  saving["controlId"] = controlId;
-  saving["accel"] = accel;
-  saving["speed"] = speed;
-  saving["position"] = stepper->currentPosition();
-  saving["minimum"] = minimum;
-  saving["maximum"] = maximum;
-  saving["initial"] = initial;
-  saving["relativeCtrl"] = relativeCtrl;
-  saving["pin1"] = pin[0];
-  saving["pin2"] = pin[1];
-  saving["pin3"] = pin[2];
-  saving["pin4"] = pin[3]; 
+moduleType StepperModule::getType() {
+  return xrtl_stepper;
 }
 
-void StepperModule::loadSettings(DynamicJsonDocument& settings) {
-  JsonObject loaded = settings[id];
+void StepperModule::saveSettings(JsonObject& settings) {
+  //JsonObject saving = settings.createNestedObject(id);
+  
+  settings["accel"] = accel;
+  settings["speed"] = speed;
+  settings["position"] = stepper->currentPosition();
+  settings["minimum"] = minimum;
+  settings["maximum"] = maximum;
+  settings["initial"] = initial;
+  settings["relativeCtrl"] = relativeCtrl;
+  settings["pin1"] = pin[0];
+  settings["pin2"] = pin[1];
+  settings["pin3"] = pin[2];
+  settings["pin4"] = pin[3]; 
+}
 
-  controlId = loadValue<String>("controlId", loaded, id);
-  accel = loadValue<uint16_t>("accel", loaded, 500);
-  speed = loadValue<uint16_t>("speed", loaded, 500);
-  position = loadValue<int32_t>("position", loaded, 0);
-  minimum = loadValue<int32_t>("minimum", loaded, -2048);
-  maximum = loadValue<int32_t>("maximum", loaded, 2048);
-  initial = loadValue<int32_t>("initial", loaded, 0);
-  relativeCtrl = loadValue<bool>("relativeCtrl", loaded, false);
+void StepperModule::loadSettings(JsonObject& settings) {
+  //JsonObject loaded = settings[id];
 
-  pin[0] = loadValue<uint8_t>("pin1", loaded, 19);
-  pin[1] = loadValue<uint8_t>("pin2", loaded, 22);
-  pin[2] = loadValue<uint8_t>("pin3", loaded, 21);
-  pin[3] = loadValue<uint8_t>("pin4", loaded, 23);
+  accel = loadValue<uint16_t>("accel", settings, 500);
+  speed = loadValue<uint16_t>("speed", settings, 500);
+  position = loadValue<int32_t>("position", settings, 0);
+  minimum = loadValue<int32_t>("minimum", settings, -2048);
+  maximum = loadValue<int32_t>("maximum", settings, 2048);
+  initial = loadValue<int32_t>("initial", settings, 0);
+  relativeCtrl = loadValue<bool>("relativeCtrl", settings, false);
+
+  pin[0] = loadValue<uint8_t>("pin1", settings, 19);
+  pin[1] = loadValue<uint8_t>("pin2", settings, 22);
+  pin[2] = loadValue<uint8_t>("pin3", settings, 21);
+  pin[3] = loadValue<uint8_t>("pin4", settings, 23);
 
   if (!debugging) return;
 
-  Serial.printf("controlId: %s\n",controlId.c_str());
+  Serial.printf("controlId: %s\n",id.c_str());
   Serial.printf("acceleration: %i\n", accel);
   Serial.printf("speed: %i\n", speed);
   Serial.printf("position: %i\n", position);
@@ -68,7 +70,7 @@ void StepperModule::setViaSerial() {
   Serial.println(centerString("",39, '-'));
   Serial.println("");
 
-  controlId = serialInput("controlId: ");
+  id = serialInput("controlId: ");
   accel = serialInput("acceleration (steps/s²): ").toInt();
   speed = serialInput("speed (steps/s): ").toInt();
   position = serialInput("current position (steps): ").toInt();
@@ -123,7 +125,7 @@ void StepperModule::getStatus(JsonObject& payload, JsonObject& status) {
     }
   }
 
-  JsonObject position = status.createNestedObject(controlId);
+  JsonObject position = status.createNestedObject(id);
   position["absolute"] = stepper->currentPosition();
   position["relative"] = mapFloat(stepper->currentPosition(), minimum, maximum, 0, 100);
   return;
@@ -164,12 +166,12 @@ bool StepperModule::handleCommand(String& command){
   return false;
 }
 
-bool StepperModule::handleCommand(String& control, JsonObject& command) {
-  if (strcmp(control.c_str(),controlId.c_str()) != 0) return false;
+bool StepperModule::handleCommand(String& controlId, JsonObject& command) {
+  if (!isModule(controlId)) return false;
   
   if (stepper->isRunning()) {
     String error = "[";
-    error += controlId;
+    error += id;
     error += "] command rejected: stepper already moving";
     sendError(is_busy, error);
     return true;
@@ -203,7 +205,7 @@ void StepperModule::driveStepper(JsonObject& command) {
     stepper->moveTo(target);
 
     String error = "[";
-    error += controlId;
+    error += id;
     error += "] target position was constrained to (";
     error += minimum;
     error += ",";
