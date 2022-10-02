@@ -70,6 +70,7 @@ class ResistanceDivider: public Converter {
         refResistor = loadValue<double>("refResistor", settings, (double) 3);
 
         if (!debugMode) return;
+        Serial.println(centerString("resistance conversion", 39, ' '));
         Serial.printf("reference voltage: %f\n", refVoltage);
         Serial.printf("reference resistor: %f\n", refResistor);
     }
@@ -106,6 +107,7 @@ class Thermistor: public Converter {
         beta = loadValue<double>("beta", settings, (double) 3750);
 
         if (!debugMode) return;
+        Serial.println(centerString("thermistor conversion", 39, ' '));
         Serial.printf("normal temperature: %f\n", tempNormal);
         Serial.printf("normal resistance: %f\n", resNormal);
         Serial.printf("beta: %f\n", beta);
@@ -147,6 +149,7 @@ class MapValue: public Converter {
         outMax = loadValue<double>("outMax", settings, (double) 5000);
 
         if (!debugMode) return;
+        Serial.println(centerString("map conversion", 39, ' '));
         Serial.printf("input minimum: %f\n", inMin);
         Serial.printf("input maximum: %f\n", inMax);
         Serial.printf("output minimum: %f\n", outMin);
@@ -189,6 +192,7 @@ class Offset: public Converter {
         offsetValue = loadValue<double>("offsetValue", settings, (double) 0);
 
         if (!debugMode) return;
+        Serial.println(centerString("offset conversion", 39, ' '));
         Serial.printf("offset: %f\n", offsetValue);
     }
 };
@@ -203,6 +207,7 @@ class Multiplication: public Converter {
         multiplicator = loadValue<double>("multiplicator", settings, (double) 1);
 
         if (!debugMode) return;
+        Serial.println(centerString("multiplicator conversion", 39, ' '));
         Serial.printf("multiplicator: %f\n", multiplicator);
     }
 

@@ -16,7 +16,12 @@ void StepperModule::saveSettings(JsonObject& settings) {
   
   settings["accel"] = accel;
   settings["speed"] = speed;
-  settings["position"] = stepper->currentPosition();
+  if (stepper == NULL) {
+    settings["position"] = position;
+  }
+  else {
+    settings["position"] = stepper->currentPosition();
+  }
   settings["minimum"] = minimum;
   settings["maximum"] = maximum;
   settings["initial"] = initial;

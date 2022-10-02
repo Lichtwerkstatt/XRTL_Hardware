@@ -159,6 +159,7 @@ void InputModule::loadSettings(JsonObject& settings) {
     Serial.printf("controlId: %s\n", id.c_str());
     Serial.printf("pin: %d\n", pin);
     Serial.printf("averaging time: %d\n", averageTime);
+    Serial.println("");
 
     Serial.printf(rangeChecking ? "triggers active\n" : "triggers inactive\n");
     Serial.printf("low bound: %f\n", loBound);
@@ -176,13 +177,6 @@ void InputModule::setViaSerial() {
     id = serialInput("controlId: ");
     averageTime = serialInput("averaging time: ").toInt();
 
-    rangeChecking = (strcmp(serialInput("check range (y/n): ").c_str(), "y") == 0);
-    if (rangeChecking) {
-        loBound = serialInput("low bound: ").toDouble();
-        hiBound = serialInput("high bound: ").toDouble();
-        deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
-    }
-
     if (strcmp(serialInput("change pin binding (y/n): ").c_str(), "y") == 0) {
         pin = serialInput("pin: ").toInt();
     }
@@ -194,18 +188,26 @@ void InputModule::setViaSerial() {
     }
     conversionCount = 0;
 
-    Serial.println("");
-    Serial.println(centerString("conversions available",39,' ').c_str());
-    for (int i = 0; i < 5; i++) {
-        Serial.printf("%d: %s\n", i, conversionName[i]);
-    }
-
     while (strcmp(serialInput("add conversion (y/n): ").c_str(), "y") == 0) {
+        Serial.println("");
+        Serial.println(centerString("conversions available",39,' ').c_str());
+        for (int i = 0; i < 5; i++) {
+            Serial.printf("%d: %s\n", i, conversionName[i]);
+        }
+        Serial.println("");
+
         conversion_t type = (conversion_t) serialInput("conversion: ").toInt();
         Serial.printf("trying to add conversion: %s\n", conversionName[type]);
         addConversion(type);
         Serial.printf("conversionCount: %d\n", conversionCount);
         conversion[conversionCount - 1]->setViaSerial();
+    }
+
+    rangeChecking = (strcmp(serialInput("check range (y/n): ").c_str(), "y") == 0);
+    if (rangeChecking) {
+        loBound = serialInput("low bound: ").toDouble();
+        hiBound = serialInput("high bound: ").toDouble();
+        deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
     }
 }
 
@@ -247,7 +249,9 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
         }
     }
 
-    getValue("averageTime", command, averageTime);
+    if (getValue<uint16_t>("averageTime", command, averageTime)) {
+        input->averageTime(averageTime);
+    }
 
     uint32_t interval;
     if ( getValue<uint32_t>("updateTime", command, interval) ) {

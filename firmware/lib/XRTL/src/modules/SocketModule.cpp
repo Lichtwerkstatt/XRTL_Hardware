@@ -372,7 +372,8 @@ void SocketModule::handleInternal(internalEvent event) {
       // configuration for JWT complete, starting socket client and registering event handler 
       socket->begin(ip.c_str(), port, url.c_str());
       socket->onEvent(socketHandler);
-      if (!debugging) return; // no need to fetch time here if not debugging
+
+      if (!debugging) return; // only need to fetch time if debugging
       time_t now;
       time(&now);
       Serial.printf("[%s] time synced: %d\n", id.c_str(), now);

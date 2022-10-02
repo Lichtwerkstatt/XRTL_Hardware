@@ -283,7 +283,8 @@ void XRTL::setViaSerial() {
     moduleType newModuleType = (moduleType) serialInput("new module type: ").toInt();
     String newModuleName = serialInput("new module name: ");
     addModule(newModuleName, newModuleType);
-    module[moduleCount - 1]->setViaSerial();
+    JsonObject emptySettings;
+    module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
   }
   else if (choice == moduleCount + 2) {
     Serial.println(centerString("", 39, '-'));
