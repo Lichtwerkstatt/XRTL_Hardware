@@ -110,8 +110,8 @@ class XRTLmodule {
   void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length); // send binary via endpoint
   void sendStatus(); // tell core to send status
 
-  void notify(internalEvent state); // send internal event to all modules
-  virtual void handleInternal(internalEvent event); // react to internal event issued by other modules
+  void notify(internalEvent eventId); // send internal event to all modules
+  virtual void handleInternal(internalEvent eventId, String& sourceId); // react to internal event issued by other modules
 
   virtual void setup(); // called once during setup
   virtual void loop();  // called once in every loop
@@ -133,7 +133,8 @@ class XRTLmodule {
     Serial.print('\n');
   }
 
-  // get value of type A from JsonObject 
+  // get value of type A from JsonObject
+  // TODO: use ArduinoJson type as return parameter to simplify?
   template<typename A>
   bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
     auto field = file[name];

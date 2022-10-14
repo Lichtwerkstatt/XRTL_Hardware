@@ -18,24 +18,24 @@ void XRTL::loop(){
   if ( Serial.available() ) {
     //allow to switch into debug mode
     String input = Serial.readStringUntil('\n');
-    if ( strcmp(input.c_str(), "debug") == 0 ) {
+    if ( input == "debug" ) {
       debugging = !debugging;
-      if (debugging) notify(debug_on);
-      else notify(debug_off);
+      if (debugging) notify(debug_on, id);
+      else notify(debug_off, id);
     }
 
     //only allow inputs if debugging
     if (debugging) {
-      if (strcmp(input.c_str(),"setup") == 0){
+      if ( input == "setup" ){
         setViaSerial();
       }
-      else if (strcmp(input.c_str(), "debug") == 0) {} // do not interprete debug as event
+      else if ( input == "debug" ) {} // do not interprete debug as event
       else {
         DynamicJsonDocument serialEvent(1024);
         DeserializationError error = deserializeJson(serialEvent,input);
         if (error) {
-          Serial.printf("[core] deserializeJson() failed on serial input: %s\n", error.c_str());
-          Serial.printf("[core] input: %s\n", input.c_str());
+          Serial.printf("[%s] deserializeJson() failed on serial input: %s\n", id.c_str(), error.c_str());
+          Serial.printf("[%s] input: %s\n", id.c_str(), input.c_str());
         }
         else if (socketIO != NULL) { // make sure the socket is initialized
           socketIO->handleEvent(serialEvent);
@@ -52,12 +52,20 @@ void XRTL::loop(){
 
 void XRTL::addModule(String moduleName, moduleType category) {
   if (moduleCount == 16) {
-    debug("maximum number of modules reached");
+    debug("unable to add module: maximum number of modules reached");
+    return;
+  }
+  if ( (moduleName == 0) or (moduleName == "")) {
+    debug("unable to add module: ID must not be empty");
     return;
   }
   if (this->operator[](moduleName) != NULL) {
-    debug("unable to add module <%s>: id already in use", moduleName);
+    debug("unable to add module <%s>: ID already in use", moduleName);
     return;  
+  }
+  if ( (moduleName == "*") or (moduleName == "none") ) {
+    debug("unable to add module <%s>: ID restricted to internal use", moduleName);
+    return;
   }
   switch(category) {
     case xrtl_socket: {
@@ -112,7 +120,7 @@ void XRTL::listModules() {
 
 void XRTL::delModule(uint8_t number) {
   if ((number >= 0) and (number < moduleCount)){
-    Serial.printf("[core] deleting <%s> ... ", module[number]->getID());
+    Serial.printf("[%s] deleting <%s> ... ", id.c_str(), module[number]->getID());
     for (int i = number; i < moduleCount - 1; i++) {
       module[i] = module[i+1];
     }
@@ -140,7 +148,7 @@ XRTLmodule* XRTL::operator[](String moduleName) {
       return module[i];
     }
   }
-  return NULL;
+  return NULL;// probably not a good idea, return dummy module instead?
 }
 
 void XRTL::saveSettings() {
@@ -388,20 +396,20 @@ void XRTLmodule::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t le
   xrtl->sendBinary(binaryLeadFrame, payload, length);
 }
 
-void XRTL::notify(internalEvent event) {
+void XRTL::notify(internalEvent eventId, String& sourceId) {
   // notify modules
   for (int i = 0; i < moduleCount; i++) {
-    module[i]->handleInternal(event);
+    module[i]->handleInternal(eventId, sourceId);
   }
 
   // core event handler
-  switch(event) {
+  switch(eventId) {
 
   }
 }
 
 void XRTLmodule::notify(internalEvent state) {
-  xrtl->notify(state);
+  xrtl->notify(state, id);
 }
 
 String& XRTL::getComponent() {// TODO: deprecated?
@@ -433,12 +441,15 @@ void SocketModule::pushCommand(String& controlId, JsonObject& command) {
 
 void XRTL::pushCommand(String& command){
   bool ret = false;
-  if ( (command == 0 ) or (strcmp(command.c_str(),"null") == 0) ) {
-    sendError(field_is_null,"[core] command field is null");
+  if ( (command == 0 ) or (command == "null") or (command == "") ) {
+    String errormsg = "[";
+    errormsg += id;
+    errormsg += "] command field is null";
+    sendError(field_is_null, errormsg);
     return;
   }
 
-  if (strcmp(command.c_str(), "getStatus") == 0) {
+  if ( command == "getStatus" ) {
     getStatus();
     return;
   }
@@ -449,19 +460,21 @@ void XRTL::pushCommand(String& command){
   }
 
   // stuff happening after modules were informed
-  if (strcmp(command.c_str(), "init") == 0) {
+  if ( command == "init" ) {
     saveSettings();
     ret = true;
   }
 
-  if (strcmp(command.c_str(), "reset") == 0) {
+  if ( command == "reset" ) {
     stop();
     saveSettings();
     ESP.restart();
   }
 
   if (!ret) {
-    String error = "[core] unknown command: <";
+    String error = "[";
+    error += id;
+    error += "] unknown command: <";
     error += command;
     error += ">";
     sendError(unknown_key, error);
