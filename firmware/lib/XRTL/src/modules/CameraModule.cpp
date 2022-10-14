@@ -151,11 +151,11 @@ void CameraModule::virtualPTZ() {
 }
 
 bool CameraModule::handleCommand(String& command) {
-  if (strcmp(command.c_str(),"startStreaming") == 0) {
+  if ( command  == "startStreaming" ) {
     startStreaming();
     return true;
   }
-  if (strcmp(command.c_str(),"stopStreaming") == 0) {
+  if ( command  == "stopStreaming" ) {
     stopStreaming();
     return true;
   }
@@ -166,19 +166,19 @@ bool CameraModule::handleCommand(String& command) {
 bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
   //if (strcmp(!isModule(controlId)) return false;
   //remove these later?
-  if (strcmp(controlId.c_str(),"gray") == 0) {
+  if ( controlId  == "gray" ) {
     bool val;
     if (getValue<bool>("val", command, val)) {
       command["gray"] = val;
     }
   }
-  else if (strcmp(controlId.c_str(),"brightness") == 0) {
+  else if ( controlId  == "brightness" ) {
     int val;
     if (getValue<int>("val", command, val)) {
       command["brightness"] = val;
     }
   }
-  else if (strcmp(controlId.c_str(),"contrast") == 0) {
+  else if ( controlId  == "contrast" ) {
     int val;
     if (getValue<int>("val", command, val)) {
       command["contrast"] = val;
@@ -204,28 +204,28 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
   }
 
   int brightness;
-  if (getValue<int>("brightness", command, brightness, -2, 2)) {
+  if (getAndConstrainValue<int>("brightness", command, brightness, -2, 2)) {
     cameraSettings->set_brightness(cameraSettings, brightness);
     debug("brightness set to %d", brightness);
   }
 
   int contrast;
-  if (getValue<int>("contrast", command, contrast, -2, 2)) {
+  if (getAndConstrainValue<int>("contrast", command, contrast, -2, 2)) {
     cameraSettings->set_contrast(cameraSettings, contrast);
     debug("contrast set to %d", contrast);
   }
 
-  if (getValue<uint8_t>("pan", command, panStage, 0, 8)) {
+  if (getAndConstrainValue<uint8_t>("pan", command, panStage, 0, 8)) {
     virtualPTZ();
     debug("pan stage set to %d", panStage);
   }
 
-  if (getValue<uint8_t>("tilt", command, tiltStage, 0, 8)) {
+  if (getAndConstrainValue<uint8_t>("tilt", command, tiltStage, 0, 8)) {
     virtualPTZ();
     debug("tilt stage set to %d", tiltStage);
   }
 
-  if (getValue<uint8_t>("zoom", command, zoomStage, 0, 4)){
+  if (getAndConstrainValue<uint8_t>("zoom", command, zoomStage, 0, 4)){
     virtualPTZ();
     debug("zoom stage set to %d", zoomStage);
   }
@@ -233,31 +233,31 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
   String frameSize;
   if (getValue<String>("frame size", command, frameSize)) {
     debug("setting frame size to %s", frameSize);
-    if (strcmp(frameSize.c_str(),"UXGA") == 0) {
+    if (frameSize == "UXGA") {
       cameraSettings->set_framesize(cameraSettings, FRAMESIZE_UXGA);
       // 1600 x 1200 px
     }
-    else if (strcmp(frameSize.c_str(),"QVGA") == 0) {
+    else if ( frameSize == "QVGA" ) {
       cameraSettings->set_framesize(cameraSettings, FRAMESIZE_QVGA);
       // 320 x 240 px
     }
-    else if (strcmp(frameSize.c_str(),"CIF") == 0) {
+    else if ( frameSize == "CIF" ) {
       cameraSettings->set_framesize(cameraSettings, FRAMESIZE_CIF);
       // 352 x 288 px
     }
-    else if (strcmp(frameSize.c_str(),"VGA") == 0) {
+    else if ( frameSize  == "VGA" ) {
       cameraSettings->set_framesize(cameraSettings, FRAMESIZE_VGA);
       // 640 x 480 px
     }
-    else if (strcmp(frameSize.c_str(),"SVGA") == 0) {
+    else if ( frameSize  == "SVGA" ) {
       cameraSettings->set_framesize(cameraSettings, FRAMESIZE_SVGA);
       // 800 x 600 px
     }
-    else if (strcmp(frameSize.c_str(),"XGA") == 0) {
+    else if ( frameSize  == "XGA" ) {
       cameraSettings->set_framesize(cameraSettings, FRAMESIZE_XGA);
       // 1024 x 768 px
     }
-    else if (strcmp(frameSize.c_str(),"SXGA") == 0) {
+    else if ( frameSize  == "SXGA" ) {
       cameraSettings->set_framesize(cameraSettings, FRAMESIZE_SXGA);
       // 1280 x 1024 px
     }
@@ -272,8 +272,8 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
   return true;
 }
 
-void CameraModule::handleInternal(internalEvent event) {
-  switch(event) {
+void CameraModule::handleInternal(internalEvent eventId, String& sourceId) {
+  switch(eventId) {
     case socket_disconnected: {
       // TODO: suspend stream?
       return;

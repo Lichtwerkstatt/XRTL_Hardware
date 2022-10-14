@@ -79,6 +79,7 @@ void OutputModule::saveSettings(JsonObject& settings) {
 
     settings["pin"] = pin;
     settings["pwm"] = pwm;
+    settings["guardedModule"] = guardedModule;
 
     if (!pwm) return;
     settings["channel"] = channel;
@@ -90,7 +91,8 @@ void OutputModule::loadSettings(JsonObject& settings) {
 
     pin = loadValue<uint8_t>("pin", settings, 27);
     pwm = settings["pwm"].as<bool>();
-    pwm = loadValue<bool>("pwm", settings, false);;
+    pwm = loadValue<bool>("pwm", settings, false);
+    guardedModule = loadValue<String>("guardedModule", settings, "none");
 
     if (pwm) {
         channel = loadValue<uint8_t>("channel", settings, 5);
@@ -106,6 +108,7 @@ void OutputModule::loadSettings(JsonObject& settings) {
 
     Serial.printf("controlId: %s\n",id.c_str());
     Serial.printf("pin: %d\n",pin);
+    Serial.printf("triggered by: %s\n", guardedModule);
     Serial.printf(pwm ? "PWM output\n" : "relay output\n");
 
     if (!pwm) return;
@@ -131,13 +134,16 @@ void OutputModule::setViaSerial() {
     Serial.println("");
 
     id = serialInput("controlId: ");
-    pwm = (strcmp(serialInput("pwm (y/n): ").c_str(),"y") == 0);
+    
+    guardedModule = serialInput("supervise module: ");
+
+    pwm = ( serialInput("pwm (y/n): ") == "y" );
     if (pwm) {
         channel = serialInput("channel: ").toInt();
         frequency = serialInput("frequency: ").toInt();
     }
 
-    if ( strcmp(serialInput("change pin binding (y/n): ").c_str(),"y") != 0) return;
+    if ( serialInput("change pin binding (y/n): ") != "y" ) return;
 
     pin = serialInput("pin: ").toInt();
 }
@@ -169,9 +175,9 @@ void OutputModule::stop() {
     debug("module stopped, power off");
 }
 
-void OutputModule::handleInternal(internalEvent event){
+void OutputModule::handleInternal(internalEvent eventId, String& sourceId){
     if ( out == NULL) return;
-    switch(event) {
+    switch(eventId) {
         case socket_disconnected: {
             if (!out->getState()) return;
             out->toggle(false);
@@ -185,6 +191,39 @@ void OutputModule::handleInternal(internalEvent event){
         }
         case debug_on: {
             debugging = true;
+            return;
+        }
+
+        case input_trigger_high: {
+            if ( guardedModule == "" ) return;
+            if ( sourceId != guardedModule ) return;
+
+            out->toggle(false);
+
+            String errormsg = "[";
+            errormsg += id;
+            errormsg += "] output turned off: value in <";
+            errormsg += guardedModule;
+            errormsg += "> above limit";
+            sendError(out_of_bounds, errormsg);
+
+            sendStatus();
+            return;
+        }
+        case input_trigger_low: {
+            if ( guardedModule == "" ) return;
+            if ( sourceId != guardedModule ) return;
+
+            out->toggle(false);
+
+            String errormsg = "[";
+            errormsg += id;
+            errormsg += "] output turned off: value in <";
+            errormsg += guardedModule;
+            errormsg += "> below limit";
+            sendError(out_of_bounds, errormsg);
+
+            sendStatus();
             return;
         }
     }

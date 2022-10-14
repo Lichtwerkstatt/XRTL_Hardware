@@ -17,6 +17,7 @@
 // core, manages modules
 class XRTL {
   private:
+  String id = "core";
   // store modules here
   uint8_t moduleCount;
   XRTLmodule* module[16];
@@ -49,7 +50,7 @@ class XRTL {
   template<typename... Args>
   void debug(Args... args) {
     if (!debugging) return;
-    Serial.print("[core] ");
+    Serial.printf("[%s] ", id.c_str());
     Serial.printf(args...);
     Serial.print('\n');
   };
@@ -66,7 +67,7 @@ class XRTL {
   void stop();
 
   // distribute event to all modules
-  void notify(internalEvent event);
+  void notify(internalEvent eventId, String& sourceId);
 };
 
 #endif

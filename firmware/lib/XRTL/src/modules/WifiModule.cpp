@@ -59,7 +59,7 @@ void WifiModule::setViaSerial() {
   Serial.println(centerString("",39, '-'));
   Serial.println("");
 
-  enterprise = (strcmp(serialInput("enterprise WiFi (y/n): ").c_str(), "y") == 0);
+  enterprise = ( serialInput("enterprise WiFi (y/n): ") == "y");
   ssid = serialInput("SSID: ");
   password = serialInput("password: ");
 
@@ -75,12 +75,12 @@ void WifiModule::setup() {
   WiFi.mode(WIFI_STA);
 
   if (enterprise) {
-    if ( (username == 0) or (strcmp(username.c_str(),"null") == 0) ){
+    if ( (username == 0) or (username == "null") or (username == "") ){
       debug("WARNING! username not set -- falling back to regular WiFi");
 
       enterprise = false;
     }
-    else if ( (anonymous == 0) or (strcmp(anonymous.c_str(),"null") == 0) ) {
+    else if ( (anonymous == 0) or (anonymous == "null") or (anonymous == "") ) {
       debug("WARNING! anonymous identiy not set -- falling back to regular WiFi");
 
       enterprise = false;
@@ -93,7 +93,7 @@ void WifiModule::setup() {
   }
 
   if (!enterprise) {
-    if ( (ssid == 0) or (strcmp(ssid.c_str(),"null") == 0) ) {
+    if ( (ssid == 0) or (ssid == "null") or (ssid == "") ) {
       debug("WARNING! SSID not set -- unable to start WiFi");
     }
     else {
@@ -126,8 +126,8 @@ void WifiModule::stop() {
   WiFi.mode(WIFI_OFF);
 }
 
-void WifiModule::handleInternal(internalEvent event) {
-  switch(event) {
+void WifiModule::handleInternal(internalEvent eventId, String& sourceId) {
+  switch(eventId) {
     case socket_disconnected: {
       checkConnection = true; // check if WiFi is down in next loop
     }

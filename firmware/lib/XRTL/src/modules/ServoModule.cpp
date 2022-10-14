@@ -64,10 +64,10 @@ void ServoModule::setViaSerial(){
   minAngle = serialInput("minimum angle (deg): ").toInt();
   maxAngle = serialInput("maximum angle (deg): ").toInt();
   initial = serialInput("initial angle (deg): ").toInt();
-  relativeCtrl = (strcmp(serialInput("relative control (y/n): ").c_str(),"y") == 0);
+  relativeCtrl = ( serialInput("relative control (y/n): ") == "y" );
   Serial.println("");
 
-  if (strcmp(serialInput("change pin binding (y/n)?   ").c_str(),"y") == 0) {
+  if ( serialInput("change pin binding (y/n): ") == "y" ) {
     pin = serialInput("pin: ").toInt();
   }
 }

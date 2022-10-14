@@ -207,13 +207,13 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
 
   String eventName = doc[0].as<String>();
 
-  if (strcmp(eventName.c_str(), "Auth") == 0){
+  if ( eventName == "Auth" ){
     debug("authenticated by server");
     notify(socket_authed);
     return;
   }
 
-  if ( strcmp(eventName.c_str(), "command") != 0 ) return;
+  if ( eventName != "command" ) return;
 
   JsonObject payload = doc[1];
 
@@ -222,9 +222,8 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
   String componentId;
   if (!getValue<String>("componentId", payload, componentId)) return;
   
-  if ( (strcmp(componentId.c_str(), component.c_str()) != 0)
-    and (strcmp(componentId.c_str(), alias.c_str()) != 0)
-    and (strcmp(componentId.c_str(), "*") != 0) ) return;
+  if ( componentId == "" ) return; // make sure the ID isn't empty
+  if ( (componentId != component) and (componentId != alias) and (componentId != "*") ) return;
 
   JsonObject commandJson;
   String commandStr;
@@ -327,8 +326,8 @@ void SocketModule::stop() {
   socket->disconnect();
 }
 
-void SocketModule::handleInternal(internalEvent event) {
-  switch(event) {
+void SocketModule::handleInternal(internalEvent eventId, String& sourceId) {
+  switch(eventId) {
     case socket_disconnected: {
       failedConnectionCount++; // TODO: is there a way to avoid the 5s BLOCKING!!! timeout?
         debug("disconnected, connection attempt: %i", failedConnectionCount);
@@ -368,7 +367,8 @@ void SocketModule::handleInternal(internalEvent event) {
     
     case time_synced: {
       // configuration for JWT complete, starting socket client and registering event handler 
-      socket->begin(ip.c_str(), port, url.c_str());
+      //socket->begin(ip.c_str(), port, url.c_str());
+      socket->beginSSL(ip.c_str(), port, url.c_str());
       socket->onEvent(socketHandler);
 
       if (!debugging) return; // only need to fetch time if debugging

@@ -82,11 +82,11 @@ void StepperModule::setViaSerial() {
   minimum = serialInput("minimum position (steps): ").toInt();
   maximum = serialInput("maximum position (steps): ").toInt();
   initial = serialInput("initial steps (steps): ").toInt();
-  relativeCtrl = (strcmp(serialInput("relative control (y/n): ").c_str(),"y") == 0);
+  relativeCtrl = ( serialInput("relative control (y/n): ") == "y" );
   
   Serial.print("\n");
 
-  if (strcmp(serialInput("change pin bindings (y/n)?   ").c_str(),"y") != 0) return;
+  if ( serialInput("change pin bindings (y/n): ") == "y" ) return;
 
   pin[0] = serialInput("pin 1: ").toInt();
   pin[1] = serialInput("pin 2: ").toInt();
@@ -146,17 +146,17 @@ void StepperModule::stop() {
 }
 
 bool StepperModule::handleCommand(String& command){
-  if (strcmp(command.c_str(),"stop") == 0) {
+  if ( command  == "stop") {
     stop();
     return true;
   }
 
-  else if (strcmp(command.c_str(),"init") == 0) {
+  else if ( command  == "init") {
     stepper->setCurrentPosition(0);
     return true;
   }
 
-  else if (strcmp(command.c_str(),"reset") == 0) {
+  else if ( command  == "reset") {
     debug("reset: moving from %d to 0", stepper->currentPosition());
     stepper->moveTo(0);
     stepper->enableOutputs();

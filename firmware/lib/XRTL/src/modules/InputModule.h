@@ -265,7 +265,7 @@ class InputModule: public XRTLmodule {
     bool handleCommand(String& controlId, JsonObject& command);
     bool handleCommand(String& command);
 
-    void handleInternal(internalEvent event);
+    void handleInternal(internalEvent eventId, String& sourceId);
 
     void addConversion(conversion_t conversion);
 };

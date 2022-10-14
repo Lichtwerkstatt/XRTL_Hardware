@@ -202,7 +202,7 @@ class XRTLmodule {
   }
 
   template<typename A>
-  bool getValue(String name, JsonObject& file, A&target, A minValue, A maxValue, bool reportMissingField = false) {
+  bool getAndConstrainValue(String name, JsonObject& file, A&target, A minValue, A maxValue, bool reportMissingField = false) {
     bool ret = getValue<A>(name, file, target, reportMissingField);
     if (!ret) return ret;
 

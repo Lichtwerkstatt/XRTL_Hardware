@@ -39,7 +39,7 @@ class OutputModule: public XRTLmodule {
 
     int64_t switchTime = 0;
 
-
+    String guardedModule = "";
 
     XRTLoutput* out = NULL; 
 
@@ -59,7 +59,7 @@ class OutputModule: public XRTLmodule {
     void setViaSerial();
     void getStatus(JsonObject& payload, JsonObject& status);
 
-    void handleInternal(internalEvent state);
+    void handleInternal(internalEvent eventId, String& sourceId);
     bool handleCommand(String& controlId, JsonObject& command);
 };
 

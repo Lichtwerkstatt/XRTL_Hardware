@@ -29,7 +29,7 @@ class WifiModule : public XRTLmodule {
   void loop();
   void stop();
 
-  void handleInternal(internalEvent event);
+  void handleInternal(internalEvent eventId, String& sourceId);
 };
 
 // callback used for automatically reconnecting

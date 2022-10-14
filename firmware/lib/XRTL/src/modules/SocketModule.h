@@ -49,7 +49,7 @@ class SocketModule : public XRTLmodule {
   void loop();
   void stop();
 
-  void handleInternal(internalEvent event);
+  void handleInternal(internalEvent eventId, String& sourceId);
 };
 
 void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length);

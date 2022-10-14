@@ -35,7 +35,7 @@ class CameraModule : public XRTLmodule {
     void stopStreaming();
     bool handleCommand(String& command);
     bool handleCommand(String& controlId, JsonObject& command);
-    void handleInternal(internalEvent event);
+    void handleInternal(internalEvent eventId, String& sourceId);
 
     //void getStatus();
 

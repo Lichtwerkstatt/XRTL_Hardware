@@ -176,18 +176,18 @@ void InputModule::setViaSerial() {
     id = serialInput("controlId: ");
     averageTime = serialInput("averaging time: ").toInt();
 
-    if (strcmp(serialInput("change pin binding (y/n): ").c_str(), "y") == 0) {
+    if ( serialInput("change pin binding (y/n): ") == "y" ) {
         pin = serialInput("pin: ").toInt();
     }
 
-    if (strcmp(serialInput("change conversion (y/n): ").c_str(), "y") != 0) return;
+    if ( serialInput("change conversion (y/n): ") != "y" ) return;
     for (int i = 0; i < conversionCount; i++) {
         delete conversion[i];
         conversion[i] = NULL;
     }
     conversionCount = 0;
 
-    while (strcmp(serialInput("add conversion (y/n): ").c_str(), "y") == 0) {
+    while ( serialInput("add conversion (y/n): ") == "y" ) {
         Serial.println("");
         Serial.println(centerString("conversions available",39,' ').c_str());
         for (int i = 0; i < 5; i++) {
@@ -202,7 +202,7 @@ void InputModule::setViaSerial() {
         conversion[conversionCount - 1]->setViaSerial();
     }
 
-    rangeChecking = (strcmp(serialInput("check range (y/n): ").c_str(), "y") == 0);
+    rangeChecking = ( serialInput("check range (y/n): ") == "y" );
     if (rangeChecking) {
         loBound = serialInput("low bound: ").toDouble();
         hiBound = serialInput("high bound: ").toDouble();
@@ -265,8 +265,8 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
     return true;
 }
 
-void InputModule::handleInternal(internalEvent event) {
-    switch(event) {
+void InputModule::handleInternal(internalEvent eventId, String& sourceId) {
+    switch(eventId) {
         case socket_disconnected: {
             //stop streaming
             if (!isStreaming) return;

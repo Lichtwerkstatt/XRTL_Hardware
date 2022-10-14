@@ -253,9 +253,9 @@ bool InfoLEDModule::handleCommand(String& command) {
   return true;
 }
 
-void InfoLEDModule::handleInternal(internalEvent event) {
+void InfoLEDModule::handleInternal(internalEvent eventId, String& sourceId) {
   if (led == NULL) return;
-  switch(event) {
+  switch(eventId) {
     case socket_disconnected:
     {
       led->hsv(0, 255, 110);

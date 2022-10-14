@@ -34,7 +34,7 @@ moduleType XRTLmodule::getType() {
 }
 
 bool XRTLmodule::isModule(String& moduleName){
-  return (strcmp(id.c_str(),moduleName.c_str()) == 0);
+  return ( id == moduleName);
 }
 
 void XRTLmodule::setup(){
@@ -67,8 +67,8 @@ void XRTLmodule::stop() {
   return;
 }
 
-void XRTLmodule::handleInternal(internalEvent event){
-  switch(event) {
+void XRTLmodule::handleInternal(internalEvent eventId, String& sourceId){
+  switch(eventId) {
     case debug_off:
     {
       debugging = false;

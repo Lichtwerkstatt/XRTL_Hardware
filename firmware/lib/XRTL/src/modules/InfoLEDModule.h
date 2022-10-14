@@ -75,7 +75,7 @@ class InfoLEDModule : public XRTLmodule {
   void loop();
   void stop();
 
-  void handleInternal(internalEvent event);
+  void handleInternal(internalEvent eventId, String& sourceId);
   bool handleCommand(String& command);
 };
 
