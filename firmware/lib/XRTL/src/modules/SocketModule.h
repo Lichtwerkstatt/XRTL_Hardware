@@ -13,6 +13,7 @@ class SocketModule : public XRTLmodule {
   String key;
   String component;
   String alias;
+  bool useSSL;
 
   uint8_t failedConnectionCount = 0;
   bool timeSynced = false;

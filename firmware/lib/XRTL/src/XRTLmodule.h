@@ -79,22 +79,24 @@ enum getValueReturn_t {
   is_second,
   is_wrong_type
 };
-
 // poll input via serial monitor
+// prints query on the serial monitor and records input as answer until return character is received
 String serialInput(String query);
-// filler = +    ==>  ++++str++++
+// center str on a line of targetLength, fill rest with a char
+// filler = +:  ++++str++++
 String centerString(String str, uint8_t targetLength, char filler);
-// rescale floats
+// rescale floats, analogue to map
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max);
 
-class XRTL; // declare for using core pointer
+// forward declaration: need pointer
+class XRTL; 
 
 // template class for all modules
 class XRTLmodule {
   protected:
   String id; // must be unique per ESP; assigned when constructed
   XRTL* xrtl; // core address, must be assigned when constructed: XRTLmodule(String id, XRTLmodule* source)
-  bool debugging = true; // print status messages via serial monitor; debug methode can't be inherited and must be implemented for every module type
+  bool debugging = true; // true: print status messages via serial monitor and accept serial events
 
   public:
   String getID(); // return id
@@ -115,16 +117,16 @@ class XRTLmodule {
 
   virtual void setup(); // called once during setup
   virtual void loop();  // called once in every loop
-  virtual void stop();  // deinit
+  virtual void stop();  // stop all operation, restart of device could be imminent
 
-  virtual void getStatus(JsonObject& payload, JsonObject& status); // edit status payload; pointer to status field for efficiency
-  //virtual void saveSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be written in settings file
+  virtual void getStatus(JsonObject& payload, JsonObject& status); // edit status payload; reference to status field for efficiency
   virtual void saveSettings(JsonObject& settings);
-  //virtual void loadSettings(DynamicJsonDocument& settings); // determines how and where parameters are to be read from settings file
   virtual void loadSettings(JsonObject& settings);
   virtual void setViaSerial(); // directly poll parameters via serial monitor
 
-  // debug message printing the module ID
+  // debug message over serial monitor
+  // respects debugging status
+  // uses printf syntax
   template<typename... Args>
   void debug(Args... args) {
     if (!debugging) return;

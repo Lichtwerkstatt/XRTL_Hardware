@@ -63,7 +63,7 @@ void XRTL::addModule(String moduleName, moduleType category) {
     debug("unable to add module <%s>: ID already in use", moduleName);
     return;  
   }
-  if ( (moduleName == "*") or (moduleName == "none") ) {
+  if ( (moduleName == "*") or (moduleName == "none") or (moduleName == "core") ) {
     debug("unable to add module <%s>: ID restricted to internal use", moduleName);
     return;
   }
@@ -412,7 +412,11 @@ void XRTLmodule::notify(internalEvent state) {
   xrtl->notify(state, id);
 }
 
-String& XRTL::getComponent() {// TODO: deprecated?
+String& XRTL::getComponent() {
+  if (socketIO == NULL) {
+    debug("WARNING: no socket module present");
+    return id;
+  }
   return socketIO->getComponent();
 }
 

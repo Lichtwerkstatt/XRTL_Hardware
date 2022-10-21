@@ -7,9 +7,9 @@
 class CameraModule : public XRTLmodule {
     private:
     bool isStreaming = false;
-    int64_t nextFrame = 0;
-    uint32_t frameTimeMicroSeconds = 100000;
-    String binaryLeadFrame;
+    int64_t nextFrame = 0;// stores when the next frame should be send in µs
+    uint32_t frameTimeMicroSeconds = 100000;// minimum time interval between frames in µs; time might be higher due to load
+    String binaryLeadFrame;// content of websocket text frame to be send prior to binary data
 
     static camera_config_t camera_config;
     sensor_t* cameraSettings = NULL;

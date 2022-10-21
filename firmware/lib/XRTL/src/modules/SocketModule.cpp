@@ -251,6 +251,7 @@ void SocketModule::saveSettings(JsonObject& settings) {
   settings["key"] = key;
   settings["component"] = component;
   settings["alias"] = alias;
+  settings["useSSL"] = useSSL;
   
   return;
 }
@@ -264,6 +265,7 @@ void SocketModule::loadSettings(JsonObject& settings) {
   key = loadValue<String>("key", settings, "");
   component = loadValue<String>("component", settings, "NAME ME!");
   alias = loadValue<String>("alias", settings, "");
+  useSSL = loadValue<bool>("useSSL", settings, false);
 
   if (!debugging) return;
 
@@ -273,6 +275,7 @@ void SocketModule::loadSettings(JsonObject& settings) {
   Serial.printf("key: %s\n", key.c_str());
   Serial.printf("componentId: %s\n", component.c_str());
   Serial.printf("alias: %s\n", alias.c_str());
+  Serial.printf(useSSL ? "SSL in use" : "SSL not in use");
 }
 
 void SocketModule::setViaSerial() {
@@ -288,6 +291,7 @@ void SocketModule::setViaSerial() {
   key = serialInput("key: ");
   component = serialInput("componentId: ");
   alias = serialInput("alias: ");
+  useSSL = (serialInput("use SSL (y/n): ") == "y");
 }
 
 void SocketModule::getStatus(JsonObject& payload, JsonObject& status) {
@@ -366,9 +370,15 @@ void SocketModule::handleInternal(internalEvent eventId, String& sourceId) {
     }
     
     case time_synced: {
-      // configuration for JWT complete, starting socket client and registering event handler 
-      //socket->begin(ip.c_str(), port, url.c_str());
-      socket->beginSSL(ip.c_str(), port, url.c_str());
+      // configuration for JWT complete, starting socket client and registering event handler
+
+      if (useSSL) {
+        socket->beginSSL(ip.c_str(), port, url.c_str());
+      }
+      else {
+        socket->begin(ip.c_str(), port, url.c_str());
+      }
+      
       socket->onEvent(socketHandler);
 
       if (!debugging) return; // only need to fetch time if debugging
