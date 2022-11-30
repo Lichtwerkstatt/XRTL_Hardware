@@ -286,8 +286,7 @@ class InputModule: public XRTLmodule {
     // number of conversions currently applied to the input.
     // maximum number: 16
     uint8_t conversionCount = 0;
-    // array that holds the type of each conversion
-    conversion_t conversionType[16];
+    conversion_t conversionType[16]; // array that holds the type of each conversion
     Converter* conversion[16]; // array that holds the pointers to the individual instances of the conversion class
 
     // number of the physical input pin

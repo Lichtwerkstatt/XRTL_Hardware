@@ -120,11 +120,11 @@ void OutputModule::loadSettings(JsonObject& settings) {
 
 void OutputModule::getStatus(JsonObject& payload, JsonObject& status){
     if (out == NULL) return; // avoid errors: status might be called in setup before init occured
-    JsonObject outputState = status.createNestedObject(id); 
+    JsonObject moduleState = status.createNestedObject(id); 
 
-    outputState["isOn"] = out->getState();
+    moduleState["isOn"] = out->getState();
     if (!pwm) return;
-    outputState["pwm"] = out->read();
+    moduleState["pwm"] = out->read();
 }
 
 void OutputModule::setViaSerial() {

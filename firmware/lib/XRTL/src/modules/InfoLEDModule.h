@@ -77,6 +77,7 @@ class InfoLEDModule : public XRTLmodule {
 
   void handleInternal(internalEvent eventId, String& sourceId);
   bool handleCommand(String& command);
+  //bool handleCommand(String& controlId, JsonObject& command); // TODO: add command for changing color?
 };
 
 

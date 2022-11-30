@@ -66,15 +66,19 @@ void CameraModule::loop() {
 }
 
 void CameraModule::getStatus(JsonObject& payload, JsonObject& status) {
-  if (isStreaming) {
+  // busy should only be used for moving components?
+  /*if (isStreaming) {
     auto busyField = status["busy"];
     if (!busyField.as<bool>()) {// don't waste JSsonObject memory
       busyField = true;
     }
-  }
+  }*/
 
   JsonObject moduleStatus = status.createNestedObject(id);
   moduleStatus["stream"] = isStreaming;
+  moduleStatus["gray"] = isGray;
+  moduleStatus["brightness"] = brightness;
+  moduleStatus["contrast"] = contrast;
 }
 
 void CameraModule::saveSettings(JsonObject& settings) {
@@ -186,15 +190,13 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
   }
 
   // controlId: "ESPCam"
-  bool stream;
-  if (getValue<bool>("stream", command, stream)) {
-    if (stream) startStreaming();
+  if (getValue<bool>("stream", command, isStreaming)) {
+    if (isStreaming) startStreaming();
     else stopStreaming();
   }
 
-  bool gray;
-  if (getValue<bool>("gray", command, gray)) {
-    if (gray) {
+  if (getValue<bool>("gray", command, isGray)) {
+    if (isGray) {
       cameraSettings->set_special_effect(cameraSettings, 2);
       debug("gray filter enabled");
     }
@@ -204,13 +206,11 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
     }
   }
 
-  int brightness;
   if (getAndConstrainValue<int>("brightness", command, brightness, -2, 2)) {
     cameraSettings->set_brightness(cameraSettings, brightness);
     debug("brightness set to %d", brightness);
   }
 
-  int contrast;
   if (getAndConstrainValue<int>("contrast", command, contrast, -2, 2)) {
     cameraSettings->set_contrast(cameraSettings, contrast);
     debug("contrast set to %d", contrast);
@@ -231,7 +231,7 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
     debug("zoom stage set to %d", zoomStage);
   }
 
-  String frameSize;
+  String frameSize; // TODO: refactor to framesize_t?
   if (getValue<String>("frame size", command, frameSize)) {
     debug("setting frame size to %s", frameSize);
     if (frameSize == "UXGA") {

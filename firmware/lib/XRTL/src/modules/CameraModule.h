@@ -21,6 +21,9 @@ class CameraModule : public XRTLmodule {
 
     // camera settings
     bool isGray = false;
+    int brightness = 0;
+    int contrast = 0;
+    //framesize_t frameSize;
 
     public:
     CameraModule(String moduleName, XRTL* source);

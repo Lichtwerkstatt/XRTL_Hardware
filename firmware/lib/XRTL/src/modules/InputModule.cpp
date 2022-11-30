@@ -212,14 +212,11 @@ void InputModule::setViaSerial() {
 
 void InputModule::getStatus(JsonObject& payload, JsonObject& status) {
     if (input == NULL) return; // avoid errors: status might be called in setup before init occured
-    JsonObject inputState = status.createNestedObject(id); 
+    JsonObject moduleState = status.createNestedObject(id); 
 
-    inputState["averageTime"] = averageTime;
-    inputState["updateTime"] = deadMicroSeconds;
-    inputState["stream"] = isStreaming;
-    //outputState["isOn"] = out->getState();
-    //if (!pwm) return;
-    //outputState["pwm"] = out->read();
+    moduleState["averageTime"] = averageTime;
+    moduleState["updateTime"] = deadMicroSeconds;
+    moduleState["stream"] = isStreaming;
 }
 
 void InputModule::startStreaming() {
@@ -288,11 +285,11 @@ void InputModule::handleInternal(internalEvent eventId, String& sourceId) {
         }
         
         case input_trigger_high: {
-            debug("high level trigger tripped");
+            debug("high level guard triggered");
             return;
         }
         case input_trigger_low: {
-            debug("low level trigger tripped");
+            debug("low level guard triggered");
             return;
         }
 
