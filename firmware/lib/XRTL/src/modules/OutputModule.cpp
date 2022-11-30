@@ -20,7 +20,7 @@ void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFreq
 }
 
 void XRTLoutput::toggle(bool targetState) {
-    if (targetState == state) return;
+    //if (targetState == state) return; // prevents update of powerlevel only
 
     if (targetState) {
         if (pwm) {
@@ -46,6 +46,7 @@ void XRTLoutput::toggle(bool targetState) {
 void XRTLoutput::write(uint8_t powerLvl){
     if (!pwm) return;
     power = powerLvl;
+    toggle(state); // update powerlevel
 }
 
 uint8_t XRTLoutput::read() {
@@ -163,10 +164,10 @@ void OutputModule::setup() {
 
 void OutputModule::loop() {
     if (switchTime == 0) return;
-    if (esp_timer_get_time() > switchTime) {
+    if (esp_timer_get_time() > switchTime) { // time is up -> switch off
         out->toggle(false);
         sendStatus();
-        switchTime = 0;
+        switchTime = 0; // return time trigger to off state
     }
 }
 
@@ -232,14 +233,17 @@ void OutputModule::handleInternal(internalEvent eventId, String& sourceId){
 bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
     if (!isModule(controlId)) return false;
 
-    uint8_t powerLvl;
     if (pwm) {
+        uint8_t powerLvl;
         if (getValue<uint8_t>("pwm", command, powerLvl)) out->write(powerLvl);
     }
 
     auto valField = command["val"];
 
-    if (valField.is<bool>()) {
+    if (valField.isNull()) {
+        // no val found, ignore.
+    }
+    else if (valField.is<bool>()) {
         bool val = valField.as<bool>();
 
         out->toggle(val);

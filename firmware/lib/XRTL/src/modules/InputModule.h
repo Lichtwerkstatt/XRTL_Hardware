@@ -3,7 +3,7 @@
 
 #include "XRTLmodule.h"
 
-// collecting and averaging 
+// averaging and storing input value on an input pin
 class XRTLinput {
     private:
     uint8_t pin = 35;
@@ -13,7 +13,8 @@ class XRTLinput {
     int64_t next = 0;
 
     uint16_t sampleCount = 0;
-    uint32_t buffer = 0;
+    //buffer used for averaging values, 64 bit should prevent overflows for roughly 60 years at normal clock speed
+    uint64_t buffer = 0;
     double voltage = 0.0;
 
     public:
@@ -40,7 +41,10 @@ static const char* conversionName[5] = {
     "Multiplication"
 };
 
-// conversions may need variable values -- settings are managed similar to the XRTLmodules
+// base class of conversions used to transform the input voltage
+// class must contain convert function from double to double
+// class must contain methods for handling the conversion settings
+// multiple variables might be needed for a single conversion
 class Converter {
     public:
     virtual void convert(double& value);
@@ -51,9 +55,27 @@ class Converter {
     virtual void setViaSerial();
 };
 
+// convert a voltage into a resistance by use of a simple voltage divider
+// ┌---o    refVoltage 
+// |
+// █        refResistor
+// |
+// ├---o    measured voltage
+// |
+// █        measured resistor
+// |
+// └---o    Ground
+// measured voltage
 class ResistanceDivider: public Converter {
     private:
+    // Reference voltage of the voltage divider,
+    // unit of measurement must be identical to the input.
+    // Without prior conversion: use mV
     double refVoltage;
+    // Reference resistor used in your circuit.
+    // Unit of measurement determines the output unit.
+    // Example 1: 10 kΩ --> measured resistance is in kΩ
+    // Example 2: 10000 Ω --> measured resitance is in Ω
     double refResistor;
 
     public:
@@ -85,10 +107,21 @@ class ResistanceDivider: public Converter {
     }
 };
 
+
+// convert a resistance into temperature by use of an NTC
 class Thermistor: public Converter {
     private:
+    // Temperature at which the normal resistance was measured.
+    // Unit of measurement must be identical with beta and relative to absolute zero.
+    // Output unit of measurement is determined by this.
+    // Strong suggestion: use Kelvin, not Rankine.
     double tempNormal;
+    // Normal resistance of the NTC at normal temperature.
+    // Unit of measurement must be identical to input resistance.
     double resNormal;
+    // Beta value of the NTC.
+    // Units must match with tempNormal.
+    // Example: tempNormal = 298.15 K, beta = 3750 K
     double beta;
 
     public:
@@ -124,11 +157,24 @@ class Thermistor: public Converter {
     }
 };
 
+// linearly convert a value from a specified input range to a specified output range
 class MapValue: public Converter {
     private:
+    // minimal value of the input range.
+    // input value must never subceed this value.
+    // unit of measurement must be identical with input and inMax.
     double inMin;
+    // maximal value of the input range.
+    // input value must never exceed this value.
+    // unit of measurement must be identical with input and inMin.
     double inMax;
+    // minimal value of the output range.
+    // output value will never subceed this value.
+    // unit of measurement must be identical with outMax.
     double outMin;
+    // maximal value of the output range.
+    // output value will never exceed this value.
+    // unit of measurement must be identical with inMax.
     double outMax;
 
     public:
@@ -168,8 +214,13 @@ class MapValue: public Converter {
     }
 };
 
+
+// add a specified (positive or negative) offset to the input
 class Offset: public Converter {
     private:
+    // value that is added to the input.
+    // positive and negative values possible.
+    // unit of measurement must be identical to input.
     double offsetValue;
 
     public:
@@ -197,8 +248,11 @@ class Offset: public Converter {
     }
 };
 
+// multiply the input with a specified constant value
 class Multiplication: public Converter {
     private:
+    // value that the input is multiplied with.
+    // keep in mind: unit of measurment of the output will be different from input unless this value is unitless
     double multiplicator;
 
     public:
@@ -229,12 +283,17 @@ class Multiplication: public Converter {
 class InputModule: public XRTLmodule {
     private:
     XRTLinput* input;
+    // number of conversions currently applied to the input.
+    // maximum number: 16
     uint8_t conversionCount = 0;
-    conversion_t conversionType[8];
-    Converter* conversion[8]; // store conversions here
+    // array that holds the type of each conversion
+    conversion_t conversionType[16];
+    Converter* conversion[16]; // array that holds the pointers to the individual instances of the conversion class
 
+    // number of the physical input pin
+    // WARNING: ADC2 cannot be used when WiFi is active. Be aware of your board limitations.
     uint8_t pin;
-    uint16_t averageTime;
+    uint16_t averageTime; // time that the voltage value is averaged for in milli seconds
 
     bool isStreaming = false;
     int64_t next;
@@ -242,7 +301,7 @@ class InputModule: public XRTLmodule {
 
     bool rangeChecking = false;
     double loBound = 0.0; // lowest ADC output: 142 mV, 0 will never get triggered
-    double hiBound = 3300.0; // voltage reference, will never get triggered due to cut off
+    double hiBound = 3300.0; // voltage reference, will never get triggered due to cut off typically around 3150 mV
     uint32_t deadMicroSeconds = 0;
     int64_t nextCheck;
 
@@ -258,6 +317,7 @@ class InputModule: public XRTLmodule {
     void saveSettings(JsonObject& settings);
     void loadSettings(JsonObject& settings);
     void setViaSerial();
+    void getStatus(JsonObject& payload, JsonObject& status);
 
     void startStreaming();
     void stopStreaming();
@@ -267,6 +327,7 @@ class InputModule: public XRTLmodule {
 
     void handleInternal(internalEvent eventId, String& sourceId);
 
+    // add a conversion that is applied to every value before it is delivered
     void addConversion(conversion_t conversion);
 };
 

@@ -13,7 +13,7 @@ void XRTLinput::averageTime(int64_t measurementTime) {
     averageMicroSeconds = 1000 * measurementTime;
 }
 
-void XRTLinput::loop() {
+void XRTLinput::loop() {// TODO: use floating average?
     now = esp_timer_get_time();
     if (now < next) {// average time not reached, keep going
         buffer += analogReadMilliVolts(pin);
@@ -22,7 +22,7 @@ void XRTLinput::loop() {
     }
     else {// average time over, store averaged value
         next = now + averageMicroSeconds;
-        if (sampleCount == 0) {// no measurment taken, take single value
+        if (sampleCount == 0) {// no measurment taken, fill buffer with 1 at least
             buffer += analogReadMilliVolts(pin);
             sampleCount++;
         }
@@ -48,7 +48,7 @@ moduleType InputModule::getType() {
 void InputModule::setup() {
     input = new XRTLinput;
     input->attach(pin);
-    input->averageTime(averageTime);//in ms
+    input->averageTime(averageTime);// in ms
 
     next = esp_timer_get_time(); // start streaming immediately
     nextCheck = esp_timer_get_time(); // check immediately
@@ -93,11 +93,11 @@ void InputModule::loop() {
     event.add("data");
     JsonObject payload = event.createNestedObject();
     payload["componentId"] = getComponent(); // TODO: check function
-    payload["type"] = "double";
+    payload["type"] = "float";
     payload["dataId"] = id;
 
     JsonObject data = payload.createNestedObject("data");
-    data["type"] = "Buffer";
+    data["type"] = "Buffer";// for consistency with other data transmissions
     data["data"] = value;
 
     sendEvent(event); 
@@ -136,15 +136,15 @@ void InputModule::loadSettings(JsonObject& settings) {
     rangeChecking = loadValue<bool>("rangeChecking", settings, false);
     
     if (rangeChecking) {
-        loBound = loadValue<double>("loBound", settings, 0);
-        hiBound = loadValue<double>("hiBound", settings, 3300);
+        loBound = loadValue<double>("loBound", settings, 0);// default is minimum ADC voltage in mV -- no conversion
+        hiBound = loadValue<double>("hiBound", settings, 3300);// default is maximum ADC voltage in mV -- no conversion
         deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", settings, 0);
     }
 
     // load conversions
     JsonArray loadedConversion = settings["conversions"];
     if (!loadedConversion.isNull()) {
-        for (JsonVariant var : loadedConversion) {
+        for (JsonVariant var : loadedConversion) { // iterate over all objects within loadedConversion
             JsonObject initializer = var.as<JsonObject>();
             conversion_t type = loadValue<conversion_t>("type", initializer, thermistor);
             addConversion(type);
@@ -208,6 +208,18 @@ void InputModule::setViaSerial() {
         hiBound = serialInput("high bound: ").toDouble();
         deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
     }
+}
+
+void InputModule::getStatus(JsonObject& payload, JsonObject& status) {
+    if (input == NULL) return; // avoid errors: status might be called in setup before init occured
+    JsonObject inputState = status.createNestedObject(id); 
+
+    inputState["averageTime"] = averageTime;
+    inputState["updateTime"] = deadMicroSeconds;
+    inputState["stream"] = isStreaming;
+    //outputState["isOn"] = out->getState();
+    //if (!pwm) return;
+    //outputState["pwm"] = out->read();
 }
 
 void InputModule::startStreaming() {
@@ -296,8 +308,9 @@ void InputModule::handleInternal(internalEvent eventId, String& sourceId) {
 }
 
 void InputModule::addConversion(conversion_t type) {
-    if (conversionCount == 8) {
+    if (conversionCount == 16) {
         Serial.println("WARNING: maximum number of conversions reached");
+        return;
     }
 
     switch (type) {
