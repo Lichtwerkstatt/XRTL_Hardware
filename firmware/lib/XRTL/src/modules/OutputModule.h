@@ -28,17 +28,27 @@ class XRTLoutput {
 
 };
 
+// XRTLmodule for controling output signals, either relays or MOSFETs operated via PWM
 class OutputModule: public XRTLmodule {
     private:
 
     uint8_t pin;
 
+    // controls the output behavior
+    // true: output is 8 bit pwm
+    // false: output is a relay
     bool pwm = false;
+    // pwm channel of the ESP used
+    // WARNING: do NOT use channel 1 or 2 with ESP32CAM
     uint8_t channel;
+    // pwm frequency in Hz, permitted values: 1000, 5000, 8000, 10000 
     uint16_t frequency;
 
+    // esp_timer value (µs) at which the module is switched off again
     int64_t switchTime = 0;
 
+    // ID (string) of the guarded module
+    // trigger events of this module will cause immediate powerdown of the output
     String guardedModule = "";
 
     XRTLoutput* out = NULL; 

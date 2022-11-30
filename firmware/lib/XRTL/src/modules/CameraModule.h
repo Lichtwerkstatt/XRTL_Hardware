@@ -19,6 +19,9 @@ class CameraModule : public XRTLmodule {
     uint8_t tiltStage = 4;
     uint8_t zoomStage = 0;
 
+    // camera settings
+    bool isGray = false;
+
     public:
     CameraModule(String moduleName, XRTL* source);
     moduleType getType();

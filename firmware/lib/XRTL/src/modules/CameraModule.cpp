@@ -185,6 +185,7 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
     }
   }
 
+  // controlId: "ESPCam"
   bool stream;
   if (getValue<bool>("stream", command, stream)) {
     if (stream) startStreaming();
