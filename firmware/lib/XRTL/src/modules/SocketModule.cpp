@@ -136,6 +136,19 @@ void SocketModule::sendEvent(JsonArray& event){
   serializeJson(event,output);
   socket->sendEVENT(output);
   debug("sent event: %s", output.c_str());
+
+  // if alias is set, check for status events and resend them with alias as componentId
+  if (alias == "") return;
+  if (event[0].isNull()) return;
+  if (!event[0].is<String>()) return;
+
+  if (event[0].as<String>() != "status") return; // only for status events
+  
+  output.clear();
+  event[1]["componentId"] = alias;
+  serializeJson(event, output);
+  socket->sendEVENT(output);
+  debug("sent event: %s", output.c_str());
 }
 
 void SocketModule::sendError(componentError err, String msg){
@@ -197,6 +210,13 @@ void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) 
 }
 
 void SocketModule::handleEvent(DynamicJsonDocument& doc) {
+  if (doc[0].isNull() ) {
+    String errormsg = "[";
+    errormsg += id;
+    errormsg += "] event rejected: <event name> is null";
+    sendError(field_is_null, errormsg);
+    return;
+  }
   if (!doc[0].is<String>()) {
     String errormsg = "[";
     errormsg += id;
@@ -236,6 +256,13 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
     case is_second: {
       String controlId;
       if (!getValue("controlId", commandJson, controlId, true)) return;
+      if (isBusy) {
+        String errormsg = "[";
+        errormsg += id;
+        errormsg += "] command rejected: component currently moving";
+        sendError(is_busy, errormsg);
+        return;
+      }
       pushCommand(controlId,commandJson);
       return;
     }
@@ -348,7 +375,7 @@ void SocketModule::handleInternal(internalEvent eventId, String& sourceId) {
       return;
     }
     case socket_authed: {
-      // wait randomly between 100 and 300 ms to decrease number of simultaneous WiFi usage after outage
+      // wait randomly between 100 and 300 ms to decrease number of simultaneous WiFi request after power outage
       int64_t waitTime = esp_timer_get_time() + random(100000,300000);
       while ( esp_timer_get_time() < waitTime) {
         yield();

@@ -161,6 +161,15 @@ bool InfoLEDModule::handleCommand(String& command) {
   return true;
 }
 
+bool InfoLEDModule::handleCommand(String& controlId, JsonObject& command) {
+  if (getValue<uint16_t>("", command, userHue)) {
+    led->hsv(userHue, 255, 40);
+    return true;
+  }
+  
+  return false;
+}
+
 void InfoLEDModule::handleInternal(internalEvent eventId, String& sourceId) {
   if (led == NULL) return;
   switch(eventId) {

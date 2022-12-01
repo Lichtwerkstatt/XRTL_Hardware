@@ -215,7 +215,7 @@ void InputModule::getStatus(JsonObject& payload, JsonObject& status) {
     JsonObject moduleState = status.createNestedObject(id); 
 
     moduleState["averageTime"] = averageTime;
-    moduleState["updateTime"] = deadMicroSeconds;
+    moduleState["updateTime"] = deadMicroSeconds/1000;
     moduleState["stream"] = isStreaming;
 }
 

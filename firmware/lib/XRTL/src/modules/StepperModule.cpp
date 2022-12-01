@@ -86,7 +86,7 @@ void StepperModule::setViaSerial() {
   
   Serial.print("\n");
 
-  if ( serialInput("change pin bindings (y/n): ") == "y" ) return;
+  if ( serialInput("change pin bindings (y/n): ") != "y" ) return;
 
   pin[0] = serialInput("pin 1: ").toInt();
   pin[1] = serialInput("pin 2: ").toInt();

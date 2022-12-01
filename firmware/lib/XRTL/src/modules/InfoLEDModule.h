@@ -62,6 +62,8 @@ class InfoLEDModule : public XRTLmodule {
   uint8_t pin = 32;
   uint8_t pixel = 12;
   InfoLED* led = NULL;
+
+  uint16_t userHue = 20000;
   
   public:
   InfoLEDModule(String moduleName, XRTL* source);
@@ -77,7 +79,7 @@ class InfoLEDModule : public XRTLmodule {
 
   void handleInternal(internalEvent eventId, String& sourceId);
   bool handleCommand(String& command);
-  //bool handleCommand(String& controlId, JsonObject& command); // TODO: add command for changing color?
+  bool handleCommand(String& controlId, JsonObject& command); // TODO: add command for changing color?
 };
 
 
