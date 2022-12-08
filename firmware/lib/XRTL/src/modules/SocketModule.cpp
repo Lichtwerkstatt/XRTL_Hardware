@@ -126,7 +126,7 @@ moduleType SocketModule::getType() {
 void SocketModule::sendEvent(JsonArray& event){
   if (!socket->isConnected()) {
     if (!debugging) return;
-    String output;
+    String output; // print the event to serial monitor 
     serializeJson(event,output);
     debug("disconnected, unable to sent event: %s", output.c_str());
     return;
@@ -140,8 +140,8 @@ void SocketModule::sendEvent(JsonArray& event){
   // if alias is set, check for status events and resend them with alias as componentId
   if (alias == "") return;
   if (event[0].isNull()) return;
-  if (!event[0].is<String>()) return;
 
+  if (!event[0].is<String>()) return;
   if (event[0].as<String>() != "status") return; // only for status events
   
   output.clear();
@@ -192,7 +192,6 @@ void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) 
       DynamicJsonDocument incommingEvent(1024);
       DeserializationError error = deserializeJson(incommingEvent,payload,length);
       if (error) {
-        //owner->sendError();
         String errormsg = "deserialization failed: ";
         errormsg += error.c_str();
         owner->sendError(deserialize_failed, errormsg);

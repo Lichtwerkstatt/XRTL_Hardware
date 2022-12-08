@@ -139,7 +139,7 @@ void InfoLEDModule::setViaSerial() {
   Serial.println(centerString("",39,'-'));
   Serial.println("");
 
-  if (strcmp(serialInput("change pin binding (y/n): ").c_str(), "y") != 0) return;
+  if (serialInput("change pin binding (y/n): ") != "y") return;
   
   pin = serialInput("control pin: ").toInt();
   pixel = serialInput("pixel number: ").toInt(); 
@@ -148,15 +148,15 @@ void InfoLEDModule::setViaSerial() {
 void InfoLEDModule::stop() {
   led->hsv(8000,255,255);
   led->constant();
-  led->loop();
+  led->loop();// make sure the changes are applied immediately
 }
 
 bool InfoLEDModule::handleCommand(String& command) {
-  if (strcmp(command.c_str(),"reset") != 0) return false;
+  if (command != "reset") return false;
 
   led->hsv(8000,255,255);
   led->constant();
-  led->loop();
+  led->loop();// no loop will be executed before reset
 
   return true;
 }

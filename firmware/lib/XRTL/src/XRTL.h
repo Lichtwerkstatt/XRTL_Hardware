@@ -46,7 +46,8 @@ class XRTL {
   void sendError(componentError err, String msg);
   void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length);
 
-  // send string over Serial if debugging is activated (printf syntax)
+  // send string over Serial if debugging is activated
+  // (uses printf syntax)
   template<typename... Args>
   void debug(Args... args) {
     if (!debugging) return;
@@ -59,6 +60,7 @@ class XRTL {
   void loadSettings();
   void saveSettings();
   void setViaSerial();
+  void settingsDialogue();
   void getStatus();
 
   // calls corresponding methodes of all modules

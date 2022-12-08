@@ -135,8 +135,8 @@ class XRTLmodule {
     Serial.print('\n');
   }
 
-  // get value of type A from JsonObject
-  // TODO: use ArduinoJson type as return parameter to simplify?
+  // get value of type A with a specific name from JsonObject file and store it in target
+  // optional: send out an error if name can't be found within file, default to no error
   template<typename A>
   bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
     auto field = file[name];
@@ -203,6 +203,9 @@ class XRTLmodule {
     return is_wrong_type;
   }
 
+  // get value of type A with specified name from JsonObject file and store it in target
+  // check wether target is between minValue and maxValue and constrain it if necessary
+  // optional: send out an error if name can't be found within file, defaults to no error
   template<typename A>
   bool getAndConstrainValue(String name, JsonObject& file, A&target, A minValue, A maxValue, bool reportMissingField = false) {
     bool ret = getValue<A>(name, file, target, reportMissingField);

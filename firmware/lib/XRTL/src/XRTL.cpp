@@ -148,7 +148,7 @@ XRTLmodule* XRTL::operator[](String moduleName) {
       return module[i];
     }
   }
-  return NULL;// probably not a good idea, return dummy module instead?
+  return NULL;// probably not a good idea as default, return dummy module instead?
 }
 
 void XRTL::saveSettings() {
@@ -157,7 +157,6 @@ void XRTL::saveSettings() {
   for (int i = 0; i < moduleCount; i++) {
     JsonObject settings = doc.createNestedObject(module[i]->getID());
     settings["type"] = module[i]->getType();
-    //module[i]->saveSettings(doc);
     module[i]->saveSettings(settings);
   }
 
@@ -258,15 +257,7 @@ void XRTL::loadSettings() {
   Serial.println("");
 }
 
-void XRTL::setViaSerial() {
-  stop();
-
-  Serial.println("");
-  Serial.println(centerString("",39,'='));
-  Serial.println(centerString("serial setup",39,' '));
-  Serial.println(centerString("",39,'='));
-  Serial.println("");
-
+void XRTL::settingsDialogue() {
   Serial.println(centerString("available settings", 39, ' '));
   listModules();
   Serial.println("");
@@ -299,8 +290,10 @@ void XRTL::setViaSerial() {
     moduleType newModuleType = (moduleType) serialInput("new module type: ").toInt();
     String newModuleName = serialInput("new module name: ");
     addModule(newModuleName, newModuleType);
+    
     JsonObject emptySettings;
     module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
+    module[moduleCount - 1]->setup(); // run setup if necessary
   }
   else if (choice == moduleCount + 2) {
     Serial.println(centerString("", 39, '-'));
@@ -327,6 +320,21 @@ void XRTL::setViaSerial() {
   }
   else {
     Serial.printf("setup routine <%d> unknown\n", choice);
+  }
+}
+
+void XRTL::setViaSerial() {
+  stop();
+
+  Serial.println("");
+  Serial.println(centerString("",39,'='));
+  Serial.println(centerString("serial setup",39,' '));
+  Serial.println(centerString("",39,'='));
+  Serial.println("");
+
+  settingsDialogue(); 
+  while (serialInput("more changes? (y/n): ") == "y") {
+    settingsDialogue();
   }
 
   saveSettings();
