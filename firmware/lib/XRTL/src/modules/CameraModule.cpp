@@ -86,7 +86,7 @@ void CameraModule::saveSettings(JsonObject& settings) {
 }
 
 void CameraModule::loadSettings(JsonObject& settings) {
-
+  
 }
 
 void CameraModule::setViaSerial() {
@@ -113,6 +113,7 @@ void CameraModule::startStreaming() {
   data["_placeholder"] = true;
   data["num"] = 0;
 
+  binaryLeadFrame.clear();
   binaryLeadFrame = "451-";
   serializeJson(doc,binaryLeadFrame);
 
@@ -190,8 +191,9 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
   }
 
   // controlId: "ESPCam"
-  if (getValue<bool>("stream", command, isStreaming)) {
-    if (isStreaming) startStreaming();
+  bool targetStreamState = false;
+  if (getValue<bool>("stream", command, targetStreamState)) {
+    if (targetStreamState) startStreaming();
     else stopStreaming();
   }
 
@@ -276,7 +278,9 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
 void CameraModule::handleInternal(internalEvent eventId, String& sourceId) {
   switch(eventId) {
     case socket_disconnected: {
-      // TODO: suspend stream?
+      // TODO: suspend stream instead of stopping?
+      stopStreaming();
+      debug("stream stopped due to disconnect");
       return;
     }
 
