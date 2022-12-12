@@ -76,13 +76,22 @@ void InputModule::loop() {
         if (now > nextCheck) {
 
             if (value >= hiBound) {
-                if (!lastState) notify(input_trigger_high);
+                // TODO: find a way to have both methods
+                if (!lastState) {
+                    notify(input_trigger_high);
+                    debug("high level guard triggered");
+                    sendStatus();
+                }
                 lastState = true;
                 nextCheck = now + deadMicroSeconds;
             }
 
             if (value <= loBound) {
-                if (lastState) notify(input_trigger_low);
+                if (lastState){
+                    notify(input_trigger_low);
+                    debug("low level guard triggered");
+                    sendStatus();
+                }
                 lastState = false;
                 nextCheck = now + deadMicroSeconds;
             }
@@ -287,16 +296,6 @@ void InputModule::handleInternal(internalEvent eventId, String& sourceId) {
             if (!isStreaming) return;
             isStreaming = false;
             debug("stream stopped due to disconnect event");
-            return;
-        }
-        
-        // TODO: change this: it will fire multiple times for multiple inputs
-        case input_trigger_high: {
-            debug("high level guard triggered");
-            return;
-        }
-        case input_trigger_low: {
-            debug("low level guard triggered");
             return;
         }
 
