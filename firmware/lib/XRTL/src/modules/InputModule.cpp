@@ -22,7 +22,7 @@ void XRTLinput::loop() {// TODO: use floating average?
     }
     else {// average time over, store averaged value
         next = now + averageMicroSeconds;
-        if (sampleCount == 0) {// no measurment taken, fill buffer with 1 at least
+        if (sampleCount == 0) {// no measurment taken, fill buffer with single
             buffer += analogReadMilliVolts(pin);
             sampleCount++;
         }
@@ -49,6 +49,12 @@ void InputModule::setup() {
     input = new XRTLinput;
     input->attach(pin);
     input->averageTime(averageTime);// in ms
+    if ( input->readMilliVolts() >= hiBound ) {
+        lastState = true;
+    }
+    else {
+        lastState = false;
+    }
 
     next = esp_timer_get_time(); // start streaming immediately
     nextCheck = esp_timer_get_time(); // check immediately
@@ -65,16 +71,19 @@ void InputModule::loop() {
     }
 
     // check for violation of input bounds
+    // TODO: report to server?
     if (rangeChecking) {
         if (now > nextCheck) {
 
             if (value >= hiBound) {
-                notify(input_trigger_high);
+                if (!lastState) notify(input_trigger_high);
+                lastState = true;
                 nextCheck = now + deadMicroSeconds;
             }
 
             if (value <= loBound) {
-                notify(input_trigger_low);
+                if (lastState) notify(input_trigger_low);
+                lastState = false;
                 nextCheck = now + deadMicroSeconds;
             }
 
@@ -112,11 +121,9 @@ void InputModule::saveSettings(JsonObject& settings){
     settings["averageTime"] = averageTime;
     settings["rangeChecking"] = rangeChecking;
 
-    if (rangeChecking) {
-        settings["loBound"] = loBound;
-        settings["hiBound"] = hiBound;
-        settings["deadMicroSeconds"] = deadMicroSeconds;
-    }
+    settings["loBound"] = loBound;
+    settings["hiBound"] = hiBound;
+    settings["deadMicroSeconds"] = deadMicroSeconds;
 
     // conversion settings
     if (conversionCount == 0) return;
@@ -175,6 +182,16 @@ void InputModule::setViaSerial() {
     if ( serialInput("change pin binding (y/n): ") == "y" ) {
         pin = serialInput("pin: ").toInt();
     }
+ 
+    if ( serialInput("check range (y/n): ") == "y" ) {
+        rangeChecking = true;
+        loBound = serialInput("low bound: ").toDouble();
+        hiBound = serialInput("high bound: ").toDouble();
+        deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
+    }
+    else {
+        rangeChecking = false;
+    }
 
     if ( serialInput("change conversion (y/n): ") != "y" ) return;
     for (int i = 0; i < conversionCount; i++) {
@@ -196,13 +213,6 @@ void InputModule::setViaSerial() {
         addConversion(type);
         Serial.printf("conversionCount: %d\n", conversionCount);
         conversion[conversionCount - 1]->setViaSerial();
-    }
-
-    rangeChecking = ( serialInput("check range (y/n): ") == "y" );
-    if (rangeChecking) {
-        loBound = serialInput("low bound: ").toDouble();
-        hiBound = serialInput("high bound: ").toDouble();
-        deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
     }
 }
 
@@ -280,6 +290,7 @@ void InputModule::handleInternal(internalEvent eventId, String& sourceId) {
             return;
         }
         
+        // TODO: change this: it will fire multiple times for multiple inputs
         case input_trigger_high: {
             debug("high level guard triggered");
             return;

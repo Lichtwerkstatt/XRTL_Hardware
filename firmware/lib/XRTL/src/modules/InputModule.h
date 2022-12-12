@@ -112,8 +112,7 @@ class ResistanceDivider: public Converter {
 class Thermistor: public Converter {
     private:
     // Temperature at which the normal resistance was measured.
-    // Unit of measurement must be identical with beta and relative to absolute zero.
-    // Output unit of measurement is determined by this.
+    // Unit of measurement must be identical with beta and relative to absolute zero, output unit of measurement is determined by this.
     // Strong suggestion: use Kelvin, not Rankine.
     double tempNormal;
     // Normal resistance of the NTC at normal temperature.
@@ -299,13 +298,13 @@ class InputModule: public XRTLmodule {
     uint32_t intervalMicroSeconds = 1000000; // TODO: add interface for streaming interval
 
     bool rangeChecking = false;
+    bool changeOnly = false;
     double loBound = 0.0; // lowest ADC output: 142 mV, 0 will never get triggered
     double hiBound = 3300.0; // voltage reference, will never get triggered due to cut off typically around 3150 mV
     uint32_t deadMicroSeconds = 0;
     int64_t nextCheck;
 
     // TODO: add option to inform server of every status change
-    bool autoBinaryUpdate = false;
     bool lastState;
 
     public:
