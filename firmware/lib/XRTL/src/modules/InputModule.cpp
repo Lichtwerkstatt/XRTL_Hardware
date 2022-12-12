@@ -108,8 +108,6 @@ void InputModule::stop() {
 }
 
 void InputModule::saveSettings(JsonObject& settings){
-    //JsonObject saving = settings.createNestedObject(id);
-
     settings["pin"] = pin;
     settings["averageTime"] = averageTime;
     settings["rangeChecking"] = rangeChecking;
@@ -135,18 +133,16 @@ void InputModule::loadSettings(JsonObject& settings) {
     averageTime = loadValue<uint16_t>("averageTime", settings, 0);
     rangeChecking = loadValue<bool>("rangeChecking", settings, false);
     
-    if (rangeChecking) {
-        loBound = loadValue<double>("loBound", settings, 0);// default is minimum ADC voltage in mV -- no conversion
-        hiBound = loadValue<double>("hiBound", settings, 3300);// default is maximum ADC voltage in mV -- no conversion
-        deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", settings, 0);
-    }
+    loBound = loadValue<double>("loBound", settings, 0);// default is minimum ADC voltage in mV -- no conversion
+    hiBound = loadValue<double>("hiBound", settings, 3300);// default is maximum ADC voltage in mV -- no conversion
+    deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", settings, 0);
 
     // load conversions
     JsonArray loadedConversion = settings["conversions"];
     if (!loadedConversion.isNull()) {
         for (JsonVariant var : loadedConversion) { // iterate over all objects within loadedConversion
             JsonObject initializer = var.as<JsonObject>();
-            conversion_t type = loadValue<conversion_t>("type", initializer, thermistor);
+            conversion_t type = loadValue<conversion_t>("type", initializer, offset);
             addConversion(type);
             conversion[conversionCount - 1]->loadSettings(initializer, debugging);
             if (debugging) Serial.println("");

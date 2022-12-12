@@ -304,6 +304,10 @@ class InputModule: public XRTLmodule {
     uint32_t deadMicroSeconds = 0;
     int64_t nextCheck;
 
+    // TODO: add option to inform server of every status change
+    bool autoBinaryUpdate = false;
+    bool lastState;
+
     public:
 
     InputModule(String moduleName, XRTL* source);

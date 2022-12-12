@@ -296,7 +296,7 @@ void XRTL::settingsDialogue() {
       Serial.printf("%d: %s\n",i,moduleNames[i]);
     }
     Serial.println("");
-    Serial.printf("%d: return\n");
+    Serial.printf("%d: return\n", 8);
     Serial.println("");
 
     moduleType newModuleType = (moduleType) serialInput("new module type: ").toInt();
