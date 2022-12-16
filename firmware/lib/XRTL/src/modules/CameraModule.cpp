@@ -206,31 +206,37 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
       cameraSettings->set_special_effect(cameraSettings, 0);
       debug("gray filter disabled");
     }
+    sendStatus();
   }
 
   if (getAndConstrainValue<int>("brightness", command, brightness, -2, 2)) {
     cameraSettings->set_brightness(cameraSettings, brightness);
     debug("brightness set to %d", brightness);
+    sendStatus();
   }
 
   if (getAndConstrainValue<int>("contrast", command, contrast, -2, 2)) {
     cameraSettings->set_contrast(cameraSettings, contrast);
     debug("contrast set to %d", contrast);
+    sendStatus();
   }
 
   if (getAndConstrainValue<uint8_t>("pan", command, panStage, 0, 8)) {
     virtualPTZ();
     debug("pan stage set to %d", panStage);
+    sendStatus();
   }
 
   if (getAndConstrainValue<uint8_t>("tilt", command, tiltStage, 0, 8)) {
     virtualPTZ();
     debug("tilt stage set to %d", tiltStage);
+    sendStatus();
   }
 
   if (getAndConstrainValue<uint8_t>("zoom", command, zoomStage, 0, 4)){
     virtualPTZ();
     debug("zoom stage set to %d", zoomStage);
+    sendStatus();
   }
 
   String frameSize; // TODO: refactor to framesize_t?
@@ -270,6 +276,7 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
       errormsg += "] <frame size> has unknown value, complete list: UXGA, QVGA, CIF, VGA, SVGA, XGA, SXGA";
       sendError(out_of_bounds,errormsg);
     }
+    sendStatus();
   }
 
   return true;

@@ -250,6 +250,16 @@ void StepperModule::driveStepper(JsonObject& command) {
     sendError(out_of_bounds, error);
   }
 
+  bool binaryCtrl;
+  if ( getValue<bool>("binaryCtrl",command,binaryCtrl) ) {
+    if (binaryCtrl) {
+      stepper->moveTo(maximum);
+    }
+    else {
+      stepper->moveTo(minimum);
+    }
+  }
+
   debug("moving from %d to %d", stepper->currentPosition(), stepper->targetPosition());
   wasRunning = true;
   notify(busy);

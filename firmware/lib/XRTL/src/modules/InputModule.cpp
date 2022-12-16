@@ -49,7 +49,7 @@ void InputModule::setup() {
     input = new XRTLinput;
     input->attach(pin);
     input->averageTime(averageTime);// in ms
-    if ( input->readMilliVolts() >= hiBound ) {
+    if ( input->readMilliVolts() >= hiBound ) { // initialize lastState
         lastState = true;
     }
     else {
@@ -274,11 +274,13 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
 
     if (getValue<uint16_t>("averageTime", command, averageTime)) {
         input->averageTime(averageTime);
+        sendStatus();
     }
 
     uint32_t interval;
     if ( getValue<uint32_t>("updateTime", command, interval) ) {
         intervalMicroSeconds = 1000 * interval;
+        sendStatus();
     }
 
     if (!rangeChecking) return true;

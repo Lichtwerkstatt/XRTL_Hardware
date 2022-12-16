@@ -155,6 +155,16 @@ void ServoModule::driveServo(JsonObject& command) {
     sendError(out_of_bounds,error);
   }
 
+  bool binaryCtrl;
+  if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
+    if (binaryCtrl) {
+      target = maxAngle;
+    }
+    else {
+      target = minAngle;
+    }
+  }
+
   write(target);
   sendStatus();
 }
