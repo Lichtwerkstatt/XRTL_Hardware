@@ -76,6 +76,7 @@ void CameraModule::getStatus(JsonObject& payload, JsonObject& status) {
 
   JsonObject moduleStatus = status.createNestedObject(id);
   moduleStatus["stream"] = isStreaming;
+  moduleStatus["frame size"] = frameSize; 
   moduleStatus["gray"] = isGray;
   moduleStatus["brightness"] = brightness;
   moduleStatus["contrast"] = contrast;
@@ -239,43 +240,20 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
     sendStatus();
   }
 
-  String frameSize; // TODO: refactor to framesize_t?
-  if (getValue<String>("frame size", command, frameSize)) {
-    debug("setting frame size to %s", frameSize);
-    if (frameSize == "UXGA") {
-      cameraSettings->set_framesize(cameraSettings, FRAMESIZE_UXGA);
-      // 1600 x 1200 px
-    }
-    else if ( frameSize == "QVGA" ) {
-      cameraSettings->set_framesize(cameraSettings, FRAMESIZE_QVGA);
-      // 320 x 240 px
-    }
-    else if ( frameSize == "CIF" ) {
-      cameraSettings->set_framesize(cameraSettings, FRAMESIZE_CIF);
-      // 352 x 288 px
-    }
-    else if ( frameSize  == "VGA" ) {
-      cameraSettings->set_framesize(cameraSettings, FRAMESIZE_VGA);
-      // 640 x 480 px
-    }
-    else if ( frameSize  == "SVGA" ) {
-      cameraSettings->set_framesize(cameraSettings, FRAMESIZE_SVGA);
-      // 800 x 600 px
-    }
-    else if ( frameSize  == "XGA" ) {
-      cameraSettings->set_framesize(cameraSettings, FRAMESIZE_XGA);
-      // 1024 x 768 px
-    }
-    else if ( frameSize  == "SXGA" ) {
-      cameraSettings->set_framesize(cameraSettings, FRAMESIZE_SXGA);
-      // 1280 x 1024 px
-    }
-    else {
+  uint8_t targetFrameSize = 0;
+  if (getAndConstrainValue<uint8_t>("frame size", command, targetFrameSize, 5, 13)) {
+    //debug("setting frame size to %s", frameSize);
+    if (targetFrameSize == 7 || targetFrameSize == 11) {
       String errormsg = "[";
       errormsg += id;
-      errormsg += "] <frame size> has unknown value, complete list: UXGA, QVGA, CIF, VGA, SVGA, XGA, SXGA";
+      errormsg += "] <frame size> 7 and 11 are not permitted";
       sendError(out_of_bounds,errormsg);
+      targetFrameSize = 10;
     }
+
+    frameSize = (framesize_t) targetFrameSize;
+    cameraSettings->set_framesize(cameraSettings, frameSize);
+    debug("frame size changed to %d", targetFrameSize);
     sendStatus();
   }
 
