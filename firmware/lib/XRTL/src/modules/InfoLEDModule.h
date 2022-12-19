@@ -53,7 +53,7 @@ class InfoLED {
   void constant();
 
   // check the selected pattern and change the corresponding values if necessary
-  // must be called frequently whenever a none constant light pattern is intended to show
+  // must be called frequently whenever a dynamic light pattern is to be displayed
   void loop();
 };
 

@@ -4,6 +4,23 @@
 #include "XRTLmodule.h"
 #include <esp_camera.h>
 
+static const char* frameSizeName[14] {
+    "",
+    "",
+    "",
+    "",
+    "",
+    "QVGA",
+    "CIF",
+    "",
+    "VGA",
+    "SVGA",
+    "XGA",
+    "",
+    "SXGA",
+    "UXGA"
+};
+
 class CameraModule : public XRTLmodule {
     private:
     bool isStreaming = false;
@@ -23,7 +40,7 @@ class CameraModule : public XRTLmodule {
     bool isGray = false;
     int brightness = 0;
     int contrast = 0;
-    //framesize_t frameSize;
+    framesize_t frameSize = FRAMESIZE_XGA;
 
     public:
     CameraModule(String moduleName, XRTL* source);
