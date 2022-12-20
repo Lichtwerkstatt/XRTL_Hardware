@@ -232,6 +232,9 @@ void InputModule::getStatus(JsonObject& payload, JsonObject& status) {
     moduleState["averageTime"] = averageTime;
     moduleState["updateTime"] = deadMicroSeconds/1000;
     moduleState["stream"] = isStreaming;
+    // TODO: what about this?
+    //moduleState["value"] = value; <-- make this variable accessible outside loop?
+    //moduleState["triggerState"] = lastState;
 }
 
 void InputModule::startStreaming() {

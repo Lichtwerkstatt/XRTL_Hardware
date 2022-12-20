@@ -233,6 +233,17 @@ void StepperModule::driveStepper(JsonObject& command) {
     stepper->move(val);
   }
 
+  int32_t move = 0;
+  if (getAndConstrainValue<int32_t>("move", command, move, minimum - maximum, maximum - minimum)) {// full range: maximum - minimum; negative range: minimum - maximum
+    stepper->enableOutputs();
+    stepper->move(move);
+  }
+
+  if (getAndConstrainValue<int32_t>("moveTo", command, move, minimum, maximum)) {
+    stepper->enableOutputs();
+    stepper->move(move);
+  }
+
   int32_t target = stepper->targetPosition();
 
   if ( (target > maximum) or (target < minimum) ) {

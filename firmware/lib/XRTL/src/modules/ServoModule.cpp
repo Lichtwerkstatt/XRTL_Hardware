@@ -137,6 +137,14 @@ void ServoModule::driveServo(JsonObject& command) {
     }
   }
 
+  if (getAndConstrainValue<int16_t>("move", command, target, minAngle - maxAngle, maxAngle - minAngle)) {// complete range: maxAngle - minAngle; negative range: minAngle - maxAngle
+    target += read();
+  }
+
+  if (getAndConstrainValue<int16_t>("moveTo", command, target, minAngle, maxAngle)) {
+    //nothing to do here
+  }
+
   if (relativeCtrl) {
     target += read();
   }
