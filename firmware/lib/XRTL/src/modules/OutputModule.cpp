@@ -238,6 +238,15 @@ bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
         if (getValue<uint8_t>("pwm", command, powerLvl)) out->write(powerLvl);
     }
 
+    bool targetState;
+    if (getValue<bool>("switch", command, targetState)) out->toggle(targetState);
+
+    uint32_t toggleTime = 0;
+    if (getValue<uint32_t>("pulse", command, toggleTime)) {
+        switchTime = toggleTime + esp_timer_get_time();
+        out->toggle(true);
+    }
+
     auto valField = command["val"];
 
     if (valField.isNull()) {
