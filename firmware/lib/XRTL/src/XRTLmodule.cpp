@@ -45,8 +45,8 @@ void XRTLmodule::loop(){
   return;
 }
 
-void XRTLmodule::getStatus(JsonObject& payload, JsonObject& status) {
-  return;
+bool XRTLmodule::getStatus(JsonObject& status) {
+  return false;
 }
 
 //void XRTLmodule::saveSettings(DynamicJsonDocument& settings) {
@@ -83,8 +83,8 @@ void XRTLmodule::handleInternal(internalEvent eventId, String& sourceId){
 }
 
 //
-bool XRTLmodule::handleCommand(String& controlId, JsonObject& command){
-  return false;
+void XRTLmodule::handleCommand(String& controlId, JsonObject& command){
+  return;
 }
 
 bool XRTLmodule::handleCommand(String& command) {

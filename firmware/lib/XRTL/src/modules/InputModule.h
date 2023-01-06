@@ -319,12 +319,12 @@ class InputModule: public XRTLmodule {
     void saveSettings(JsonObject& settings);
     void loadSettings(JsonObject& settings);
     void setViaSerial();
-    void getStatus(JsonObject& payload, JsonObject& status);
+    bool getStatus(JsonObject& status);
 
     void startStreaming();
     void stopStreaming();
 
-    bool handleCommand(String& controlId, JsonObject& command);
+    void handleCommand(String& controlId, JsonObject& command);
     bool handleCommand(String& command);
 
     void handleInternal(internalEvent eventId, String& sourceId);

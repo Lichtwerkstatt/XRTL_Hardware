@@ -61,7 +61,8 @@ class XRTL {
   void saveSettings();
   void setViaSerial();
   void settingsDialogue();
-  void getStatus();
+  //void getStatus();
+  void sendStatus();
 
   // calls corresponding methodes of all modules
   void setup();

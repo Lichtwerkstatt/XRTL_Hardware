@@ -136,19 +136,6 @@ void SocketModule::sendEvent(JsonArray& event){
   serializeJson(event,output);
   socket->sendEVENT(output);
   debug("sent event: %s", output.c_str());
-
-  // if alias is set, check for status events and resend them with alias as componentId
-  if (alias == "") return;
-  if (event[0].isNull()) return;
-
-  if (!event[0].is<String>()) return;
-  if (event[0].as<String>() != "status") return; // only for status events
-  
-  output.clear();
-  event[1]["componentId"] = alias;
-  serializeJson(event, output);
-  socket->sendEVENT(output);
-  debug("sent event: %s", output.c_str());
 }
 
 void SocketModule::sendError(componentError err, String msg){
@@ -168,37 +155,37 @@ void SocketModule::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t 
 }
 
 void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) {
-  SocketModule* owner = SocketModule::lastModule;
+  SocketModule* socketInstance = SocketModule::lastModule;
   switch(type) {
     case sIOtype_DISCONNECT: {
-        owner->notify(socket_disconnected);
+        socketInstance->notify(socket_disconnected);
         return;
       }
     case sIOtype_CONNECT: {
-        owner->debug("connected to <%s>",payload);
-        owner->failedConnectionCount = 0;
-        owner->notify(socket_connected);
+        socketInstance->debug("connected to <%s>",payload);
+        socketInstance->failedConnectionCount = 0;
+        socketInstance->notify(socket_connected);
    
         String token = "{\"token\":\"";
-        token += owner->createJWT();
+        token += socketInstance->createJWT();
         token += "\"}";
-        owner->debug("sending token: %s", token.c_str());
-        owner->socket->send(sIOtype_CONNECT, token);
-        owner->debug("waiting for authentication");
+        socketInstance->debug("sending token: %s", token.c_str());
+        socketInstance->socket->send(sIOtype_CONNECT, token);
+        socketInstance->debug("waiting for authentication");
         return;
       }
     case sIOtype_EVENT: {
-      owner->debug("got event: %s", payload);
+      socketInstance->debug("got event: %s", payload);
       DynamicJsonDocument incommingEvent(1024);
       DeserializationError error = deserializeJson(incommingEvent,payload,length);
       if (error) {
         String errormsg = "deserialization failed: ";
         errormsg += error.c_str();
-        owner->sendError(deserialize_failed, errormsg);
-        owner->debug("deserializeJson() failed to analyze event: <%s>", error.c_str());
+        socketInstance->sendError(deserialize_failed, errormsg);
+        socketInstance->debug("deserializeJson() failed to analyze event: <%s>", error.c_str());
       }
 
-      owner->handleEvent(incommingEvent);
+      socketInstance->handleEvent(incommingEvent);
       return;
     }
     case sIOtype_ACK: {}
@@ -238,12 +225,12 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
 
   //command:
 
-  String componentId;
+  /*String componentId;
   if (!getValue<String>("componentId", payload, componentId)) return;
   
   if ( componentId == "" ) return; // make sure the ID isn't empty
   if ( (componentId != component) and (componentId != alias) and (componentId != "*") ) return;
-
+  
   JsonObject commandJson;
   String commandStr;
 
@@ -265,7 +252,11 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
       pushCommand(controlId,commandJson);
       return;
     }
-  }
+  }*/
+
+  String controlId;
+  if (!getValue<String>("controlId", payload, controlId, true)) return;
+  pushCommand(controlId, payload);
 }
 
 void SocketModule::saveSettings(JsonObject& settings) {
@@ -276,7 +267,6 @@ void SocketModule::saveSettings(JsonObject& settings) {
   settings["url"] = url;
   settings["key"] = key;
   settings["component"] = component;
-  settings["alias"] = alias;
   settings["useSSL"] = useSSL;
   
   return;
@@ -290,7 +280,6 @@ void SocketModule::loadSettings(JsonObject& settings) {
   url = loadValue<String>("url", settings, "/socket.io/?EIO=4");
   key = loadValue<String>("key", settings, "");
   component = loadValue<String>("component", settings, "NAME ME!");
-  alias = loadValue<String>("alias", settings, "");
   useSSL = loadValue<bool>("useSSL", settings, false);
 
   if (!debugging) return;
@@ -300,7 +289,6 @@ void SocketModule::loadSettings(JsonObject& settings) {
   Serial.printf("url: %s\n", url.c_str());
   Serial.printf("key: %s\n", key.c_str());
   Serial.printf("componentId: %s\n", component.c_str());
-  Serial.printf("alias: %s\n", alias.c_str());
   Serial.printf(useSSL ? "SSL" : "no SSL");
 }
 
@@ -316,12 +304,7 @@ void SocketModule::setViaSerial() {
   url = serialInput("URL: ");
   key = serialInput("key: ");
   component = serialInput("componentId: ");
-  alias = serialInput("alias: ");
   useSSL = (serialInput("use SSL (y/n): ") == "y");
-}
-
-void SocketModule::getStatus(JsonObject& payload, JsonObject& status) {
-  payload["componentId"] = component;
 }
 
 String& SocketModule::getComponent() {
@@ -379,12 +362,12 @@ void SocketModule::handleInternal(internalEvent eventId, String& sourceId) {
       while ( esp_timer_get_time() < waitTime) {
         yield();
       }
-      sendStatus();
+      sendAllStatus();
 
       return;
     }
 
-    case busy: {
+    /*case busy: {
       isBusy = true;
       sendStatus();
       return;
@@ -393,7 +376,7 @@ void SocketModule::handleInternal(internalEvent eventId, String& sourceId) {
       isBusy = false;
       sendStatus();
       return;
-    }
+    }*/
     
     case time_synced: {
       // configuration for JWT complete, starting socket client and registering event handler

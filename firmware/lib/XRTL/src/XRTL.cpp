@@ -381,7 +381,7 @@ void XRTL::stop(){
   }
 }
 
-void XRTL::getStatus(){
+/*void XRTL::getStatus(){
   DynamicJsonDocument doc(1024);
   JsonArray event = doc.to<JsonArray>();
   event.add("status");
@@ -400,11 +400,34 @@ void XRTL::getStatus(){
     return;
   }
   socketIO->sendEvent(event);
-}
+}*/
 
 void XRTLmodule::sendStatus(){
-  xrtl->getStatus();
+  DynamicJsonDocument doc(1024);
+  JsonArray event = doc.to<JsonArray>();
+  event.add("status");
+
+  JsonObject payload = event.createNestedObject();
+  payload["controlId"] = id;
+  
+  JsonObject status = payload.createNestedObject("status");
+  if (!getStatus(status)) return;
+  xrtl->sendEvent(event);
 }
+
+void XRTL::sendStatus(){
+  for (int i = 0; i < moduleCount; i++) {
+    module[i]->sendStatus();
+  }
+}
+
+void SocketModule::sendAllStatus() {
+  xrtl->sendStatus();
+}
+
+/*void XRTLmodule::sendStatus(){
+  xrtl->getStatus();
+}*/
 
 void XRTL::sendEvent(JsonArray& event){
   if (socketIO == NULL) {
@@ -458,18 +481,18 @@ String& XRTLmodule::getComponent() {
 }
 
 void XRTL::pushCommand(String& controlId, JsonObject& command){
-  bool ret = false;
+  //bool ret = false;
 
   for (int i = 0; i < moduleCount; i++) {
-    ret = module[i]->handleCommand(controlId, command) or ret;
+    module[i]->handleCommand(controlId, command);
   }
 
-  if (!ret){
+  /*if (!ret){
     String error = "unknown controlId <";
     error += controlId;
     error += ">";
     sendError(unknown_key, error);
-  }
+  }*/
 }
 
 void SocketModule::pushCommand(String& controlId, JsonObject& command) {
@@ -486,10 +509,10 @@ void XRTL::pushCommand(String& command){
     return;
   }
 
-  if ( command == "getStatus" ) {
+  /*if ( command == "getStatus" ) {
     getStatus();
     return;
-  }
+  }*/
 
   // offering command to modules, register if one or more respond true
   for (int i = 0; i < moduleCount; i++) {

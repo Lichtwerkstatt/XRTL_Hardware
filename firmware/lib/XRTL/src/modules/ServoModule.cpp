@@ -17,7 +17,6 @@ void ServoModule::saveSettings(JsonObject& settings){
   settings["minAngle"] = minAngle;
   settings["maxAngle"] = maxAngle;
   settings["initial"] = initial;
-  settings["relativeCtrl"] = relativeCtrl;
   settings["pin"] = pin;
 }
 
@@ -30,7 +29,6 @@ void ServoModule::loadSettings(JsonObject& settings){
   minAngle = loadValue<int16_t>("minAngle", settings, 0);
   maxAngle = loadValue<int16_t>("maxAngle", settings, 90);
   initial = loadValue<int16_t>("initial", settings, 0);
-  relativeCtrl = loadValue<bool>("relativeCtrl", settings, 0);
   pin = loadValue<uint8_t>("pin", settings, 32);
   
   if (!debugging) return;
@@ -42,9 +40,6 @@ void ServoModule::loadSettings(JsonObject& settings){
   Serial.printf("minimum angle: %d\n", minAngle);
   Serial.printf("maximum angle: %d\n", maxAngle);
   Serial.printf("initial position: %d\n", initial);
-
-  Serial.println("");
-  Serial.printf(relativeCtrl ? "servo controle is relative\n" : "servo controle is absolute\n");
 
   Serial.println("");
   Serial.printf("control pin: %d\n", pin);
@@ -64,7 +59,6 @@ void ServoModule::setViaSerial(){
   minAngle = serialInput("minimum angle (deg): ").toInt();
   maxAngle = serialInput("maximum angle (deg): ").toInt();
   initial = serialInput("initial angle (deg): ").toInt();
-  relativeCtrl = ( serialInput("relative control (y/n): ") == "y" );
   Serial.println("");
 
   if ( serialInput("change pin binding (y/n): ") == "y" ) {
@@ -72,12 +66,14 @@ void ServoModule::setViaSerial(){
   }
 }
 
-void ServoModule::getStatus(JsonObject& payload, JsonObject& status){
-  JsonObject position = status.createNestedObject(id);
+bool ServoModule::getStatus(JsonObject& status){
+  //JsonObject position = status.createNestedObject(id);
 
   int16_t angle = read();
-  position["absolute"] = angle;
-  position["relative"] = mapFloat(angle,minAngle,maxAngle,0,100);
+  status["absolute"] = angle;
+  status["relative"] = mapFloat(angle,minAngle,maxAngle,0,100);
+
+  return true;
 }
 
 void ServoModule::setup(){
@@ -105,11 +101,16 @@ bool ServoModule::handleCommand(String& command) {
   return false;
 }
 
-bool ServoModule::handleCommand(String& controlId, JsonObject& command) {
-  if (!isModule(controlId)) return false;
+void ServoModule::handleCommand(String& controlId, JsonObject& command) {
+  if (!isModule(controlId)) return;
+
+  bool getStatus = false;
+  if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+    sendStatus();
+  }
 
   driveServo(command);
-  return true;
+  //return true;
 }
 
 int16_t ServoModule::read() {
@@ -127,15 +128,6 @@ void ServoModule::write(int16_t target) {
 void ServoModule::driveServo(JsonObject& command) {
 
   int16_t target;
-  float dummy;
-  switch(getValue<int16_t,float>("val", command, target, dummy)) {
-    case is_second: {
-      target = (int16_t) round(dummy);
-    }
-    case is_wrong_type: {
-      return;
-    }
-  }
 
   if (getAndConstrainValue<int16_t>("move", command, target, minAngle - maxAngle, maxAngle - minAngle)) {// complete range: maxAngle - minAngle; negative range: minAngle - maxAngle
     target += read();
@@ -143,10 +135,6 @@ void ServoModule::driveServo(JsonObject& command) {
 
   if (getAndConstrainValue<int16_t>("moveTo", command, target, minAngle, maxAngle)) {
     //nothing to do here
-  }
-
-  if (relativeCtrl) {
-    target += read();
   }
 
   if ( (target < minAngle) or (target > maxAngle) ) {

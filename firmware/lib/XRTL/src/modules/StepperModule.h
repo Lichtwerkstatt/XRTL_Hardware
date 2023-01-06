@@ -12,7 +12,6 @@ class StepperModule : public XRTLmodule {
   int32_t minimum;
   int32_t maximum;
   int32_t initial;
-  bool relativeCtrl;
 
   uint8_t pin[4];
 
@@ -30,14 +29,14 @@ class StepperModule : public XRTLmodule {
   void saveSettings(JsonObject& settings);
   void loadSettings(JsonObject& settings);
   void setViaSerial();
-  void getStatus(JsonObject& payload, JsonObject& status);
+  bool getStatus(JsonObject& status);
 
   void setup();
   void loop();
   void stop();
 
   bool handleCommand(String& command);
-  bool handleCommand(String& controlId, JsonObject& command);
+  void handleCommand(String& controlId, JsonObject& command);
 };
 
 #endif

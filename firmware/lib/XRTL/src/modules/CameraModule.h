@@ -32,7 +32,7 @@ class CameraModule : public XRTLmodule {
     void setup();
     void loop();
 
-    void getStatus(JsonObject& payload, JsonObject& status);
+    bool getStatus(JsonObject& status);
     void saveSettings(JsonObject& settings);
     void loadSettings(JsonObject& settings);
     void setViaSerial();
@@ -40,7 +40,7 @@ class CameraModule : public XRTLmodule {
     void startStreaming();
     void stopStreaming();
     bool handleCommand(String& command);
-    bool handleCommand(String& controlId, JsonObject& command);
+    void handleCommand(String& controlId, JsonObject& command);
     void handleInternal(internalEvent eventId, String& sourceId);
 
     //void getStatus();

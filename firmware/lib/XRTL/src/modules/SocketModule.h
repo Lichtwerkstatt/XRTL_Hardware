@@ -12,7 +12,6 @@ class SocketModule : public XRTLmodule {
   String url;
   String key;
   String component;
-  String alias;
   bool useSSL;
 
   uint8_t failedConnectionCount = 0;
@@ -44,13 +43,13 @@ class SocketModule : public XRTLmodule {
   void saveSettings(JsonObject& settings);
   void loadSettings(JsonObject& settings);
   void setViaSerial();
-  void getStatus(JsonObject& payload, JsonObject& status);
 
   void setup();
   void loop();
   void stop();
 
   void handleInternal(internalEvent eventId, String& sourceId);
+  void sendAllStatus();
 };
 
 void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length);

@@ -225,13 +225,14 @@ void InputModule::setViaSerial() {
     }
 }
 
-void InputModule::getStatus(JsonObject& payload, JsonObject& status) {
-    if (input == NULL) return; // avoid errors: status might be called in setup before init occured
-    JsonObject moduleState = status.createNestedObject(id); 
+bool InputModule::getStatus(JsonObject& status) {
+    if (input == NULL) return true; // avoid errors: status might be called in setup before init occured
 
-    moduleState["averageTime"] = averageTime;
-    moduleState["updateTime"] = deadMicroSeconds/1000;
-    moduleState["stream"] = isStreaming;
+    status["averageTime"] = averageTime;
+    status["updateTime"] = deadMicroSeconds/1000;
+    status["stream"] = isStreaming;
+
+    return true;
     // TODO: what about this?
     //moduleState["value"] = value; <-- make this variable accessible outside loop?
     //moduleState["triggerState"] = lastState;
@@ -262,8 +263,13 @@ bool InputModule::handleCommand(String& command) {
     return false;
 }
 
-bool InputModule::handleCommand(String& controlId, JsonObject& command) {
-    if (!isModule(controlId)) return false;
+void InputModule::handleCommand(String& controlId, JsonObject& command) {
+    if (!isModule(controlId)) return;
+
+    bool getStatus = false;
+    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+        sendStatus();
+    }
 
     bool stream = false;
     if ( getValue<bool>("stream", command, stream) ) { 
@@ -286,12 +292,12 @@ bool InputModule::handleCommand(String& controlId, JsonObject& command) {
         sendStatus();
     }
 
-    if (!rangeChecking) return true;
+    if (!rangeChecking) return;
 
     getValue<double>("upperBound", command, hiBound);
     getValue<double>("lowerBound", command, loBound);
 
-    return true;
+    //return true;
 }
 
 void InputModule::handleInternal(internalEvent eventId, String& sourceId) {

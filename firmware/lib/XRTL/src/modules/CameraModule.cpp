@@ -65,7 +65,7 @@ void CameraModule::loop() {
   nextFrame = now + frameTimeMicroSeconds;
 }
 
-void CameraModule::getStatus(JsonObject& payload, JsonObject& status) {
+bool CameraModule::getStatus(JsonObject& status) {
   // busy should only be used for moving components?
   /*if (isStreaming) {
     auto busyField = status["busy"];
@@ -74,12 +74,13 @@ void CameraModule::getStatus(JsonObject& payload, JsonObject& status) {
     }
   }*/
 
-  JsonObject moduleStatus = status.createNestedObject(id);
-  moduleStatus["stream"] = isStreaming;
-  moduleStatus["frame size"] = frameSize; 
-  moduleStatus["gray"] = isGray;
-  moduleStatus["brightness"] = brightness;
-  moduleStatus["contrast"] = contrast;
+  status["stream"] = isStreaming;
+  status["frame size"] = frameSize; 
+  status["gray"] = isGray;
+  status["brightness"] = brightness;
+  status["contrast"] = contrast;
+
+  return true;
 }
 
 void CameraModule::saveSettings(JsonObject& settings) {
@@ -169,10 +170,10 @@ bool CameraModule::handleCommand(String& command) {
   return false;
 }
 
-bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
-  //if (strcmp(!isModule(controlId)) return false;
+void CameraModule::handleCommand(String& controlId, JsonObject& command) {
+  if (!isModule(controlId)) return;
   //remove these later?
-  if ( controlId  == "gray" ) {
+  /*if ( controlId  == "gray" ) {
     bool val;
     if (getValue<bool>("val", command, val)) {
       command["gray"] = val;
@@ -189,9 +190,8 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
     if (getValue<int>("val", command, val)) {
       command["contrast"] = val;
     }
-  }
+  }*/
 
-  // controlId: "ESPCam"
   bool targetStreamState = false;
   if (getValue<bool>("stream", command, targetStreamState)) {
     if (targetStreamState) startStreaming();
@@ -222,22 +222,30 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
     sendStatus();
   }
 
-  if (getAndConstrainValue<uint8_t>("pan", command, panStage, 0, 8)) {
+  if (getAndConstrainValue<uint8_t>("virtual pan", command, panStage, 0, 8)) {
     virtualPTZ();
     debug("pan stage set to %d", panStage);
     sendStatus();
   }
 
-  if (getAndConstrainValue<uint8_t>("tilt", command, tiltStage, 0, 8)) {
+  if (getAndConstrainValue<uint8_t>("virtual tilt", command, tiltStage, 0, 8)) {
     virtualPTZ();
     debug("tilt stage set to %d", tiltStage);
     sendStatus();
   }
 
-  if (getAndConstrainValue<uint8_t>("zoom", command, zoomStage, 0, 4)){
+  if (getAndConstrainValue<uint8_t>("virtual zoom", command, zoomStage, 0, 4)){
     virtualPTZ();
     debug("zoom stage set to %d", zoomStage);
     sendStatus();
+  }
+
+  double targetFrameRate = 15;
+  if (getAndConstrainValue<double>("frame rate", command, targetFrameRate, 0, 30)) {
+    frameTimeMicroSeconds = round((double) 1000000 / targetFrameRate);
+    if (isStreaming) {
+      nextFrame = esp_timer_get_time() + frameTimeMicroSeconds;
+    }
   }
 
   uint8_t targetFrameSize = 0;
@@ -257,7 +265,12 @@ bool CameraModule::handleCommand(String& controlId, JsonObject& command) {
     sendStatus();
   }
 
-  return true;
+  bool getStatus = false;
+  if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+    sendStatus();
+  }
+
+  //return true;
 }
 
 void CameraModule::handleInternal(internalEvent eventId, String& sourceId) {

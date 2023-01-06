@@ -118,13 +118,13 @@ void OutputModule::loadSettings(JsonObject& settings) {
     Serial.printf("PWM frequency: %d Hz\n", frequency);
 }
 
-void OutputModule::getStatus(JsonObject& payload, JsonObject& status){
-    if (out == NULL) return; // avoid errors: status might be called in setup before init occured
-    JsonObject moduleState = status.createNestedObject(id); 
+bool OutputModule::getStatus(JsonObject& status){
+    if (out == NULL) return true; // avoid errors: status might be called in setup before init occured
 
-    moduleState["isOn"] = out->getState();
-    if (!pwm) return;
-    moduleState["pwm"] = out->read();
+    status["isOn"] = out->getState();
+    if (!pwm) return true;
+    status["pwm"] = out->read();
+    return true;
 }
 
 void OutputModule::setViaSerial() {
@@ -230,8 +230,13 @@ void OutputModule::handleInternal(internalEvent eventId, String& sourceId){
     }
 }
 
-bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
-    if (!isModule(controlId)) return false;
+void OutputModule::handleCommand(String& controlId, JsonObject& command) {
+    if (!isModule(controlId)) return;
+
+    bool getStatus = false ;
+    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+        sendStatus();
+    }
 
     if (pwm) {
         uint8_t powerLvl;
@@ -266,9 +271,9 @@ bool OutputModule::handleCommand(String& controlId, JsonObject& command) {
         error += id;
         error += "] command rejected: <val> is neither bool nor int";
         sendError(wrong_type, error);
-        return true;
+        return;
     }
     
     sendStatus();
-    return true;
+    //return true;
 }

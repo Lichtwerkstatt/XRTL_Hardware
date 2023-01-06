@@ -25,7 +25,6 @@ void StepperModule::saveSettings(JsonObject& settings) {
   settings["minimum"] = minimum;
   settings["maximum"] = maximum;
   settings["initial"] = initial;
-  settings["relativeCtrl"] = relativeCtrl;
   settings["pin1"] = pin[0];
   settings["pin2"] = pin[1];
   settings["pin3"] = pin[2];
@@ -41,7 +40,6 @@ void StepperModule::loadSettings(JsonObject& settings) {
   minimum = loadValue<int32_t>("minimum", settings, -2048);
   maximum = loadValue<int32_t>("maximum", settings, 2048);
   initial = loadValue<int32_t>("initial", settings, 0);
-  relativeCtrl = loadValue<bool>("relativeCtrl", settings, false);
 
   pin[0] = loadValue<uint8_t>("pin1", settings, 19);
   pin[1] = loadValue<uint8_t>("pin2", settings, 22);
@@ -58,8 +56,6 @@ void StepperModule::loadSettings(JsonObject& settings) {
   Serial.printf("maximum: %i\n", maximum);
   Serial.printf("initial steps: %i\n", initial);
 
-  Serial.println("");
-  Serial.printf(relativeCtrl ? "motor control is relative\n" : "motor controle is absolute\n");
   Serial.println("");
 
   Serial.printf("pin 1: %d\n", pin[0]);
@@ -82,7 +78,6 @@ void StepperModule::setViaSerial() {
   minimum = serialInput("minimum position (steps): ").toInt();
   maximum = serialInput("maximum position (steps): ").toInt();
   initial = serialInput("initial steps (steps): ").toInt();
-  relativeCtrl = ( serialInput("relative control (y/n): ") == "y" );
   
   Serial.print("\n");
 
@@ -114,26 +109,20 @@ void StepperModule::loop() {
   else if (wasRunning) {
     stepper->disableOutputs();
     wasRunning = false;
-    notify(ready);
+    //notify(ready);
 
     debug("done moving");
+    sendStatus();
   }
 }
 
-void StepperModule::getStatus(JsonObject& payload, JsonObject& status) {
-  if (stepper == NULL) return;// avoid errors: status might be called during setup
+bool StepperModule::getStatus(JsonObject& status) {
+  if (stepper == NULL) return true;// avoid errors: status might be called during setup
 
-  if (stepper->isRunning()) {
-    auto busyField = status["busy"];
-    if (!busyField.as<bool>()) {// only edit if necessary -- don't waste JsonObject memory!
-      busyField = true;
-    }
-  }
-
-  JsonObject position = status.createNestedObject(id);
-  position["absolute"] = stepper->currentPosition();
-  position["relative"] = mapFloat(stepper->currentPosition(), minimum, maximum, 0, 100);
-  return;
+  status["busy"] = stepper->isRunning();
+  status["absolute"] = stepper->currentPosition();
+  status["relative"] = mapFloat(stepper->currentPosition(), minimum, maximum, 0, 100);
+  return true;
 }
 
 void StepperModule::stop() {
@@ -171,78 +160,52 @@ bool StepperModule::handleCommand(String& command){
   return false;
 }
 
-bool StepperModule::handleCommand(String& controlId, JsonObject& command) {
-  if (!isModule(controlId)) return false;
+void StepperModule::handleCommand(String& controlId, JsonObject& command) {
+  if (!isModule(controlId)) return;
+
+  bool getStatus = false;
+  if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+    sendStatus();
+  }
+
+  if (getValue<bool>("stop", command, getStatus) && getStatus) {
+    stop();
+  }
+
+  if (getValue<bool>("reset", command, getStatus) && getStatus) {
+    debug("reset: moving from %d to 0", stepper->currentPosition());
+    stepper->moveTo(0);
+    stepper->enableOutputs();
+    while (stepper->isRunning()) {
+      stepper->run();
+    }
+    stepper->disableOutputs();
+    debug("reset: done");
+  }
   
   if (stepper->isRunning()) {
     String error = "[";
     error += id;
     error += "] command rejected: stepper already moving";
     sendError(is_busy, error);
-    return true;
+    return;
   }
 
   driveStepper(command);
-  return true;
+  return;
 }
 
 void StepperModule::driveStepper(JsonObject& command) {
-  
-  if (relativeCtrl) {
-    float val;
-    float valFloat;
-    int valInt;
-
-    switch(getValue<int,float>("val", command, valInt, valFloat, true)) {
-      case is_first: {
-        val = (float) valInt;
-        break;
-      }
-      case is_second: {
-        val = valFloat;
-        break;
-      }
-      case is_wrong_type: {
-        return;
-      }
-    }
-
-    stepper->enableOutputs();
-    stepper->moveTo(minimum + round(val * (maximum - minimum) ) );
-  }
-  else {
-    int val;
-    float valFloat;
-    int valInt;
-
-    switch(getValue<int,float>("val", command, valInt, valFloat, true)) {
-      case is_first: {
-        val = valInt;
-        break;
-      }
-      case is_second: {
-        val = (int) round(valFloat);
-        break;
-      }
-      case is_wrong_type: {
-        return;
-      }
-    }
-
-    stepper->enableOutputs();
-    stepper->move(val);
+  int32_t moveValue = 0;
+  if (getAndConstrainValue<int32_t>("move", command, moveValue, minimum - maximum, maximum - minimum)) {// full range: maximum - minimum; negative range: minimum - maximum
+    stepper->move(moveValue);
   }
 
-  int32_t move = 0;
-  if (getAndConstrainValue<int32_t>("move", command, move, minimum - maximum, maximum - minimum)) {// full range: maximum - minimum; negative range: minimum - maximum
-    stepper->enableOutputs();
-    stepper->move(move);
+  if (getAndConstrainValue<int32_t>("moveTo", command, moveValue, minimum, maximum)) {
+    stepper->moveTo(moveValue);
   }
 
-  if (getAndConstrainValue<int32_t>("moveTo", command, move, minimum, maximum)) {
-    stepper->enableOutputs();
-    stepper->move(move);
-  }
+  if (!stepper->isRunning()) return; // no movement command detected, omit checks
 
   int32_t target = stepper->targetPosition();
 
@@ -271,8 +234,11 @@ void StepperModule::driveStepper(JsonObject& command) {
     }
   }
 
+  if (!stepper->isRunning()) return;
+  stepper->enableOutputs();
   debug("moving from %d to %d", stepper->currentPosition(), stepper->targetPosition());
   wasRunning = true;
-  notify(busy);
+  //notify(busy);
+  sendStatus();
   return;
 }

@@ -12,7 +12,6 @@ class ServoModule : public XRTLmodule {
   int16_t minAngle;// minimum of value range that duty gets maped to
   int16_t maxAngle;// maximum of value range that duty gets maped to
   int16_t initial;// value between minAngle and maxAngle that servo gets initialized with
-  bool relativeCtrl;// true: new angles get added to the current one; false: direct setting
   // TODO: implement
   bool binaryCtrl; // true: control parameter becomes boolean; minAngle = 0, maxAngle = 1
 
@@ -29,12 +28,12 @@ class ServoModule : public XRTLmodule {
   void driveServo(JsonObject& command);// process the command object and move servo if needed
   
   bool handleCommand(String& command);
-  bool handleCommand(String& controlId, JsonObject& command);
+  void handleCommand(String& controlId, JsonObject& command);
 
   void saveSettings(JsonObject& settings);
   void loadSettings(JsonObject& settings);
   void setViaSerial();
-  void getStatus(JsonObject& payload, JsonObject& status);
+  bool getStatus(JsonObject& status);
 
   void setup();
   void loop();

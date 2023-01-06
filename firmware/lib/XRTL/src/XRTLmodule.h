@@ -4,6 +4,11 @@
 #include "Arduino.h"
 #include "ArduinoJson.h"
 
+// @brief safely load a setting value from a file
+// @param key name of the key that is searched for
+// @param file will be searched for key
+// @param defaultValue return this value if key is missing
+// @returns corresponding value to key or defaultValue if key is missing
 template <typename T>
 T loadValue(String key, JsonObject& file, T defaultValue) {
   auto field = file[key];
@@ -79,13 +84,26 @@ enum getValueReturn_t {
   is_second,
   is_wrong_type
 };
-// poll input via serial monitor
-// prints query on the serial monitor and records input as answer until return character is received
+
+// @brief poll user input via serial monitor
+// @param query user will be presented with this string before the program waits for input
+// @returns user input until the first return character is received
 String serialInput(String query);
-// center str on a line of targetLength, fill rest with a char
-// filler = +:  ++++str++++
+
+// @brief center str on a line, fill remaining space with characters
+// @param str string to be centered
+// @param targetLength total length of the line
+// @param filler remaining space is filled with this char
+// @note example: filler + =>  ++++str++++
 String centerString(String str, uint8_t targetLength, char filler);
-// rescale floats, analogue to map
+
+// @brief rescale floats, analogue to map
+// @param x value to be mapped
+// @param in_min minimum value of input range
+// @param in_max maximum value of input range
+// @param out_min minimum value of output range
+// @param out_max maximum value of output range
+// @returns value linearly mapped to output range
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max);
 
 // forward declaration: need pointer
@@ -105,7 +123,7 @@ class XRTLmodule {
   bool isModule(String& moduleName);//  return (id == moduleName)
 
   virtual bool handleCommand(String& command); // react on a simple command offered by the core, return false if command is unkown
-  virtual bool handleCommand(String& controlId, JsonObject& command); // react to a complex command offered by the core, return false if the module did not recognize it
+  virtual void handleCommand(String& controlId, JsonObject& command); // react to a complex command offered by the core, return false if the module did not recognize it
 
   void sendEvent(JsonArray& event); // send event via endpoint
   void sendError(componentError err, String message); // send error via endpoint
@@ -119,14 +137,13 @@ class XRTLmodule {
   virtual void loop();  // called once in every loop
   virtual void stop();  // stop all operation, restart of device could be imminent
 
-  virtual void getStatus(JsonObject& payload, JsonObject& status); // edit status payload; reference to status field for efficiency
+  virtual bool getStatus(JsonObject& status); // edit status payload
   virtual void saveSettings(JsonObject& settings);
   virtual void loadSettings(JsonObject& settings);
   virtual void setViaSerial(); // directly poll parameters via serial monitor
 
-  // debug message over serial monitor
-  // respects debugging status
-  // uses printf syntax
+  // @brief send a message over the serial monitor if in debug mode
+  // @param ... uses printf syntax
   template<typename... Args>
   void debug(Args... args) {
     if (!debugging) return;
@@ -135,8 +152,12 @@ class XRTLmodule {
     Serial.print('\n');
   }
 
-  // get value of type A with a specific name from JsonObject file and store it in target
-  // optional: send out an error if name can't be found within file, default to no error
+  // @brief get value of type A with a specific name from JsonObject file and store it in target
+  // @param name search for this key
+  // @param file object that will be searched for name
+  // @param target store value here if key was found
+  // @param reportMissingField if True a report will be issued in case the key could not be found
+  // @returns True if the key was found
   template<typename A>
   bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
     auto field = file[name];
@@ -203,11 +224,16 @@ class XRTLmodule {
     return is_wrong_type;
   }
 
-  // get value of type A with specified name from JsonObject file and store it in target
-  // check wether target is between minValue and maxValue and constrain it if necessary
-  // optional: send out an error if name can't be found within file, defaults to no error
+  // @brief search a JsonObject for a key and store the corresponding value, constrain value to specified interval
+  // @param name search for this key
+  // @param file object that will be searched for name
+  // @param target store value here if key was found
+  // @param minValue lower bound of the constraining interval
+  // @param maxValue upper bound of the constraining interval
+  // @param reportMissingField if True a report will be issued in case the key could not be found
+  // @returns True if the key was found
   template<typename A>
-  bool getAndConstrainValue(String name, JsonObject& file, A&target, A minValue, A maxValue, bool reportMissingField = false) {
+  bool getAndConstrainValue(String name, JsonObject& file, A& target, A minValue, A maxValue, bool reportMissingField = false) {
     bool ret = getValue<A>(name, file, target, reportMissingField);
     if (!ret) return ret;
 

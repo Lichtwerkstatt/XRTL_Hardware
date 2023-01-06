@@ -67,10 +67,10 @@ class OutputModule: public XRTLmodule {
     void saveSettings(JsonObject& settings);
     void loadSettings(JsonObject& settings);
     void setViaSerial();
-    void getStatus(JsonObject& payload, JsonObject& status);
+    bool getStatus(JsonObject& status);
 
     void handleInternal(internalEvent eventId, String& sourceId);
-    bool handleCommand(String& controlId, JsonObject& command);
+    void handleCommand(String& controlId, JsonObject& command);
 };
 
 #endif
