@@ -379,7 +379,7 @@ void SocketModule::handleInternal(internalEvent eventId, String& sourceId) {
     }*/
     
     case time_synced: {
-      // configuration for JWT complete, starting socket client and registering event handler
+      // collected all information needed for JWT, starting socket client and registering event handler
 
       if (useSSL) {
         socket->beginSSL(ip.c_str(), port, url.c_str());

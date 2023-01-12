@@ -8,7 +8,7 @@
 // @param key name of the key that is searched for
 // @param file will be searched for key
 // @param defaultValue return this value if key is missing
-// @returns corresponding value to key or defaultValue if key is missing
+// @returns value read from file or defaultValue if key is missing
 template <typename T>
 T loadValue(String key, JsonObject& file, T defaultValue) {
   auto field = file[key];
@@ -112,7 +112,9 @@ class XRTL;
 // template class for all modules
 class XRTLmodule {
   protected:
-  String id; // must be unique per ESP; assigned when constructed
+  // @brief (supposedly) unique identifier the module listens to
+  // @note if two modules share the same ID, both will react to all commands
+  String id;
   XRTL* xrtl; // core address, must be assigned when constructed: XRTLmodule(String id, XRTLmodule* source)
   bool debugging = true; // true: print status messages via serial monitor and accept serial events
 
@@ -120,15 +122,22 @@ class XRTLmodule {
   String getID(); // return id
   virtual moduleType getType();
   String& getComponent();
-  bool isModule(String& moduleName);//  return (id == moduleName)
+  bool isModule(String& moduleName); // @returns (id == moduleName)
 
   virtual bool handleCommand(String& command); // react on a simple command offered by the core, return false if command is unkown
-  virtual void handleCommand(String& controlId, JsonObject& command); // react to a complex command offered by the core, return false if the module did not recognize it
+  // @brief processes and reacts to commands
+  // @param controlId reference to the separated controlId
+  // @param command reference to the whole command message including the command keys
+  // @note to avoid controlId being separated by every individual module, do so once before distribution to modules
+  virtual void handleCommand(String& controlId, JsonObject& command);
 
-  void sendEvent(JsonArray& event); // send event via endpoint
+  // @brief instruct core to send an event
+  // @param event reference to the event to send
+  // @note event Format: [<event name>,{<payload>}]
+  void sendEvent(JsonArray& event);
   void sendError(componentError err, String message); // send error via endpoint
   void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length); // send binary via endpoint
-  void sendStatus(); // tell core to send status
+  void sendStatus(); // instruct core to send this modules status
 
   void notify(internalEvent eventId); // send internal event to all modules
   virtual void handleInternal(internalEvent eventId, String& sourceId); // react to internal event issued by other modules
@@ -152,7 +161,7 @@ class XRTLmodule {
     Serial.print('\n');
   }
 
-  // @brief get value of type A with a specific name from JsonObject file and store it in target
+  // @brief fetch a key value pair from a JsonObject 
   // @param name search for this key
   // @param file object that will be searched for name
   // @param target store value here if key was found
@@ -224,7 +233,7 @@ class XRTLmodule {
     return is_wrong_type;
   }
 
-  // @brief search a JsonObject for a key and store the corresponding value, constrain value to specified interval
+  // @brief fetch a key value pair from a JsonObject and constrain the value to a specified interval
   // @param name search for this key
   // @param file object that will be searched for name
   // @param target store value here if key was found

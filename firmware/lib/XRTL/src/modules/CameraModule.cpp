@@ -172,25 +172,6 @@ bool CameraModule::handleCommand(String& command) {
 
 void CameraModule::handleCommand(String& controlId, JsonObject& command) {
   if (!isModule(controlId)) return;
-  //remove these later?
-  /*if ( controlId  == "gray" ) {
-    bool val;
-    if (getValue<bool>("val", command, val)) {
-      command["gray"] = val;
-    }
-  }
-  else if ( controlId  == "brightness" ) {
-    int val;
-    if (getValue<int>("val", command, val)) {
-      command["brightness"] = val;
-    }
-  }
-  else if ( controlId  == "contrast" ) {
-    int val;
-    if (getValue<int>("val", command, val)) {
-      command["contrast"] = val;
-    }
-  }*/
 
   bool targetStreamState = false;
   if (getValue<bool>("stream", command, targetStreamState)) {
@@ -250,7 +231,6 @@ void CameraModule::handleCommand(String& controlId, JsonObject& command) {
 
   uint8_t targetFrameSize = 0;
   if (getAndConstrainValue<uint8_t>("frame size", command, targetFrameSize, 5, 13)) {
-    //debug("setting frame size to %s", frameSize);
     if (targetFrameSize == 7 || targetFrameSize == 11) {
       String errormsg = "[";
       errormsg += id;
@@ -269,14 +249,13 @@ void CameraModule::handleCommand(String& controlId, JsonObject& command) {
   if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
     sendStatus();
   }
-
-  //return true;
 }
 
 void CameraModule::handleInternal(internalEvent eventId, String& sourceId) {
   switch(eventId) {
     case socket_disconnected: {
       // TODO: suspend stream instead of stopping?
+      if (!isStreaming) return;
       stopStreaming();
       debug("stream stopped due to disconnect");
       return;

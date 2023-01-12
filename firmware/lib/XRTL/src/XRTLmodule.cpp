@@ -49,12 +49,10 @@ bool XRTLmodule::getStatus(JsonObject& status) {
   return false;
 }
 
-//void XRTLmodule::saveSettings(DynamicJsonDocument& settings) {
 void XRTLmodule::saveSettings(JsonObject& settings) {
   return;
 }
 
-//void XRTLmodule::loadSettings(DynamicJsonDocument& settings) {
 void XRTLmodule::loadSettings(JsonObject& settings) {
   return;
 }

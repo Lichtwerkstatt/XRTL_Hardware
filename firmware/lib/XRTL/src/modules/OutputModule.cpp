@@ -241,39 +241,18 @@ void OutputModule::handleCommand(String& controlId, JsonObject& command) {
     if (pwm) {
         uint8_t powerLvl;
         if (getValue<uint8_t>("pwm", command, powerLvl)) out->write(powerLvl);
+        sendStatus();
     }
 
     bool targetState;
-    if (getValue<bool>("switch", command, targetState)) out->toggle(targetState);
+    if (getValue<bool>("switch", command, targetState)) {
+        out->toggle(targetState);
+        sendStatus();
+    }
 
     uint32_t toggleTime = 0;
     if (getValue<uint32_t>("pulse", command, toggleTime)) {
-        switchTime = toggleTime + esp_timer_get_time();
-        out->toggle(true);
+        pulse(toggleTime);
+        sendStatus();
     }
-
-    auto valField = command["val"];
-
-    if (valField.isNull()) {
-        // no val found, ignore.
-    }
-    else if (valField.is<bool>()) {
-        bool val = valField.as<bool>();
-
-        out->toggle(val);
-    }
-    else if (valField.is<int>()) {
-        uint16_t val = valField.as<uint16_t>();
-        pulse(val);
-    }
-    else {
-        String error = "[";
-        error += id;
-        error += "] command rejected: <val> is neither bool nor int";
-        sendError(wrong_type, error);
-        return;
-    }
-    
-    sendStatus();
-    //return true;
 }
