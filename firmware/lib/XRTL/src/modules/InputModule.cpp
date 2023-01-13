@@ -110,9 +110,10 @@ void InputModule::loop() {
 
     event.add("data");
     JsonObject payload = event.createNestedObject();
-    payload["componentId"] = getComponent(); // TODO: check function
+    //payload["componentId"] = getComponent(); // TODO: check function
+    payload["controlId"] = id;
     payload["type"] = "float";
-    payload["dataId"] = id;
+    //payload["dataId"] = id;
 
     JsonObject data = payload.createNestedObject("data");
     data["type"] = "Buffer";// for consistency with other data transmissions

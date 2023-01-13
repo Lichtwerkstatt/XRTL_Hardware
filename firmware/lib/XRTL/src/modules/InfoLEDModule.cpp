@@ -134,10 +134,12 @@ void InfoLEDModule::loadSettings(JsonObject& settings) {
 
 void InfoLEDModule::setViaSerial() {
   Serial.println("");
-  Serial.println(centerString("",39,'-'));
-  Serial.println(centerString(id, 39, ' '));
-  Serial.println(centerString("",39,'-'));
+  Serial.println(centerString("",39,'-').c_str());
+  Serial.println(centerString(id,39,' ').c_str());
+  Serial.println(centerString("",39,'-').c_str());
   Serial.println("");
+
+  id = serialInput("controlId: ");
 
   if (serialInput("change pin binding (y/n): ") != "y") return;
   

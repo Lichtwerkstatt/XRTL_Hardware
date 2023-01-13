@@ -265,17 +265,99 @@ void XRTL::settingsDialogue() {
   Serial.println("");
   listModules();
   Serial.println("");
-  Serial.printf("%d: complete setup\n", moduleCount);
+  Serial.println("a: add module");
+  Serial.println("d: delete module");
+  Serial.println("s: swap modules");
+  Serial.println("r: return");
+  /*Serial.printf("%d: complete setup\n", moduleCount);
   Serial.printf("%d: add module\n", moduleCount + 1);
   Serial.printf("%d: remove module\n", moduleCount + 2);
   Serial.printf("%d: swap modules\n", moduleCount + 3);
-  Serial.printf("%d: return\n", moduleCount + 4);
+  Serial.printf("%d: return\n", moduleCount + 4);*/
   Serial.println("");
-  uint8_t choice = serialInput("choose setup routine: ").toInt();
+  //uint8_t choice = serialInput("choose setup routine: ").toInt();
+  String choice = serialInput("choose setup routine: ");
+  uint8_t choiceInt = choice.toInt();
   Serial.println("");
   Serial.println(centerString("", 39, '-'));
 
-  if (choice < moduleCount ) {
+  if (choice == "a") {
+    Serial.println(centerString("add module", 39, ' '));
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("");
+    Serial.println("module type is determined by number, available types:");
+    Serial.println("");
+    for (int i = 0; i < 8; i++) {
+      Serial.printf("%d: %s\n",i,moduleNames[i]);
+    }
+    Serial.println("");
+    Serial.println("r: return");
+    Serial.println("");
+
+    choice.clear();
+    choice = serialInput("new module type: ");
+    choiceInt = choice.toInt();
+
+    if (choice != "r" && choiceInt < 8) {
+      moduleType newModuleType = (moduleType) choiceInt;
+      String newModuleName = serialInput("new module name: ");
+      addModule(newModuleName, newModuleType);
+
+      JsonObject emptySettings;
+      module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
+      module[moduleCount - 1]->setup(); // run setup if necessary
+    }
+  }
+  else if (choice == "d") {
+    Serial.println(centerString("remove module", 39, ' '));
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("");
+    Serial.println("choose module to delete: ");
+    Serial.println("");
+    listModules();
+    Serial.println("");
+    Serial.println("r: return");
+    Serial.println("");
+
+    choice.clear();
+    choice = serialInput("delete: ");
+
+    if (choice != "r") {
+      uint8_t deleteChoice = serialInput("delete: ").toInt();
+      delModule(deleteChoice);
+    }
+  }
+  else if (choice == "s") {
+    Serial.println(centerString("swap modules", 39, ' '));
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("choose two modules to swap:");
+    Serial.println("");
+    listModules();
+    Serial.println("");
+    Serial.println("r: exit");
+    Serial.println("");
+
+    String firstModule = serialInput("first module: ");
+
+    if (firstModule != "r") {
+      String secondModule = serialInput("second module: ");
+      if (secondModule != "r") {
+        swapModules((uint8_t) firstModule.toInt(), (uint8_t) secondModule.toInt());
+      }
+    }
+  }
+  else if (choice == "r") {
+    Serial.println("returning");
+  }
+  else if (choiceInt < moduleCount) {
+    module[choiceInt]->setViaSerial();
+  }
+  else {
+    Serial.printf("setup routine <%s> unknown\n", choice);
+  }
+  
+
+  /*if (choice < moduleCount ) {
     module[choice]->setViaSerial();
   }
   else if (choice == moduleCount) {
@@ -345,7 +427,7 @@ void XRTL::settingsDialogue() {
   }
   else {
     Serial.printf("setup routine <%d> unknown\n", choice);
-  }
+  }*/
 }
 
 void XRTL::setViaSerial() {

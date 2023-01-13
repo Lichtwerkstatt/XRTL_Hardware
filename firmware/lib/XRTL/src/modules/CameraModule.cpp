@@ -92,7 +92,13 @@ void CameraModule::loadSettings(JsonObject& settings) {
 }
 
 void CameraModule::setViaSerial() {
+  Serial.println("");
+  Serial.println(centerString("",39,'-').c_str());
+  Serial.println(centerString(id,39,' ').c_str());
+  Serial.println(centerString("",39,'-').c_str());
+  Serial.println("");
 
+  id = serialInput("controlId: ");
 }
 
 void CameraModule::startStreaming() {
@@ -107,9 +113,9 @@ void CameraModule::startStreaming() {
 
   event.add("data");
   JsonObject payload = event.createNestedObject();
-  payload["componentId"] = getComponent();
+  payload["controlId"] = id;
   payload["type"] = "image";
-  payload["dataId"] = id;
+  //payload["dataId"] = id;
 
   JsonObject data = payload.createNestedObject("data");
   data["_placeholder"] = true;
@@ -203,19 +209,41 @@ void CameraModule::handleCommand(String& controlId, JsonObject& command) {
     sendStatus();
   }
 
-  if (getAndConstrainValue<uint8_t>("virtual pan", command, panStage, 0, 8)) {
+  int8_t virtualPTZtarget;
+  if (getValue<int8_t>("virtualPan", command, virtualPTZtarget)) {
+    if (virtualPTZtarget > 0) {
+      panStage++;
+    }
+    else if (virtualPTZtarget < 0) {
+      panStage--;
+    }
+    panStage = constrain(panStage, 0, 8);
     virtualPTZ();
     debug("pan stage set to %d", panStage);
     sendStatus();
   }
 
-  if (getAndConstrainValue<uint8_t>("virtual tilt", command, tiltStage, 0, 8)) {
+  if (getValue<int8_t>("virtualTilt", command, virtualPTZtarget)) {
+    if (virtualPTZtarget > 0) {
+      tiltStage++;
+    }
+    else if (virtualPTZtarget < 0) {
+      tiltStage--;
+    }
+    tiltStage = constrain(tiltStage, 0, 8);
     virtualPTZ();
     debug("tilt stage set to %d", tiltStage);
     sendStatus();
   }
 
-  if (getAndConstrainValue<uint8_t>("virtual zoom", command, zoomStage, 0, 4)){
+  if (getValue<int8_t>("virtualZoom", command, virtualPTZtarget)){
+    if (virtualPTZtarget > 0) {
+      zoomStage++;
+    }
+    else if (virtualPTZtarget < 0) {
+      zoomStage--;
+    }
+    zoomStage = constrain(zoomStage, 0, 4);
     virtualPTZ();
     debug("zoom stage set to %d", zoomStage);
     sendStatus();
@@ -230,11 +258,11 @@ void CameraModule::handleCommand(String& controlId, JsonObject& command) {
   }
 
   uint8_t targetFrameSize = 0;
-  if (getAndConstrainValue<uint8_t>("frame size", command, targetFrameSize, 5, 13)) {
+  if (getAndConstrainValue<uint8_t>("frameSize", command, targetFrameSize, 5, 13)) {
     if (targetFrameSize == 7 || targetFrameSize == 11) {
       String errormsg = "[";
       errormsg += id;
-      errormsg += "] <frame size> 7 and 11 are not permitted";
+      errormsg += "] <frameSize> 7 and 11 are not permitted";
       sendError(out_of_bounds,errormsg);
       targetFrameSize = 10;
     }
