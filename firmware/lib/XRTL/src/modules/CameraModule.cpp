@@ -75,7 +75,7 @@ bool CameraModule::getStatus(JsonObject& status) {
   }*/
 
   status["stream"] = isStreaming;
-  status["frame size"] = frameSize; 
+  status["frameSize"] = frameSize; 
   status["gray"] = isGray;
   status["brightness"] = brightness;
   status["contrast"] = contrast;
@@ -104,6 +104,7 @@ void CameraModule::setViaSerial() {
 void CameraModule::startStreaming() {
   if (isStreaming) {
     debug("stream already active");
+    sendStatus();
     return;
   }
   debug("starting camera stream");

@@ -165,9 +165,19 @@ bool InfoLEDModule::handleCommand(String& command) {
 
 void InfoLEDModule::handleCommand(String& controlId, JsonObject& command) {
   if (!isModule(controlId)) return;
-  if (getValue<uint16_t>("", command, userHue)) {
-    led->hsv(userHue, 255, 40);
-    //return true;
+  if (getValue<uint16_t>("hue", command, userHue)) {
+    led->hsv(userHue, 255, 150);
+    led->constant();
+    led->loop();
+  }
+
+  String hexRGB;
+  if (getValue<String>("color", command, hexRGB)){
+    userHue = hexRGBtoHue(hexRGB);
+    debug("selected Hue: %d", userHue);
+    led->hsv(userHue, 255, 110);
+    led->constant();
+    led->loop();
   }
   
   //return false;
@@ -227,4 +237,35 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String& sourceId) {
       break;
     }
   }
+}
+
+uint16_t hexRGBtoHue(String& hexRGB) {
+  float RGB[3] = {0,0,0};
+  long combinedRGB = strtol(&hexRGB[1], NULL, 16);
+  RGB[0] = (combinedRGB >> 16);
+  RGB[1] = (combinedRGB >> 8 & 0xFF);
+  RGB[2] = (combinedRGB & 0xFF);
+
+  float hue;
+  float minChannel = min(min(RGB[0],RGB[1]),RGB[2]);
+  float maxChannel = max(max(RGB[0],RGB[1]),RGB[2]);
+
+  if (minChannel == maxChannel) {
+    hue = 0;
+  }
+  else if (maxChannel == RGB[0]) {
+    hue = (RGB[1] - RGB[2]) / (maxChannel - minChannel);
+  }
+  else if (maxChannel == RGB[1]) {
+    hue = 2.0 + (RGB[2] - RGB[0]) / (maxChannel - minChannel);
+  }
+  else if (maxChannel == RGB[2]) {
+    hue = 4.0 + (RGB[0] - RGB[1]) / (maxChannel - minChannel);
+  }
+
+  if (hue < 0) {
+    hue += 6;
+  }
+
+  return round(hue*10922.5);
 }

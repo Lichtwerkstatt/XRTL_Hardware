@@ -82,5 +82,7 @@ class InfoLEDModule : public XRTLmodule {
   void handleCommand(String& controlId, JsonObject& command); // TODO: add command for changing color?
 };
 
+uint16_t hexRGBtoHue(String& hexRGB);
+
 
 #endif
