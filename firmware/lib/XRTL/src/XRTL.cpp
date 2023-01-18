@@ -71,42 +71,42 @@ void XRTL::addModule(String moduleName, moduleType category) {
     case xrtl_socket: {
       socketIO = new SocketModule(moduleName,this);
       module[moduleCount++] = socketIO;
-      debug("socket module added: <%s>", moduleName);
+      debug("socket module added: <%s>", moduleName.c_str());
       return;
     }
     case xrtl_wifi: {
       module[moduleCount++] = new WifiModule(moduleName,this);
-      debug("wifi module added: <%s>", moduleName);
+      debug("wifi module added: <%s>", moduleName.c_str());
       return;
     }
     case xrtl_infoLED: {
       module[moduleCount++] = new InfoLEDModule(moduleName,this);
-      debug("infoLED module added: <%s>", moduleName);
+      debug("infoLED module added: <%s>", moduleName.c_str());
       return;
     }
     case xrtl_stepper: {
       module[moduleCount++] = new StepperModule(moduleName,this);
-      debug("stepper module added: <%s>", moduleName);
+      debug("stepper module added: <%s>", moduleName.c_str());
       return;
     }
     case xrtl_servo: {
       module[moduleCount++] = new ServoModule(moduleName,this);
-      debug("servo module added: <%s>", moduleName);
+      debug("servo module added: <%s>", moduleName.c_str());
       return;
     }
     case xrtl_camera: {
       module[moduleCount++] = new CameraModule(moduleName,this);
-      debug("camera module added: <%s>", moduleName);
+      debug("camera module added: <%s>", moduleName.c_str());
       return;
     }
     case xrtl_output: {
       module[moduleCount++] = new OutputModule(moduleName,this);
-      debug("output module added: <%s>", moduleName);
+      debug("output module added: <%s>", moduleName.c_str());
       return;
     }
     case xrtl_input: {
       module[moduleCount++] = new InputModule(moduleName,this);
-      debug("input module added: <%s>", moduleName);
+      debug("input module added: <%s>", moduleName.c_str());
       return;
     }
   }
@@ -120,7 +120,7 @@ void XRTL::listModules() {
 
 void XRTL::delModule(uint8_t number) {
   if ((number >= 0) and (number < moduleCount)){
-    Serial.printf("[%s] deleting <%s> ... ", id.c_str(), module[number]->getID());
+    Serial.printf("[%s] deleting <%s> ... ", id.c_str(), module[number]->getID().c_str());
     for (int i = number; i < moduleCount - 1; i++) {
       module[i] = module[i+1];
     }
@@ -137,7 +137,7 @@ void XRTL::swapModules(uint8_t numberX, uint8_t numberY) {
         module[numberX] = module[numberY];
         module[numberY] = temp;
 
-        debug("swapped <%s> and <%s>", module[numberX]->getID(), module[numberY]->getID());
+        debug("swapped <%s> and <%s>", module[numberX]->getID().c_str(), module[numberY]->getID().c_str());
       }
   
 }
@@ -269,13 +269,7 @@ void XRTL::settingsDialogue() {
   Serial.println("d: delete module");
   Serial.println("s: swap modules");
   Serial.println("r: return");
-  /*Serial.printf("%d: complete setup\n", moduleCount);
-  Serial.printf("%d: add module\n", moduleCount + 1);
-  Serial.printf("%d: remove module\n", moduleCount + 2);
-  Serial.printf("%d: swap modules\n", moduleCount + 3);
-  Serial.printf("%d: return\n", moduleCount + 4);*/
   Serial.println("");
-  //uint8_t choice = serialInput("choose setup routine: ").toInt();
   String choice = serialInput("choose setup routine: ");
   uint8_t choiceInt = choice.toInt();
   Serial.println("");
@@ -323,7 +317,7 @@ void XRTL::settingsDialogue() {
     choice = serialInput("delete: ");
 
     if (choice != "r") {
-      uint8_t deleteChoice = serialInput("delete: ").toInt();
+      uint8_t deleteChoice = choice.toInt();
       delModule(deleteChoice);
     }
   }
@@ -355,79 +349,6 @@ void XRTL::settingsDialogue() {
   else {
     Serial.printf("setup routine <%s> unknown\n", choice);
   }
-  
-
-  /*if (choice < moduleCount ) {
-    module[choice]->setViaSerial();
-  }
-  else if (choice == moduleCount) {
-    Serial.println(centerString("complete setup", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
-    for (int i = 0; i < moduleCount; i++) {
-      module[i]->setViaSerial();
-    }
-  }
-  else if (choice == moduleCount + 1) {
-    Serial.println(centerString("add module", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
-    Serial.println("module type is determined by number, available types:");
-    Serial.println("");
-    for (int i = 0; i < 8; i++) {
-      Serial.printf("%d: %s\n",i,moduleNames[i]);
-    }
-    Serial.println("");
-    Serial.printf("%d: return\n", 8);
-    Serial.println("");
-
-    moduleType newModuleType = (moduleType) serialInput("new module type: ").toInt();
-
-    if (newModuleType < 8) {// return for other values
-      String newModuleName = serialInput("new module name: ");
-      addModule(newModuleName, newModuleType);
-    
-      JsonObject emptySettings;
-      module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
-      module[moduleCount - 1]->setup(); // run setup if necessary
-    }
-  }
-  else if (choice == moduleCount + 2) {
-    Serial.println(centerString("remove module", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
-    Serial.println("choose module to delete: ");
-    Serial.println("");
-    listModules();
-    Serial.println("");
-    Serial.printf("%d: exit\n", moduleCount);
-    Serial.println("");
-
-    uint8_t deleteChoice = serialInput("delete: ").toInt();
-    delModule(deleteChoice);
-  }
-  else if (choice == moduleCount + 3) {
-    Serial.println(centerString("swap modules", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("choose two modules to swap:");
-    Serial.println("");
-    listModules();
-    Serial.println("");
-    Serial.printf("%d: exit\n", moduleCount);
-    Serial.println("");
-
-    uint8_t moduleX = serialInput("first module: ").toInt();
-    if (moduleX < moduleCount) {
-      uint8_t moduleY = serialInput("second module: ").toInt();
-      swapModules(moduleX, moduleY);
-    }
-  }
-  else if (choice == moduleCount +4) {
-    Serial.println("returning");
-  }
-  else {
-    Serial.printf("setup routine <%d> unknown\n", choice);
-  }*/
 }
 
 void XRTL::setViaSerial() {
