@@ -13,7 +13,7 @@ void XRTLinput::averageTime(int64_t measurementTime) {
     averageMicroSeconds = 1000 * measurementTime;
 }
 
-void XRTLinput::loop() {// TODO: use floating average?
+void XRTLinput::loop() {
     now = esp_timer_get_time();
     if (now < next) {// average time not reached, keep going
         buffer += analogReadMilliVolts(pin);
@@ -72,30 +72,29 @@ void InputModule::loop() {
 
     // check for violation of input bounds
     // TODO: report to server?
-    if (rangeChecking) {
-        if (now > nextCheck) {
+    if (rangeChecking && now > nextCheck) {
+        if (value >= hiBound) {
+            notify(input_trigger_high);
+            debug("high level guard triggered");
 
-            if (value >= hiBound) {
-                // TODO: find a way to have both methods
-                if (!lastState) {
-                    notify(input_trigger_high);
-                    debug("high level guard triggered");
-                    sendStatus();
-                }
+            if (!lastState) {
                 lastState = true;
-                nextCheck = now + deadMicroSeconds;
+                if (relayViolations) sendStatus();
             }
 
-            if (value <= loBound) {
-                if (lastState){
-                    notify(input_trigger_low);
-                    debug("low level guard triggered");
-                    sendStatus();
-                }
+            nextCheck = now + deadMicroSeconds;
+        }
+
+        if (value <= loBound) {
+            notify(input_trigger_low);
+            debug("low level guard triggered");
+
+            if (lastState){
                 lastState = false;
-                nextCheck = now + deadMicroSeconds;
+                if (relayViolations) sendStatus();
             }
 
+            nextCheck = now + deadMicroSeconds;
         }
     }
 
@@ -130,6 +129,7 @@ void InputModule::saveSettings(JsonObject& settings){
     settings["pin"] = pin;
     settings["averageTime"] = averageTime;
     settings["rangeChecking"] = rangeChecking;
+    settings["relayViolations"] = relayViolations;
 
     settings["loBound"] = loBound;
     settings["hiBound"] = hiBound;
@@ -149,6 +149,7 @@ void InputModule::loadSettings(JsonObject& settings) {
     pin = loadValue<uint8_t>("pin", settings, 35);
     averageTime = loadValue<uint16_t>("averageTime", settings, 0);
     rangeChecking = loadValue<bool>("rangeChecking", settings, false);
+    relayViolations = loadValue<bool>("relayViolations", settings, false);
     
     loBound = loadValue<double>("loBound", settings, 0);// default is minimum ADC voltage in mV -- no conversion
     hiBound = loadValue<double>("hiBound", settings, 3300);// default is maximum ADC voltage in mV -- no conversion
@@ -195,6 +196,7 @@ void InputModule::setViaSerial() {
  
     if ( serialInput("check range (y/n): ") == "y" ) {
         rangeChecking = true;
+        relayViolations = (serialInput("relay violations to server (y/n): ") == "y");
         loBound = serialInput("low bound: ").toDouble();
         hiBound = serialInput("high bound: ").toDouble();
         deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
@@ -232,6 +234,7 @@ bool InputModule::getStatus(JsonObject& status) {
     status["averageTime"] = averageTime;
     status["updateTime"] = deadMicroSeconds/1000;
     status["stream"] = isStreaming;
+    status["inputState"] = lastState;
 
     return true;
     // TODO: what about this?
