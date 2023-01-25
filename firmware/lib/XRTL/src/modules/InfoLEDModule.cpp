@@ -148,7 +148,7 @@ void InfoLEDModule::setViaSerial() {
 }
 
 void InfoLEDModule::stop() {
-  led->hsv(8000,255,255);
+  led->hsv(8000,255,110);
   led->constant();
   led->loop();// make sure the changes are applied immediately
 }
@@ -156,7 +156,7 @@ void InfoLEDModule::stop() {
 bool InfoLEDModule::handleCommand(String& command) {
   if (command != "reset") return false;
 
-  led->hsv(8000,255,255);
+  led->hsv(8000,255,110);
   led->constant();
   led->loop();// no loop will be executed before reset
 
@@ -166,7 +166,7 @@ bool InfoLEDModule::handleCommand(String& command) {
 void InfoLEDModule::handleCommand(String& controlId, JsonObject& command) {
   if (!isModule(controlId)) return;
   if (getValue<uint16_t>("hue", command, userHue)) {
-    led->hsv(userHue, 255, 150);
+    led->hsv(userHue, 255, 110);
     led->constant();
     led->loop();
   }
@@ -176,7 +176,7 @@ void InfoLEDModule::handleCommand(String& controlId, JsonObject& command) {
     userHue = hexRGBtoHue(hexRGB);
     debug("selected Hue: %d", userHue);
     led->hsv(userHue, 255, 110);
-    led->constant();
+    //led->constant();
     led->loop();
   }
   
