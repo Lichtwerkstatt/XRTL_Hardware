@@ -16,6 +16,7 @@ void ServoModule::saveSettings(JsonObject& settings){
   settings["maxDuty"] = maxDuty;
   settings["minAngle"] = minAngle;
   settings["maxAngle"] = maxAngle;
+  settings["maxSpeed"] = maxSpeed;
   settings["initial"] = initial;
   settings["pin"] = pin;
 }
@@ -28,6 +29,7 @@ void ServoModule::loadSettings(JsonObject& settings){
   maxDuty = loadValue<uint16_t>("maxDuty", settings, 2000);
   minAngle = loadValue<int16_t>("minAngle", settings, 0);
   maxAngle = loadValue<int16_t>("maxAngle", settings, 90);
+  maxSpeed = loadValue<float>("maxSpeed", settings, 0);
   initial = loadValue<int16_t>("initial", settings, 0);
   pin = loadValue<uint8_t>("pin", settings, 32);
   
@@ -39,6 +41,7 @@ void ServoModule::loadSettings(JsonObject& settings){
   Serial.printf("maximum duty time: %d µs\n", maxDuty);
   Serial.printf("minimum angle: %d\n", minAngle);
   Serial.printf("maximum angle: %d\n", maxAngle);
+  Serial.printf("maximum speed: %f\n", maxSpeed);
   Serial.printf("initial position: %d\n", initial);
 
   Serial.println("");
@@ -58,6 +61,7 @@ void ServoModule::setViaSerial(){
   maxDuty = serialInput("maximum tuty time (µs): ").toInt();
   minAngle = serialInput("minimum angle (deg): ").toInt();
   maxAngle = serialInput("maximum angle (deg): ").toInt();
+  maxSpeed = serialInput("maximum speed (deg/s): ").toFloat();
   initial = serialInput("initial angle (deg): ").toInt();
   Serial.println("");
 
@@ -72,6 +76,7 @@ bool ServoModule::getStatus(JsonObject& status){
   int16_t angle = read();
   status["absolute"] = angle;
   status["relative"] = mapFloat(angle,minAngle,maxAngle,0,100);
+  status["time"] = esp_timer_get_time();
 
   return true;
 }
@@ -81,10 +86,28 @@ void ServoModule::setup(){
   servo->setPeriodHertz(frequency);
   servo->attach(pin,minDuty,maxDuty);
   write(initial);
+
+  timeStep = round(float(maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
+  debug("stepping: %d µs", timeStep);
 }
 
 void ServoModule::loop(){
-  return;
+  if (!wasRunning) return;
+  if (currentDuty == targetDuty) {
+    debug("target reached");
+    wasRunning = false;
+    sendStatus();
+    return;
+  }
+  int64_t now = esp_timer_get_time();
+  if (now <= nextStep) return;
+  nextStep = now + timeStep;
+  if (positiveDirection) {
+    servo->writeMicroseconds(++currentDuty);
+  }
+  else {
+    servo->writeMicroseconds(--currentDuty);
+  }
 }
 
 bool ServoModule::handleCommand(String& command) {
@@ -161,6 +184,23 @@ void ServoModule::driveServo(JsonObject& command) {
     }
   }
 
-  write(target);
+  if (timeStep >= 0) {
+    targetDuty = round(mapFloat(target,minAngle,maxAngle,minDuty,maxDuty));
+    currentDuty = servo->readMicroseconds();
+    debug("target duty: %d", targetDuty);
+    if (targetDuty > currentDuty) {
+      positiveDirection = true;
+      wasRunning = true;
+      nextStep = esp_timer_get_time();
+    }
+    else if (targetDuty < currentDuty) {
+      positiveDirection = false;
+      wasRunning = true;
+      nextStep = esp_timer_get_time();
+    }
+  }
+  else {
+    write(target);
+  }
   sendStatus();
 }

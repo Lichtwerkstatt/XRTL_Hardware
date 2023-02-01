@@ -11,9 +11,17 @@ class ServoModule : public XRTLmodule {
   uint16_t maxDuty;// maximum duty time in µs
   int16_t minAngle;// minimum of value range that duty gets maped to
   int16_t maxAngle;// maximum of value range that duty gets maped to
+  float maxSpeed;
+  uint32_t timeStep;
   int16_t initial;// value between minAngle and maxAngle that servo gets initialized with
   // TODO: implement
   bool binaryCtrl; // true: control parameter becomes boolean; minAngle = 0, maxAngle = 1
+
+  int64_t nextStep;
+  uint16_t targetDuty;
+  uint16_t currentDuty;
+  bool positiveDirection;
+  bool wasRunning = false;
 
   uint8_t pin = 26;
   
