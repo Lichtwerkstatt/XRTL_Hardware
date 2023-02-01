@@ -66,13 +66,6 @@ void CameraModule::loop() {
 }
 
 bool CameraModule::getStatus(JsonObject& status) {
-  // busy should only be used for moving components?
-  /*if (isStreaming) {
-    auto busyField = status["busy"];
-    if (!busyField.as<bool>()) {// don't waste JSsonObject memory
-      busyField = true;
-    }
-  }*/
 
   status["stream"] = isStreaming;
   status["frameSize"] = frameSize; 

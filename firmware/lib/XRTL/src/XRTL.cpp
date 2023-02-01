@@ -50,66 +50,67 @@ void XRTL::loop(){
   }
 }
 
-void XRTL::addModule(String moduleName, moduleType category) {
+bool XRTL::addModule(String moduleName, moduleType category) {
   if (moduleCount == 16) {
     debug("unable to add module: maximum number of modules reached");
-    return;
+    return false;
   }
   if ( (moduleName == 0) or (moduleName == "")) {
     debug("unable to add module: ID must not be empty");
-    return;
+    false;
   }
   if (this->operator[](moduleName) != NULL) {
-    debug("unable to add module <%s>: ID already in use", moduleName);
-    return;  
+    debug("unable to add module <%s>: ID already in use", moduleName.c_str());
+    return false;  
   }
   if ( (moduleName == "*") or (moduleName == "none") or (moduleName == "core") ) {
     debug("unable to add module <%s>: ID restricted to internal use", moduleName);
-    return;
+    return false;
   }
   switch(category) {
     case xrtl_socket: {
       socketIO = new SocketModule(moduleName,this);
       module[moduleCount++] = socketIO;
       debug("socket module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
     case xrtl_wifi: {
       module[moduleCount++] = new WifiModule(moduleName,this);
       debug("wifi module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
     case xrtl_infoLED: {
       module[moduleCount++] = new InfoLEDModule(moduleName,this);
       debug("infoLED module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
     case xrtl_stepper: {
       module[moduleCount++] = new StepperModule(moduleName,this);
       debug("stepper module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
     case xrtl_servo: {
       module[moduleCount++] = new ServoModule(moduleName,this);
       debug("servo module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
     case xrtl_camera: {
       module[moduleCount++] = new CameraModule(moduleName,this);
       debug("camera module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
     case xrtl_output: {
       module[moduleCount++] = new OutputModule(moduleName,this);
       debug("output module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
     case xrtl_input: {
       module[moduleCount++] = new InputModule(moduleName,this);
       debug("input module added: <%s>", moduleName.c_str());
-      return;
+      return true;
     }
   }
+  return false;
 }
 
 void XRTL::listModules() {
@@ -295,11 +296,11 @@ void XRTL::settingsDialogue() {
     if (choice != "r" && choiceInt < 8) {
       moduleType newModuleType = (moduleType) choiceInt;
       String newModuleName = serialInput("new module name: ");
-      addModule(newModuleName, newModuleType);
-
-      JsonObject emptySettings;
-      module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
-      module[moduleCount - 1]->setup(); // run setup if necessary
+      if (addModule(newModuleName, newModuleType)) {
+        JsonObject emptySettings;
+        module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
+        module[moduleCount - 1]->setup(); // run setup if necessary
+      }
     }
   }
   else if (choice == "d") {

@@ -75,6 +75,7 @@ void StepperModule::setViaSerial() {
   accel = serialInput("acceleration (steps/s²): ").toInt();
   speed = serialInput("speed (steps/s): ").toInt();
   position = serialInput("current position (steps): ").toInt();
+  stepper->setCurrentPosition(position);
   minimum = serialInput("minimum position (steps): ").toInt();
   maximum = serialInput("maximum position (steps): ").toInt();
   initial = serialInput("initial steps (steps): ").toInt();

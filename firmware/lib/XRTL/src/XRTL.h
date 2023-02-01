@@ -30,7 +30,7 @@ class XRTL {
   public:
   // manage Modules
   void listModules();
-  void addModule(String moduleName, moduleType category);
+  bool addModule(String moduleName, moduleType category);
   void delModule(uint8_t number);
   void swapModules(uint8_t numberX, uint8_t numberY);
   XRTLmodule* operator[](String moduleName); // returns pointer to module with specified ID

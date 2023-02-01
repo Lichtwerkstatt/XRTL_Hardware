@@ -74,10 +74,9 @@ void InputModule::loop() {
     // TODO: report to server?
     if (rangeChecking && now > nextCheck) {
         if (value >= hiBound) {
-            notify(input_trigger_high);
-            debug("high level guard triggered");
-
             if (!lastState) {
+                notify(input_trigger_high);
+                debug("high level guard triggered");
                 lastState = true;
                 if (relayViolations) sendStatus();
             }
@@ -86,10 +85,9 @@ void InputModule::loop() {
         }
 
         if (value <= loBound) {
-            notify(input_trigger_low);
-            debug("low level guard triggered");
-
             if (lastState){
+                notify(input_trigger_low);
+                debug("low level guard triggered");
                 lastState = false;
                 if (relayViolations) sendStatus();
             }
