@@ -74,9 +74,9 @@ bool ServoModule::getStatus(JsonObject& status){
   //JsonObject position = status.createNestedObject(id);
 
   int16_t angle = read();
+  status["busy"] = wasRunning;
   status["absolute"] = angle;
   status["relative"] = mapFloat(angle,minAngle,maxAngle,0,100);
-  status["time"] = esp_timer_get_time();
 
   return true;
 }
@@ -184,7 +184,7 @@ void ServoModule::driveServo(JsonObject& command) {
     }
   }
 
-  if (timeStep >= 0) {
+  if (timeStep > 0) {
     targetDuty = round(mapFloat(target,minAngle,maxAngle,minDuty,maxDuty));
     currentDuty = servo->readMicroseconds();
     debug("target duty: %d", targetDuty);
