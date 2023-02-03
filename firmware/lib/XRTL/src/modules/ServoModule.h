@@ -45,6 +45,7 @@ class ServoModule : public XRTLmodule {
 
   void setup();
   void loop();
+  void stop();
 };
 
 #endif

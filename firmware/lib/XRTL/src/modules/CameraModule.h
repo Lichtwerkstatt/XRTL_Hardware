@@ -23,7 +23,8 @@ class CameraModule : public XRTLmodule {
     bool isGray = false;
     int brightness = 0;
     int contrast = 0;
-    framesize_t frameSize = FRAMESIZE_XGA;
+    int exposure = 200;
+    framesize_t frameSize = FRAMESIZE_QVGA;
 
     public:
     CameraModule(String moduleName, XRTL* source);

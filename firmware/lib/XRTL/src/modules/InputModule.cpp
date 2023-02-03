@@ -230,7 +230,7 @@ bool InputModule::getStatus(JsonObject& status) {
     if (input == NULL) return true; // avoid errors: status might be called in setup before init occured
 
     status["averageTime"] = averageTime;
-    status["updateTime"] = deadMicroSeconds/1000;
+    status["updateTime"] = intervalMicroSeconds / 1000;
     status["stream"] = isStreaming;
     status["inputState"] = lastState;
 
@@ -268,14 +268,13 @@ bool InputModule::handleCommand(String& command) {
 void InputModule::handleCommand(String& controlId, JsonObject& command) {
     if (!isModule(controlId)) return;
 
-    bool getStatus = false;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+    bool temp = false;
+    if (getValue<bool>("getStatus", command, temp) && temp) {
         sendStatus();
     }
 
-    bool stream = false;
-    if ( getValue<bool>("stream", command, stream) ) { 
-        if (stream) {
+    if ( getValue<bool>("stream", command, temp) ) { 
+        if (temp) {
             startStreaming();
         }
         else {

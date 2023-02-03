@@ -33,7 +33,7 @@ camera_config_t CameraModule::camera_config = {
     .ledc_channel = LEDC_CHANNEL_0,
 
     .pixel_format = PIXFORMAT_JPEG,//YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size = FRAMESIZE_XGA,//UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
+    .frame_size = FRAMESIZE_QVGA,//UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 10,//0-63 lower number means higher quality
     .fb_count = 2, //if more than one, i2s runs in continuous mode. Use only with JPEG
@@ -48,6 +48,9 @@ void CameraModule::setup() {
     return;
   }
   cameraSettings = esp_camera_sensor_get();
+  cameraSettings->set_gain_ctrl(cameraSettings, 0);
+  cameraSettings->set_exposure_ctrl(cameraSettings, 0);
+  cameraSettings->set_aec_value(cameraSettings, exposure);
   debug("camera initialized");
 }
 
@@ -70,7 +73,8 @@ bool CameraModule::getStatus(JsonObject& status) {
   status["stream"] = isStreaming;
   status["frameSize"] = frameSize; 
   status["gray"] = isGray;
-  status["brightness"] = brightness;
+  //status["brightness"] = brightness;
+  status["exposure"] = exposure;
   status["contrast"] = contrast;
 
   return true;
@@ -189,6 +193,20 @@ void CameraModule::handleCommand(String& controlId, JsonObject& command) {
       debug("gray filter disabled");
     }
     sendStatus();
+  }
+
+  int gain;
+  if (getAndConstrainValue<int>("gain", command, gain, 0, 30)) {
+    cameraSettings->set_gain_ctrl(cameraSettings, 0);
+    cameraSettings->set_agc_gain(cameraSettings, gain);
+    debug("gain changed to %d", gain);
+  }
+
+  if (getAndConstrainValue<int>("exposure", command, exposure, 0, 1200)) {
+    cameraSettings->set_gain_ctrl(cameraSettings, 0);
+    cameraSettings->set_exposure_ctrl(cameraSettings, 0);
+    cameraSettings->set_aec_value(cameraSettings, exposure);
+    debug("exposure set to %d", exposure);
   }
 
   if (getAndConstrainValue<int>("brightness", command, brightness, -2, 2)) {

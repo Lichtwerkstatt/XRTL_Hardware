@@ -73,10 +73,9 @@ void ServoModule::setViaSerial(){
 bool ServoModule::getStatus(JsonObject& status){
   //JsonObject position = status.createNestedObject(id);
 
-  int16_t angle = read();
   status["busy"] = wasRunning;
-  status["absolute"] = angle;
-  status["relative"] = mapFloat(angle,minAngle,maxAngle,0,100);
+  status["absolute"] = round(mapFloat(currentDuty, minDuty, maxDuty, minAngle, maxAngle));
+  status["relative"] = mapFloat(currentDuty, minDuty, maxDuty, 0, 100);
 
   return true;
 }
@@ -84,30 +83,46 @@ bool ServoModule::getStatus(JsonObject& status){
 void ServoModule::setup(){
   servo = new Servo;
   servo->setPeriodHertz(frequency);
-  servo->attach(pin,minDuty,maxDuty);
-  write(initial);
+  servo->attach(pin, minDuty, maxDuty);
 
   timeStep = round(float(maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
-  debug("stepping: %d µs", timeStep);
+
+  write(initial);
+  currentDuty = servo->readMicroseconds();
+  wasRunning = true;
+  nextStep = esp_timer_get_time() + 750000;
+  //servo->detach();
+
+  //debug("stepping: %d µs", timeStep);
 }
 
 void ServoModule::loop(){
   if (!wasRunning) return;
-  if (currentDuty == targetDuty) {
-    debug("target reached");
-    wasRunning = false;
-    sendStatus();
-    return;
-  }
   int64_t now = esp_timer_get_time();
   if (now <= nextStep) return;
+
+  if (currentDuty == targetDuty) {
+    wasRunning = false;
+    sendStatus();
+    servo->detach();
+    return;
+  }
+  
   nextStep = now + timeStep;
+  
   if (positiveDirection) {
     servo->writeMicroseconds(++currentDuty);
   }
   else {
     servo->writeMicroseconds(--currentDuty);
   }
+}
+
+void ServoModule::stop() {
+  if (!wasRunning) return;
+  wasRunning = false;
+  targetDuty = currentDuty;
+  servo->detach();
 }
 
 bool ServoModule::handleCommand(String& command) {
@@ -127,9 +142,22 @@ bool ServoModule::handleCommand(String& command) {
 void ServoModule::handleCommand(String& controlId, JsonObject& command) {
   if (!isModule(controlId)) return;
 
-  bool getStatus = false;
-  if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+  bool temp = false;
+  if (getValue<bool>("getStatus", command, temp) && temp) {
     sendStatus();
+  }
+
+  if (getValue<bool>("stop", command, temp) && temp) {
+    stop();
+    sendStatus();
+  }
+
+  if (getValue<bool>("reset", command, temp) && temp) {
+    DynamicJsonDocument doc(128);
+    JsonObject driveCommand = doc.to<JsonObject>();
+    driveCommand["controlId"] = id;
+    driveCommand["moveTo"] = initial;
+    driveServo(driveCommand);
   }
 
   driveServo(command);
@@ -138,13 +166,12 @@ void ServoModule::handleCommand(String& controlId, JsonObject& command) {
 
 int16_t ServoModule::read() {
   if (servo == NULL) return 0;
-
   return round(mapFloat(servo->readMicroseconds(), minDuty, maxDuty, minAngle, maxAngle));
 }
 
 void ServoModule::write(int16_t target) {
   if (servo == NULL) return;
-
+  targetDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
   servo->writeMicroseconds(round(mapFloat(target,minAngle,maxAngle,minDuty,maxDuty)));
 }
 
@@ -158,9 +185,9 @@ void ServoModule::driveServo(JsonObject& command) {
   else if (getAndConstrainValue<int16_t>("moveTo", command, target, minAngle, maxAngle)) {
     //nothing to do here
   }
-  else return;
+  else return; // command is accepted after this point; check bounds and drive servo
 
-  if ( (target < minAngle) or (target > maxAngle) ) {
+  if ( (target < minAngle) or (target > maxAngle) ) { // check if bounds are violated after relative movement
     target = constrain(target,minAngle,maxAngle);
 
     String error = "[";
@@ -185,22 +212,29 @@ void ServoModule::driveServo(JsonObject& command) {
   }
 
   if (timeStep > 0) {
+    wasRunning = true;
+    servo->attach(pin, minDuty, maxDuty);
+    servo->writeMicroseconds(currentDuty);
     targetDuty = round(mapFloat(target,minAngle,maxAngle,minDuty,maxDuty));
-    currentDuty = servo->readMicroseconds();
-    debug("target duty: %d", targetDuty);
+
     if (targetDuty > currentDuty) {
       positiveDirection = true;
-      wasRunning = true;
-      nextStep = esp_timer_get_time();
+      nextStep = esp_timer_get_time() + timeStep;
     }
     else if (targetDuty < currentDuty) {
       positiveDirection = false;
-      wasRunning = true;
-      nextStep = esp_timer_get_time();
+      nextStep = esp_timer_get_time() + timeStep;
     }
+    else if (targetDuty == currentDuty) {
+      nextStep = esp_timer_get_time() + 750000;
+    }   
   }
   else {
+    servo->attach(pin, minDuty, maxDuty);
     write(target);
+    targetDuty = currentDuty;
+    wasRunning = true;
+    nextStep = esp_timer_get_time() + 750000;
   }
   sendStatus();
 }
