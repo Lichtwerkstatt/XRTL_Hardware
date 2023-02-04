@@ -17,6 +17,7 @@ class StepperModule : public XRTLmodule {
 
   bool wasRunning = false;
   bool isInitialized = true;
+  bool holdOn = false;
   
   AccelStepper* stepper = NULL;
   

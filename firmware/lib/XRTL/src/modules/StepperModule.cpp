@@ -108,7 +108,8 @@ void StepperModule::loop() {
     stepper->run();
   }
   else if (wasRunning) {
-    stepper->disableOutputs();
+    if (!holdOn) stepper->disableOutputs();
+
     wasRunning = false;
     notify(ready);
 
@@ -233,6 +234,10 @@ void StepperModule::driveStepper(JsonObject& command) {
     else {
       stepper->moveTo(minimum);
     }
+  }
+
+  if ( getValue<bool>("hold", command, holdOn) ) {
+    debug("hold %sactive", holdOn ? "" : "in");
   }
 
   if (!stepper->isRunning()) return;

@@ -104,7 +104,8 @@ void ServoModule::loop(){
   if (currentDuty == targetDuty) {
     wasRunning = false;
     sendStatus();
-    servo->detach();
+    if (!holdOn) servo->detach(); // if hold is activated: keep motor powered
+    debug("done moving");
     return;
   }
   
@@ -158,6 +159,10 @@ void ServoModule::handleCommand(String& controlId, JsonObject& command) {
     driveCommand["controlId"] = id;
     driveCommand["moveTo"] = initial;
     driveServo(driveCommand);
+  }
+
+  if (getValue<bool>("hold", command, holdOn)) {
+    debug("hold %sactive", holdOn ? "" : "in");
   }
 
   driveServo(command);
@@ -236,5 +241,6 @@ void ServoModule::driveServo(JsonObject& command) {
     wasRunning = true;
     nextStep = esp_timer_get_time() + 750000;
   }
+  debug("moving from %d to %d", currentDuty, targetDuty);
   sendStatus();
 }

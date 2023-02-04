@@ -289,7 +289,7 @@ void SocketModule::loadSettings(JsonObject& settings) {
   Serial.printf("url: %s\n", url.c_str());
   Serial.printf("key: %s\n", key.c_str());
   Serial.printf("componentId: %s\n", component.c_str());
-  Serial.printf(useSSL ? "SSL" : "no SSL");
+  Serial.printf("%s SSL\n", useSSL ? "" : "no");
 }
 
 void SocketModule::setViaSerial() {

@@ -172,7 +172,7 @@ void InputModule::loadSettings(JsonObject& settings) {
     Serial.printf("averaging time: %d\n", averageTime);
     Serial.println("");
 
-    Serial.printf(rangeChecking ? "triggers active\n" : "triggers inactive\n");
+    Serial.printf("triggers %sactive\n", rangeChecking ? "" : "in");
     Serial.printf("low bound: %f\n", loBound);
     Serial.printf("high bound: %f\n", hiBound);
     Serial.printf("dead time: %d\n", deadMicroSeconds);

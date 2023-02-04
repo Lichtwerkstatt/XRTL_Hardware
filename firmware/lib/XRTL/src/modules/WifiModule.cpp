@@ -35,8 +35,7 @@ void WifiModule::loadSettings(JsonObject& settings) {
   password = loadValue<String>("password", settings, "");
   
   if (debugging) {
-    Serial.printf(enterprise ? centerString("enterprise WiFi", 39, ' ').c_str() : centerString("regular WiFi", 39, ' ').c_str());
-    Serial.println("");
+    Serial.printf("WiFi: %s\n", enterprise ? "enterprise" : "regular");
 
     Serial.printf("SSID: %s\n",ssid.c_str());
     Serial.printf("password: %s\n", password.c_str());
@@ -71,7 +70,7 @@ void WifiModule::setViaSerial() {
 
 void WifiModule::setup() {
   eventIdDisconnected = WiFi.onEvent(WiFiStationDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);//SYSTEM_EVENT_STA_DISCONNECTED for older version
-  //WiFi.setHostname(xrtl=>get hostname from socket module);
+  WiFi.setHostname(getComponent().c_str());
   WiFi.mode(WIFI_STA);
 
   if (enterprise) {
