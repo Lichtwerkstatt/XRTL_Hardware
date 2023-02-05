@@ -549,14 +549,14 @@ void SocketModule::pushCommand(String& command) {
   xrtl->pushCommand(command);
 }
 
-void XRTL::sendError(componentError err, String msg) {
+void XRTL::sendError(componentError ernr, String msg) {
   if (socketIO == NULL) {
     debug("unable to send event: no endpoint module");
     return;
   }
-  socketIO->sendError(err,msg);
+  socketIO->sendError(ernr, msg);
 }
 
-void XRTLmodule::sendError(componentError err, String msg) {
-  xrtl->sendError(err,msg);
+void XRTLmodule::sendError(componentError ernr, String msg) {
+  xrtl->sendError(ernr, msg);
 }
