@@ -110,7 +110,7 @@ void OutputModule::loadSettings(JsonObject& settings) {
     Serial.printf("controlId: %s\n",id.c_str());
     Serial.printf("pin: %d\n",pin);
     Serial.printf("triggered by: %s\n", guardedModule);
-    Serial.printf(pwm ? "PWM output\n" : "relay output\n");
+    Serial.printf("%s output\n", pwm ? "PWM" : "relay");
 
     if (!pwm) return;
 

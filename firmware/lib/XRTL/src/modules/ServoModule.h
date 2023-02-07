@@ -22,6 +22,7 @@ class ServoModule : public XRTLmodule {
   uint16_t currentDuty;
   bool positiveDirection;
   bool wasRunning = false;
+  bool holdOn = false;
 
   uint8_t pin = 26;
   
