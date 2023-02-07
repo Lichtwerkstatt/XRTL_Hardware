@@ -160,13 +160,21 @@ void ServoModule::handleCommand(String& controlId, JsonObject& command) {
     driveServo(driveCommand);
   }
 
+  if (wasRunning) {// ignore move commands if already moving
+    String error = "[";
+    error += id;
+    error += "] already moving";
+    sendError(is_busy, error);
+    return;
+  }
+
   driveServo(command);
   //return true;
 }
 
 int16_t ServoModule::read() {
   if (servo == NULL) return 0;
-  return round(mapFloat(servo->readMicroseconds(), minDuty, maxDuty, minAngle, maxAngle));
+  return round(mapFloat(currentDuty, minDuty, maxDuty, minAngle, maxAngle));
 }
 
 void ServoModule::write(int16_t target) {
