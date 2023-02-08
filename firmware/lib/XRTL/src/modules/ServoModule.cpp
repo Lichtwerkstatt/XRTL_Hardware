@@ -106,6 +106,7 @@ void ServoModule::loop(){
     sendStatus();
     if (!holdOn) servo->detach(); // if hold is activated: keep motor powered
     debug("done moving");
+    notify(ready);
     return;
   }
   
@@ -124,6 +125,7 @@ void ServoModule::stop() {
   wasRunning = false;
   targetDuty = currentDuty;
   servo->detach();
+  notify(ready);
 }
 
 bool ServoModule::handleCommand(String& command) {
@@ -159,6 +161,7 @@ void ServoModule::handleCommand(String& controlId, JsonObject& command) {
     driveCommand["controlId"] = id;
     driveCommand["moveTo"] = initial;
     driveServo(driveCommand);
+    while (wasRunning) loop();
   }
 
   if (getValue<bool>("hold", command, holdOn)) {
@@ -191,12 +194,21 @@ void ServoModule::write(int16_t target) {
 void ServoModule::driveServo(JsonObject& command) {
 
   int16_t target;
+  bool binaryCtrl;
 
   if (getAndConstrainValue<int16_t>("move", command, target, minAngle - maxAngle, maxAngle - minAngle)) {// complete range: maxAngle - minAngle; negative range: minAngle - maxAngle
     target += read();
   }
   else if (getAndConstrainValue<int16_t>("moveTo", command, target, minAngle, maxAngle)) {
     //nothing to do here
+  }
+  else if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
+    if (binaryCtrl) {
+      target = maxAngle;
+    }
+    else {
+      target = minAngle;
+    }
   }
   else return; // command is accepted after this point; check bounds and drive servo
 
@@ -212,16 +224,6 @@ void ServoModule::driveServo(JsonObject& command) {
     error += ")";
 
     sendError(out_of_bounds,error);
-  }
-
-  bool binaryCtrl;
-  if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
-    if (binaryCtrl) {
-      target = maxAngle;
-    }
-    else {
-      target = minAngle;
-    }
   }
 
   if (timeStep > 0) {
@@ -249,6 +251,7 @@ void ServoModule::driveServo(JsonObject& command) {
     wasRunning = true;
     nextStep = esp_timer_get_time() + 750000;
   }
+  notify(busy);
   debug("moving from %d to %d", currentDuty, targetDuty);
   sendStatus();
 }
