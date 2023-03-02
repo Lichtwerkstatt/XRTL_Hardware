@@ -13,6 +13,7 @@
 #include "modules/OutputModule.h"
 #include "modules/InputModule.h"
 #include "modules/CameraModule.h"
+#include "modules/Macromodule.h"
 
 // core, manages modules
 class XRTL {

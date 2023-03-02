@@ -207,6 +207,7 @@ void CameraModule::handleCommand(String& controlId, JsonObject& command) {
     cameraSettings->set_exposure_ctrl(cameraSettings, 0);
     cameraSettings->set_aec_value(cameraSettings, exposure);
     debug("exposure set to %d", exposure);
+    sendStatus();
   }
 
   if (getAndConstrainValue<int>("brightness", command, brightness, -2, 2)) {

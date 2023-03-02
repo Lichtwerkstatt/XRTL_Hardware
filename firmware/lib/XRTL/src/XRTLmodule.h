@@ -28,11 +28,12 @@ enum moduleType {
   xrtl_servo,
   xrtl_camera,
   xrtl_input,
-  xrtl_output
+  xrtl_output,
+  xrtl_macro
 };
 
 // display names for modules
-static const char* moduleNames[8] = {
+static const char* moduleNames[9] = {
   "socket",
   "wifi",
   "info LED",
@@ -40,7 +41,8 @@ static const char* moduleNames[8] = {
   "servo motor",
   "camera",
   "input",
-  "output"
+  "output",
+  "macro"
 };
 
 

@@ -109,6 +109,11 @@ bool XRTL::addModule(String moduleName, moduleType category) {
       debug("input module added: <%s>", moduleName.c_str());
       return true;
     }
+    case xrtl_macro: {
+      module[moduleCount++] = new MacroModule(moduleName, this);
+      debug("macro module added: <%s>", moduleName.c_str());
+      return true;
+    }
   }
   return false;
 }
@@ -160,6 +165,8 @@ void XRTL::saveSettings() {
     settings["type"] = module[i]->getType();
     module[i]->saveSettings(settings);
   }
+
+  //serializeJsonPretty(doc, Serial);
 
   if (!LittleFS.begin(false)) {
     debug("failed to mount LittleFS");
@@ -282,7 +289,7 @@ void XRTL::settingsDialogue() {
     Serial.println("");
     Serial.println("module type is determined by number, available types:");
     Serial.println("");
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 9; i++) {
       Serial.printf("%d: %s\n",i,moduleNames[i]);
     }
     Serial.println("");
@@ -293,7 +300,7 @@ void XRTL::settingsDialogue() {
     choice = serialInput("new module type: ");
     choiceInt = choice.toInt();
 
-    if (choice != "r" && choiceInt < 8) {
+    if (choice != "r" && choiceInt < 9) {
       moduleType newModuleType = (moduleType) choiceInt;
       String newModuleName = serialInput("new module name: ");
       if (addModule(newModuleName, newModuleType)) {
