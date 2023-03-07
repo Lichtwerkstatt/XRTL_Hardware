@@ -3,54 +3,92 @@
 
 #include "XRTLmodule.h"
 
-// TODO: turn this into a template class
+enum xrtlVal_t {
+    xrtlval_bool,
+    xrtlval_int,
+    xrtlval_float,
+    xrtlval_string
+};
+
+class XRTLval {
+    private:
+    xrtlVal_t currentType = xrtlval_int;
+    bool valBool;
+    int  valInt = 0;
+    double valFloat;
+    String valString;
+
+    public:
+    void addValueToKey(String& key, JsonObject& command) {
+        switch (currentType) {
+            case (xrtlval_bool): {
+                command[key] = valBool;
+                return;
+            }
+            case (xrtlval_int): {
+                command[key] = valInt;
+                return;
+            }
+            case (xrtlval_float): {
+                command[key] = valFloat;
+                return;
+            }
+            case (xrtlval_string): {
+                command[key] = valString;
+                return;
+            }
+        }
+    }
+
+    void set(JsonVariant& newVal) {
+        if (newVal.is<bool>()) {
+            currentType = xrtlval_bool;
+            valBool = newVal.as<bool>();
+        }
+        else if (newVal.is<int>()) {
+            currentType = xrtlval_int;
+            valInt = newVal.as<int>();
+        }
+        else if (newVal.is<float>() || newVal.is<double>()) {
+            currentType = xrtlval_float;
+            valFloat = newVal.as<double>();
+        }
+        else if (newVal.is<String>()) {
+            currentType = xrtlval_string;
+            valString = newVal.as<String>();
+        }
+    }
+};
+
 class XRTLcommand {
     private:
     String id;
     String key;
-    JsonVariant val;
+    XRTLval val;
 
     public:
     XRTLcommand() {
         id = "tmp";
         key = "key";
-        val.set("val");
     }
 
     void set(String& controlId, String& controlKey, JsonVariant& controlVal) {
         id = controlId;
         key = controlKey;
-        val = controlVal;
+        val.set(controlVal);
     }
 
-    String getId() {
+    String& getId() {
         return id;
     }
 
-    JsonArray getEvent() {
-        DynamicJsonDocument doc(512);
-        JsonArray event = doc.to<JsonArray>();
-        event.add("command");
-        
-        JsonObject command = event.createNestedObject();
+    void fillCommand(JsonObject& command) {
         command["controlId"] = id;
-        command[key] = val;
-
-        return event;
-    }
-
-    JsonObject getCommand() {
-        DynamicJsonDocument doc(512);
-        JsonObject command = doc.to<JsonObject>();
-
-        command["controlId"] = id;
-        command[key] = val;
-
-        return command;
+        val.addValueToKey(key, command);
     }
 
     void saveSettings(JsonObject& settings) {
-        settings[key] = val;
+        val.addValueToKey(key, settings);
     }
 
     void setViaSerial() {
@@ -62,22 +100,34 @@ class XRTLcommand {
         Serial.println("2: float");
         Serial.println("3: string");
         Serial.println("");
+        StaticJsonDocument<128> readVal;
+        readVal.to<JsonArray>();
         switch (serialInput("control value type: ").toInt()) {
             case (0): {
                 String input = serialInput("value: ");
-                val.set((input == "true" || input.toInt() == 1));
+                readVal.add((input == "true" || input.toInt() == 1));
+                JsonVariant newVal = readVal[0];
+                val.set(newVal);
                 break;
             }
             case (1): {
-                val.set(serialInput("value: ").toInt());
+                int input = serialInput("value: ").toInt();
+                readVal.add(input);
+                JsonVariant newVal = readVal[0];
+                val.set(newVal);
                 break;
             }
             case (2): {
-                val.set(serialInput("value: ").toDouble());
+                double input = serialInput("value: ").toDouble();
+                readVal.add(input);
+                JsonVariant newVal = readVal[0];
+                val.set(newVal);
                 break;
             }
             case (3): {
-                val.set(serialInput("value: "));
+                readVal.add(serialInput("value: "));
+                JsonVariant newVal = readVal[0];
+                val.set(newVal);
                 break;
             }
         }
@@ -182,9 +232,27 @@ class MacroState {
     }
 
     void activate(){
+        macro->debug("activated <%s>", stateName);
         for (int i = 0; i < commandCount; i++) {
-            JsonArray event = commands[i]->getEvent();
-            macro->sendEvent(event); 
+            String controlId = commands[i]->getId();
+            XRTLmodule* targetModule = macro->findModule(controlId);
+            DynamicJsonDocument doc(512);
+
+            if (targetModule != NULL) { // module located on this hardware
+                JsonObject command = doc.to<JsonObject>();
+
+                commands[i]->fillCommand(command);
+                targetModule->handleCommand(controlId, command);
+            }
+            else {
+                JsonArray event = doc.to<JsonArray>();
+                event.add("command");
+                JsonObject command = event.createNestedObject();
+                
+                commands[i]->fillCommand(command);
+                macro->sendEvent(event); 
+            }
+
         }
     }
     
