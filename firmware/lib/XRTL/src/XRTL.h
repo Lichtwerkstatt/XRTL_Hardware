@@ -5,15 +5,15 @@
 #include "LittleFS.h"
 #include "XRTLmodule.h"
 
-#include "modules/servo/ServoModule.h"
-#include "modules/socket/SocketModule.h"
-#include "modules/wifi/WifiModule.h"
-#include "modules/stepper/StepperModule.h"
-#include "modules/infoLED/InfoLEDModule.h"
-#include "modules/output/OutputModule.h"
-#include "modules/input/InputModule.h"
-#include "modules/camera/CameraModule.h"
-#include "modules/meta/Macromodule.h"
+#include "modules/ServoModule.h"
+#include "modules/SocketModule.h"
+#include "modules/WifiModule.h"
+#include "modules/StepperModule.h"
+#include "modules/InfoLEDModule.h"
+#include "modules/OutputModule.h"
+#include "modules/InputModule.h"
+#include "modules/CameraModule.h"
+#include "modules/Macromodule.h"
 
 // core, manages modules
 class XRTL {

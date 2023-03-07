@@ -1,10 +1,5 @@
 #include "MacroModule.h"
 
-void MacroState::setViaSerial() {
-    dialog();
-    while ( serialInput("more changes to this state (y/n)?") == "y" ) dialog();
-}
-
 MacroModule::MacroModule(String moduleName, XRTL* source) {
   id = moduleName;
   xrtl = source;
@@ -123,9 +118,9 @@ void MacroModule::setViaSerial(){
     while ( serialInput("more changes to this module (y/n)?") == "y" ) dialog();
 }
 
-MacroState* MacroModule::findState(String& queryState) {
+MacroState* MacroModule::findState(String& wantedState) {
     for (int i = 0; i < stateCount; i++) {
-        if (states[i]->getName() == queryState) return states[i];
+        if (states[i]->getName() == wantedState) return states[i];
     }
     return NULL;
 }
