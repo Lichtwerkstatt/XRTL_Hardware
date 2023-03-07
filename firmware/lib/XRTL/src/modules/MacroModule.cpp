@@ -22,6 +22,7 @@ void MacroModule::loadSettings(JsonObject& settings){
     Serial.printf("current state: %s\n", currentState);
     Serial.printf("initial state: %s\n", initState);
     Serial.printf("control key: %s\n", controlKey);
+    Serial.println("");
 
     settings.remove("currentVal");
     settings.remove("initState");
@@ -34,6 +35,7 @@ void MacroModule::loadSettings(JsonObject& settings){
 
             JsonObject stateSettings = kv.value().as<JsonObject>();
             states[stateCount - 1]->loadSettings(stateSettings);
+            Serial.println("");
         }
     }
 }
@@ -125,6 +127,7 @@ MacroState* MacroModule::findState(String& wantedState) {
 
 void MacroModule::addState(String& stateName){
     states[stateCount++] = new MacroState(stateName, this);
+    debug("state added: %s", stateName);
 }
 
 void MacroModule::delState(uint8_t number) {

@@ -233,6 +233,7 @@ class XRTLmodule {
     return true;
   }
 
+  // probably depracated
   template<typename A, typename B>
   getValueReturn_t getValue(String name, JsonObject& file, A& targetA, B& targetB, bool reportMissingField = false) {
     auto field = file[name];
@@ -300,6 +301,8 @@ class XRTLmodule {
 
     return ret;
   }
+
+  XRTLmodule* findModule(String& moduleId);
 };
 
 #endif

@@ -567,3 +567,7 @@ void XRTL::sendError(componentError ernr, String msg) {
 void XRTLmodule::sendError(componentError ernr, String msg) {
   xrtl->sendError(ernr, msg);
 }
+
+XRTLmodule* XRTLmodule::findModule(String& moduleId) {
+  return xrtl->operator[](moduleId);
+}
