@@ -1,0 +1,4 @@
+#ifndef RESISTANCEDIVIDER_H
+#define RESISTANCEDIVIDER_H
+
+#endif
