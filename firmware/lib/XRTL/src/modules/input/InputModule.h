@@ -2,6 +2,11 @@
 #define INPUTMODULE_H
 
 #include "conversions/Converter.h"
+#include "conversions/resdiv/ResistanceDivider.h"
+#include "conversions/thermistor/Thermistor.h"
+#include "conversions/map/MapValue.h"
+#include "conversions/offset/Offset.h"
+#include "conversions/multiply/Multiplication.h"
 
 // averaging and storing input value on an input pin
 class XRTLinput {
