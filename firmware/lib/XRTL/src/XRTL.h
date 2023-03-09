@@ -1,10 +1,6 @@
 #ifndef XRTL_H
 #define XRTL_H
 
-//#include "ArduinoJson.h"
-//#include "LittleFS.h"
-//#include "XRTLmodule.h"
-
 #include "modules/servo/ServoModule.h"
 #include "modules/socket/SocketModule.h"
 #include "modules/wifi/WifiModule.h"
@@ -15,7 +11,7 @@
 #include "modules/camera/CameraModule.h"
 #include "modules/macro/Macromodule.h"
 
-// core, manages modules
+// core, module manager
 class XRTL {
   private:
   String id = "core";

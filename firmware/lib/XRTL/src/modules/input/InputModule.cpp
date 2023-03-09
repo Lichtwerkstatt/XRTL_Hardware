@@ -77,7 +77,7 @@ void InputModule::loop() {
     //payload["dataId"] = id;
 
     JsonObject data = payload.createNestedObject("data");
-    data["type"] = "Buffer";// for consistency with other data transmissions
+    data["type"] = "Buffer";// for consistency with other data transmissions, should look identical on the server side after parsing
     data["data"] = value;
 
     sendEvent(event); 

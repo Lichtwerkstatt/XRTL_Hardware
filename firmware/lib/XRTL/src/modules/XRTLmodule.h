@@ -1,7 +1,7 @@
 #ifndef XRTLMODULE_H
 #define XRTLMODULE_H
 
-#include "common/XRTLfunctions.h"
+#include "common/XRTLcommand.h"
 
 // internal reference for module type
 enum moduleType {
@@ -59,14 +59,6 @@ enum componentError {
   unknown_key,
   disconnected,
   is_busy
-};
-
-// return type for reading values from JsonObjects
-enum getValueReturn_t {
-  is_missing,
-  is_first,
-  is_second,
-  is_wrong_type
 };
 
 // forward declaration: need pointer
@@ -131,7 +123,7 @@ class XRTLmodule {
   virtual void stop();  // stop all operation, restart of device could be imminent
 
   // @brief define if a status should be send and what information it should contain
-  // @param status JsonObject that must be filled with status information
+  // @param status JsonObject to be filled with status information by the module
   // @returns true if this module should send a status, defaults to false
   virtual bool getStatus(JsonObject& status);
 
@@ -142,7 +134,7 @@ class XRTLmodule {
 
   // @brief load settings when device is started
   // @param settings JsonObject containing the data for this module loaded from flash
-  // @note use loadValue() to safely initialize the settings
+  // @note use this.loadValue() to safely initialize the settings
   virtual void loadSettings(JsonObject& settings);
 
   // @brief methode called when the settings of a module are to be set via the serial interface
@@ -165,8 +157,8 @@ class XRTLmodule {
   // @param target store value here if key was found
   // @param reportMissingField if True a report will be issued in case the key could not be found
   // @returns True if the key was found
-  template<typename A>
-  bool getValue(String name, JsonObject& file, A& target, bool reportMissingField = false) {
+  template<typename T>
+  bool getValue(String name, JsonObject& file, T& target, bool reportMissingField = false) {
     auto field = file[name];
     if (field.isNull()) {
       if (!reportMissingField) return false;
@@ -180,7 +172,7 @@ class XRTLmodule {
       return false;
     }
 
-    if (!field.is<A>()) {
+    if (!field.is<T>()) {
       String errormsg = "[";
       errormsg += id;
       errormsg += "] command rejected: <";
@@ -190,46 +182,8 @@ class XRTLmodule {
       return false;
     }
     
-    target = field.as<A>();
+    target = field.as<T>();
     return true;
-  }
-
-  // probably depracated
-  template<typename A, typename B>
-  getValueReturn_t getValue(String name, JsonObject& file, A& targetA, B& targetB, bool reportMissingField = false) {
-    auto field = file[name];
-    if (field.isNull()) {
-      if (!reportMissingField) return is_missing;
-
-      String errormsg = "[";
-      errormsg += id;
-      errormsg += "] command rejected: <";
-      errormsg += name;
-      errormsg += "> is missing";
-      
-      sendError(field_is_null, errormsg);
-      return is_missing;
-    }
-
-    if (field.is<A>()) {
-      targetA = field.as<A>();
-      return is_first;
-    }
-    else if (field.is<B>()) {
-      targetB = field.as<B>();
-      return is_second;
-    }
-    else {
-      String errormsg = "[";
-      errormsg += id;
-      errormsg += "] command rejected: <";
-      errormsg += name;
-      errormsg += "> is wrong type";
-
-      sendError(wrong_type, errormsg);
-    }
-    
-    return is_wrong_type;
   }
 
   // @brief fetch a key value pair from a JsonObject and constrain the value to a specified interval
@@ -240,13 +194,12 @@ class XRTLmodule {
   // @param maxValue upper bound of the constraining interval
   // @param reportMissingField if True a report will be issued in case the key could not be found
   // @returns True if the key was found
-  template<typename A>
-  bool getAndConstrainValue(String name, JsonObject& file, A& target, A minValue, A maxValue, bool reportMissingField = false) {
-    bool ret = getValue<A>(name, file, target, reportMissingField);
-    if (!ret) return ret;
+  template<typename T>
+  bool getAndConstrainValue(String name, JsonObject& file, T& target, T minValue, T maxValue, bool reportMissingField = false) {
+    if (!getValue<T>(name, file, target, reportMissingField)) return false;
 
     if ( (target < minValue) or (target > maxValue) ) {
-      target = constrain(target,minValue,maxValue);
+      target = constrain(target, minValue, maxValue);
 
       String errormsg = "[";
       errormsg += id;
@@ -260,10 +213,16 @@ class XRTLmodule {
       sendError(out_of_bounds, errormsg);
     }
 
-    return ret;
+    return true;
   }
 
+  // @brief check if a specific controlId is present on the ESP32 and return the Address if so
+  // @param moduleId controlId you are trying to find
+  // @returns pointer to module
+  // @note If the module can't be found on this ESP32 a nullpointer is returned. In that case the specific controlId might still exist on another ESP32
   XRTLmodule* findModule(String& moduleId);
+
+  
 };
 
 #endif
