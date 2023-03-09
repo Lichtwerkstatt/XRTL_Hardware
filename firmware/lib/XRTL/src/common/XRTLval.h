@@ -1,7 +1,7 @@
 #ifndef XRTLVAL_H
 #define XRTLVAL_H
 
-#include "XRTLmodule.h"
+#include "XRTLfunctions.h"
 
 enum xrtlVal_t {
     xrtlval_bool,
