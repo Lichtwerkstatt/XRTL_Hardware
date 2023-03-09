@@ -1,32 +1,8 @@
 #ifndef OUTPUTMODULE_H
 #define OUTPUTMODULE_H
 
+#include "XRTLoutput.h"
 #include "XRTLmodule.h"
-
-class XRTLoutput {
-    private:
-    bool state = false;
-    uint8_t power = 0;
-
-    uint8_t pin;
-    bool pwm;
-    uint8_t channel;
-    uint16_t frequency;
-
-    public:
-
-    XRTLoutput(bool isPWM);
-
-    void attach(uint8_t controlPin);
-    void attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency);
-    // turn on/off
-    void toggle(bool targetState);
-    // set powerlevel for PWM
-    void write(uint8_t powerLvl);
-    uint8_t read();
-    bool getState();
-
-};
 
 // XRTLmodule for controling output signals, either relays or MOSFETs operated via PWM
 class OutputModule: public XRTLmodule {
