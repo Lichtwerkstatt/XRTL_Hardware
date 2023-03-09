@@ -2,7 +2,7 @@
 #define STEPPERMOUDLE_H
 
 #include "AccelStepper.h"
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 
 class StepperModule : public XRTLmodule {
   private:

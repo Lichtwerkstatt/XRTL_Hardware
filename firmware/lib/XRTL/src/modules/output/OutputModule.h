@@ -2,7 +2,7 @@
 #define OUTPUTMODULE_H
 
 #include "XRTLoutput.h"
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 
 // XRTLmodule for controling output signals, either relays or MOSFETs operated via PWM
 class OutputModule: public XRTLmodule {

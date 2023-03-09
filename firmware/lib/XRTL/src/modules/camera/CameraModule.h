@@ -1,7 +1,7 @@
 #ifndef CAMERAMODULE_H
 #define CAMERAMODULE_H
 
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 #include <esp_camera.h>
 
 class CameraModule : public XRTLmodule {

@@ -2,7 +2,7 @@
 #define INFOLEDMODULE_H
 
 #include "Adafruit_NeoPixel.h"
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 
 class InfoLED {
   public:

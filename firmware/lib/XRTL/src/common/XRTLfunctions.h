@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 #include "ArduinoJson.h"
+#include "LittleFS.h"
 
 // @brief safely load a setting value from a file
 // @param key name of the key that is searched for

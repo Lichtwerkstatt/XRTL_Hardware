@@ -3,7 +3,7 @@
 
 #include "WiFi.h"
 #include "esp_wpa2.h"
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 
 class WifiModule : public XRTLmodule {
   private:

@@ -1,7 +1,7 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
 
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 
 enum conversion_t {
     thermistor,

@@ -1,7 +1,7 @@
 #ifndef MACROSTATE_H
 #define MACROSTATE_H
 
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 #include "common/XRTLcommand.h"
 
 class MacroState {

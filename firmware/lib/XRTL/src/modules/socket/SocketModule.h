@@ -3,7 +3,7 @@
 
 #include "SocketIOclientMod.h"
 #include "mbedtls/md.h"
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 
 class SocketModule : public XRTLmodule {
   private:

@@ -2,7 +2,7 @@
 #define SERVOMODULE_H
 
 #include "ESP32Servo.h"
-#include "XRTLmodule.h"
+#include "modules/XRTLmodule.h"
 
 class ServoModule : public XRTLmodule {
   private:

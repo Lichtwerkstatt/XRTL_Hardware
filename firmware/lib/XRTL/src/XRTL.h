@@ -1,9 +1,9 @@
 #ifndef XRTL_H
 #define XRTL_H
 
-#include "ArduinoJson.h"
-#include "LittleFS.h"
-#include "XRTLmodule.h"
+//#include "ArduinoJson.h"
+//#include "LittleFS.h"
+//#include "XRTLmodule.h"
 
 #include "modules/servo/ServoModule.h"
 #include "modules/socket/SocketModule.h"
