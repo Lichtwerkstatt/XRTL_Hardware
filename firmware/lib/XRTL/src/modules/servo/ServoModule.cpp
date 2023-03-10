@@ -74,7 +74,7 @@ bool ServoModule::getStatus(JsonObject& status){
   //JsonObject position = status.createNestedObject(id);
 
   status["busy"] = wasRunning;
-  status["absolute"] = round(mapFloat(currentDuty, minDuty, maxDuty, minAngle, maxAngle));
+  status["absolute"] = read();
   status["relative"] = mapFloat(currentDuty, minDuty, maxDuty, 0, 100);
 
   return true;
@@ -85,10 +85,15 @@ void ServoModule::setup(){
   servo->setPeriodHertz(frequency);
   servo->attach(pin, minDuty, maxDuty);
 
-  timeStep = round(float(maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
+  if (maxSpeed <= 0) {
+    timeStep = 0;
+  }
+  else {
+    timeStep = round(float(maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
+  }
 
   write(initial);
-  currentDuty = servo->readMicroseconds();
+  targetDuty = currentDuty;
   wasRunning = true;
   nextStep = esp_timer_get_time() + 750000;
   //servo->detach();
@@ -187,8 +192,8 @@ int16_t ServoModule::read() {
 
 void ServoModule::write(int16_t target) {
   if (servo == NULL) return;
-  targetDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
-  servo->writeMicroseconds(round(mapFloat(target,minAngle,maxAngle,minDuty,maxDuty)));
+  currentDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
+  servo->writeMicroseconds(currentDuty);
 }
 
 void ServoModule::driveServo(JsonObject& command) {
