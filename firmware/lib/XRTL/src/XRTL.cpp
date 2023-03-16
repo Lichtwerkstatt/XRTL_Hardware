@@ -50,66 +50,72 @@ void XRTL::loop(){
   }
 }
 
-void XRTL::addModule(String moduleName, moduleType category) {
+bool XRTL::addModule(String moduleName, moduleType category) {
   if (moduleCount == 16) {
     debug("unable to add module: maximum number of modules reached");
-    return;
+    return false;
   }
   if ( (moduleName == 0) or (moduleName == "")) {
     debug("unable to add module: ID must not be empty");
-    return;
+    false;
   }
   if (this->operator[](moduleName) != NULL) {
-    debug("unable to add module <%s>: ID already in use", moduleName);
-    return;  
+    debug("unable to add module <%s>: ID already in use", moduleName.c_str());
+    return false;  
   }
   if ( (moduleName == "*") or (moduleName == "none") or (moduleName == "core") ) {
     debug("unable to add module <%s>: ID restricted to internal use", moduleName);
-    return;
+    return false;
   }
   switch(category) {
     case xrtl_socket: {
       socketIO = new SocketModule(moduleName,this);
       module[moduleCount++] = socketIO;
-      debug("socket module added: <%s>", moduleName);
-      return;
+      debug("socket module added: <%s>", moduleName.c_str());
+      return true;
     }
     case xrtl_wifi: {
       module[moduleCount++] = new WifiModule(moduleName,this);
-      debug("wifi module added: <%s>", moduleName);
-      return;
+      debug("wifi module added: <%s>", moduleName.c_str());
+      return true;
     }
     case xrtl_infoLED: {
       module[moduleCount++] = new InfoLEDModule(moduleName,this);
-      debug("infoLED module added: <%s>", moduleName);
-      return;
+      debug("infoLED module added: <%s>", moduleName.c_str());
+      return true;
     }
     case xrtl_stepper: {
       module[moduleCount++] = new StepperModule(moduleName,this);
-      debug("stepper module added: <%s>", moduleName);
-      return;
+      debug("stepper module added: <%s>", moduleName.c_str());
+      return true;
     }
     case xrtl_servo: {
       module[moduleCount++] = new ServoModule(moduleName,this);
-      debug("servo module added: <%s>", moduleName);
-      return;
+      debug("servo module added: <%s>", moduleName.c_str());
+      return true;
     }
     case xrtl_camera: {
       module[moduleCount++] = new CameraModule(moduleName,this);
-      debug("camera module added: <%s>", moduleName);
-      return;
+      debug("camera module added: <%s>", moduleName.c_str());
+      return true;
     }
     case xrtl_output: {
       module[moduleCount++] = new OutputModule(moduleName,this);
-      debug("output module added: <%s>", moduleName);
-      return;
+      debug("output module added: <%s>", moduleName.c_str());
+      return true;
     }
     case xrtl_input: {
       module[moduleCount++] = new InputModule(moduleName,this);
-      debug("input module added: <%s>", moduleName);
-      return;
+      debug("input module added: <%s>", moduleName.c_str());
+      return true;
+    }
+    case xrtl_macro: {
+      module[moduleCount++] = new MacroModule(moduleName, this);
+      debug("macro module added: <%s>", moduleName.c_str());
+      return true;
     }
   }
+  return false;
 }
 
 void XRTL::listModules() {
@@ -120,7 +126,7 @@ void XRTL::listModules() {
 
 void XRTL::delModule(uint8_t number) {
   if ((number >= 0) and (number < moduleCount)){
-    Serial.printf("[%s] deleting <%s> ... ", id.c_str(), module[number]->getID());
+    Serial.printf("[%s] deleting <%s> ... ", id.c_str(), module[number]->getID().c_str());
     for (int i = number; i < moduleCount - 1; i++) {
       module[i] = module[i+1];
     }
@@ -137,7 +143,7 @@ void XRTL::swapModules(uint8_t numberX, uint8_t numberY) {
         module[numberX] = module[numberY];
         module[numberY] = temp;
 
-        debug("swapped <%s> and <%s>", module[numberX]->getID(), module[numberY]->getID());
+        debug("swapped <%s> and <%s>", module[numberX]->getID().c_str(), module[numberY]->getID().c_str());
       }
   
 }
@@ -159,6 +165,8 @@ void XRTL::saveSettings() {
     settings["type"] = module[i]->getType();
     module[i]->saveSettings(settings);
   }
+
+  //serializeJsonPretty(doc, Serial);
 
   if (!LittleFS.begin(false)) {
     debug("failed to mount LittleFS");
@@ -265,52 +273,44 @@ void XRTL::settingsDialogue() {
   Serial.println("");
   listModules();
   Serial.println("");
-  Serial.printf("%d: complete setup\n", moduleCount);
-  Serial.printf("%d: add module\n", moduleCount + 1);
-  Serial.printf("%d: remove module\n", moduleCount + 2);
-  Serial.printf("%d: swap modules\n", moduleCount + 3);
-  Serial.printf("%d: return\n", moduleCount + 4);
+  Serial.println("a: add module");
+  Serial.println("d: delete module");
+  Serial.println("s: swap modules");
+  Serial.println("r: return");
   Serial.println("");
-  uint8_t choice = serialInput("choose setup routine: ").toInt();
+  String choice = serialInput("choose setup routine: ");
+  uint8_t choiceInt = choice.toInt();
   Serial.println("");
   Serial.println(centerString("", 39, '-'));
 
-  if (choice < moduleCount ) {
-    module[choice]->setViaSerial();
-  }
-  else if (choice == moduleCount) {
-    Serial.println(centerString("complete setup", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
-    for (int i = 0; i < moduleCount; i++) {
-      module[i]->setViaSerial();
-    }
-  }
-  else if (choice == moduleCount + 1) {
+  if (choice == "a") {
     Serial.println(centerString("add module", 39, ' '));
     Serial.println(centerString("", 39, '-'));
     Serial.println("");
     Serial.println("module type is determined by number, available types:");
     Serial.println("");
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 9; i++) {
       Serial.printf("%d: %s\n",i,moduleNames[i]);
     }
     Serial.println("");
-    Serial.printf("%d: return\n", 8);
+    Serial.println("r: return");
     Serial.println("");
 
-    moduleType newModuleType = (moduleType) serialInput("new module type: ").toInt();
+    choice.clear();
+    choice = serialInput("new module type: ");
+    choiceInt = choice.toInt();
 
-    if (newModuleType < 8) {// return for other values
+    if (choice != "r" && choiceInt < 9) {
+      moduleType newModuleType = (moduleType) choiceInt;
       String newModuleName = serialInput("new module name: ");
-      addModule(newModuleName, newModuleType);
-    
-      JsonObject emptySettings;
-      module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
-      module[moduleCount - 1]->setup(); // run setup if necessary
+      if (addModule(newModuleName, newModuleType)) {
+        JsonObject emptySettings;
+        module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
+        module[moduleCount - 1]->setup(); // run setup if necessary
+      }
     }
   }
-  else if (choice == moduleCount + 2) {
+  else if (choice == "d") {
     Serial.println(centerString("remove module", 39, ' '));
     Serial.println(centerString("", 39, '-'));
     Serial.println("");
@@ -318,33 +318,44 @@ void XRTL::settingsDialogue() {
     Serial.println("");
     listModules();
     Serial.println("");
-    Serial.printf("%d: exit\n", moduleCount);
+    Serial.println("r: return");
     Serial.println("");
 
-    uint8_t deleteChoice = serialInput("delete: ").toInt();
-    delModule(deleteChoice);
+    choice.clear();
+    choice = serialInput("delete: ");
+
+    if (choice != "r") {
+      uint8_t deleteChoice = choice.toInt();
+      delModule(deleteChoice);
+    }
   }
-  else if (choice == moduleCount + 3) {
+  else if (choice == "s") {
     Serial.println(centerString("swap modules", 39, ' '));
     Serial.println(centerString("", 39, '-'));
     Serial.println("choose two modules to swap:");
     Serial.println("");
     listModules();
     Serial.println("");
-    Serial.printf("%d: exit\n", moduleCount);
+    Serial.println("r: exit");
     Serial.println("");
 
-    uint8_t moduleX = serialInput("first module: ").toInt();
-    if (moduleX < moduleCount) {
-      uint8_t moduleY = serialInput("second module: ").toInt();
-      swapModules(moduleX, moduleY);
+    String firstModule = serialInput("first module: ");
+
+    if (firstModule != "r") {
+      String secondModule = serialInput("second module: ");
+      if (secondModule != "r") {
+        swapModules((uint8_t) firstModule.toInt(), (uint8_t) secondModule.toInt());
+      }
     }
   }
-  else if (choice == moduleCount +4) {
+  else if (choice == "r") {
     Serial.println("returning");
   }
+  else if (choiceInt < moduleCount) {
+    module[choiceInt]->setViaSerial();
+  }
   else {
-    Serial.printf("setup routine <%d> unknown\n", choice);
+    Serial.printf("setup routine <%s> unknown\n", choice);
   }
 }
 
@@ -381,7 +392,7 @@ void XRTL::stop(){
   }
 }
 
-void XRTL::getStatus(){
+/*void XRTL::getStatus(){
   DynamicJsonDocument doc(1024);
   JsonArray event = doc.to<JsonArray>();
   event.add("status");
@@ -400,11 +411,34 @@ void XRTL::getStatus(){
     return;
   }
   socketIO->sendEvent(event);
-}
+}*/
 
 void XRTLmodule::sendStatus(){
-  xrtl->getStatus();
+  DynamicJsonDocument doc(1024);
+  JsonArray event = doc.to<JsonArray>();
+  event.add("status");
+
+  JsonObject payload = event.createNestedObject();
+  payload["controlId"] = id;
+  
+  JsonObject status = payload.createNestedObject("status");
+  if (!getStatus(status)) return;
+  xrtl->sendEvent(event);
 }
+
+void XRTL::sendStatus(){
+  for (int i = 0; i < moduleCount; i++) {
+    module[i]->sendStatus();
+  }
+}
+
+void SocketModule::sendAllStatus() {
+  xrtl->sendStatus();
+}
+
+/*void XRTLmodule::sendStatus(){
+  xrtl->getStatus();
+}*/
 
 void XRTL::sendEvent(JsonArray& event){
   if (socketIO == NULL) {
@@ -458,18 +492,18 @@ String& XRTLmodule::getComponent() {
 }
 
 void XRTL::pushCommand(String& controlId, JsonObject& command){
-  bool ret = false;
+  //bool ret = false;
 
   for (int i = 0; i < moduleCount; i++) {
-    ret = module[i]->handleCommand(controlId, command) or ret;
+    module[i]->handleCommand(controlId, command);
   }
 
-  if (!ret){
+  /*if (!ret){
     String error = "unknown controlId <";
     error += controlId;
     error += ">";
     sendError(unknown_key, error);
-  }
+  }*/
 }
 
 void SocketModule::pushCommand(String& controlId, JsonObject& command) {
@@ -486,10 +520,10 @@ void XRTL::pushCommand(String& command){
     return;
   }
 
-  if ( command == "getStatus" ) {
+  /*if ( command == "getStatus" ) {
     getStatus();
     return;
-  }
+  }*/
 
   // offering command to modules, register if one or more respond true
   for (int i = 0; i < moduleCount; i++) {
@@ -522,14 +556,18 @@ void SocketModule::pushCommand(String& command) {
   xrtl->pushCommand(command);
 }
 
-void XRTL::sendError(componentError err, String msg) {
+void XRTL::sendError(componentError ernr, String msg) {
   if (socketIO == NULL) {
     debug("unable to send event: no endpoint module");
     return;
   }
-  socketIO->sendError(err,msg);
+  socketIO->sendError(ernr, msg);
 }
 
-void XRTLmodule::sendError(componentError err, String msg) {
-  xrtl->sendError(err,msg);
+void XRTLmodule::sendError(componentError ernr, String msg) {
+  xrtl->sendError(ernr, msg);
+}
+
+XRTLmodule* XRTLmodule::findModule(String& moduleId) {
+  return xrtl->operator[](moduleId);
 }

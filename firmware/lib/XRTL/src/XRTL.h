@@ -1,20 +1,17 @@
 #ifndef XRTL_H
 #define XRTL_H
 
-#include "ArduinoJson.h"
-#include "LittleFS.h"
-#include "XRTLmodule.h"
+#include "modules/servo/ServoModule.h"
+#include "modules/socket/SocketModule.h"
+#include "modules/wifi/WifiModule.h"
+#include "modules/stepper/StepperModule.h"
+#include "modules/infoLED/InfoLEDModule.h"
+#include "modules/output/OutputModule.h"
+#include "modules/input/InputModule.h"
+#include "modules/camera/CameraModule.h"
+#include "modules/macro/Macromodule.h"
 
-#include "modules/ServoModule.h"
-#include "modules/SocketModule.h"
-#include "modules/WifiModule.h"
-#include "modules/StepperModule.h"
-#include "modules/InfoLEDModule.h"
-#include "modules/OutputModule.h"
-#include "modules/InputModule.h"
-#include "modules/CameraModule.h"
-
-// core, manages modules
+// core, module manager
 class XRTL {
   private:
   String id = "core";
@@ -30,7 +27,7 @@ class XRTL {
   public:
   // manage Modules
   void listModules();
-  void addModule(String moduleName, moduleType category);
+  bool addModule(String moduleName, moduleType category);
   void delModule(uint8_t number);
   void swapModules(uint8_t numberX, uint8_t numberY);
   XRTLmodule* operator[](String moduleName); // returns pointer to module with specified ID
@@ -61,7 +58,8 @@ class XRTL {
   void saveSettings();
   void setViaSerial();
   void settingsDialogue();
-  void getStatus();
+  //void getStatus();
+  void sendStatus();
 
   // calls corresponding methodes of all modules
   void setup();
