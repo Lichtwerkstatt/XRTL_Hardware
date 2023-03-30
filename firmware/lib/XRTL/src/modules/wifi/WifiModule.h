@@ -18,8 +18,8 @@ class WifiModule : public XRTLmodule {
   WiFiEventId_t eventIdDisconnected; // use this when attaching the disconnected handler; needed for deinit
 
   public:
-  WifiModule(String moduleName, XRTL* source);
-  moduleType getType();
+  WifiModule(String moduleName);
+  moduleType type = xrtl_wifi;
 
   void saveSettings(JsonObject& settings);
   void loadSettings(JsonObject& settings);

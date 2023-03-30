@@ -1,8 +1,15 @@
 #include "OutputModule.h"
 
-OutputModule::OutputModule(String moduleName, XRTL* source) {
+OutputModule::OutputModule(String moduleName) {
     id = moduleName;
-    xrtl = source;
+
+    parameters.setKey(id);
+    parameters.add(type, "type");
+    parameters.add(pin, "pin", "int");
+    parameters.add(pwm, "pwm", "");
+    parameters.add(guardedModule, "guardedModule", "String");
+    parameters.addDependent(channel, "channel", "int", "pwm", true);
+    parameters.addDependent(frequency, "frequency", "Hz", "pwm", true);
 }
 
 moduleType OutputModule::getType() {
@@ -15,21 +22,18 @@ void OutputModule::pulse(uint16_t milliSeconds) {
 }
 
 void OutputModule::saveSettings(JsonObject& settings) {
-    //JsonObject saving = settings.createNestedObject(id);
-
-    settings["pin"] = pin;
+    /*settings["pin"] = pin;
     settings["pwm"] = pwm;
     settings["guardedModule"] = guardedModule;
 
     if (!pwm) return;
     settings["channel"] = channel;
-    settings["frequency"] = frequency;
+    settings["frequency"] = frequency;*/
+    parameters.save(settings);
 }
 
 void OutputModule::loadSettings(JsonObject& settings) {
-    //JsonObject loaded = settings[id];
-
-    pin = loadValue<uint8_t>("pin", settings, 27);
+    /*pin = loadValue<uint8_t>("pin", settings, 27);
     pwm = settings["pwm"].as<bool>();
     pwm = loadValue<bool>("pwm", settings, false);
     guardedModule = loadValue<String>("guardedModule", settings, "none");
@@ -54,7 +58,9 @@ void OutputModule::loadSettings(JsonObject& settings) {
     if (!pwm) return;
 
     Serial.printf("PWM channel: %d\n", channel);
-    Serial.printf("PWM frequency: %d Hz\n", frequency);
+    Serial.printf("PWM frequency: %d Hz\n", frequency);*/
+    parameters.load(settings);
+    if (debugging) parameters.print();
 }
 
 bool OutputModule::getStatus(JsonObject& status){
@@ -67,7 +73,7 @@ bool OutputModule::getStatus(JsonObject& status){
 }
 
 void OutputModule::setViaSerial() {
-    Serial.println("");
+    /*Serial.println("");
     Serial.println(centerString("",39,'-'));
     Serial.println(centerString(id,39,' '));
     Serial.println(centerString("",39,'-'));
@@ -85,7 +91,8 @@ void OutputModule::setViaSerial() {
 
     if ( serialInput("change pin binding (y/n): ") != "y" ) return;
 
-    pin = serialInput("pin: ").toInt();
+    pin = serialInput("pin: ").toInt();*/
+    parameters.setViaSerial();
 }
 
 void OutputModule::setup() {

@@ -113,10 +113,18 @@ String SocketModule::createJWT() {
 
 SocketModule* SocketModule::lastModule = NULL;
 
-SocketModule::SocketModule(String moduleName, XRTL* source) {
+SocketModule::SocketModule(String moduleName) {
   id = moduleName;
-  xrtl = source;
   lastModule = this;
+
+  parameters.setKey(id);
+  parameters.add(type, "type");
+  parameters.add(ip, "ip", "String");
+  parameters.add(port, "port", "int");
+  parameters.add(url, "url", "String");
+  parameters.add(key, "key", "String");
+  parameters.add(component, "component", "String");
+  parameters.add(useSSL, "useSSL", "");
 }
 
 moduleType SocketModule::getType() {
@@ -196,6 +204,7 @@ void socketHandler(socketIOmessageType_t type, uint8_t* payload, size_t length) 
 }
 
 void SocketModule::handleEvent(DynamicJsonDocument& doc) {
+  // possibly unsave: operator[] will fail if doc is a JsonObject
   if (doc[0].isNull() ) {
     String errormsg = "[";
     errormsg += id;
@@ -213,69 +222,34 @@ void SocketModule::handleEvent(DynamicJsonDocument& doc) {
 
   String eventName = doc[0].as<String>();
 
-  if ( eventName == "Auth" ){
+  if (eventName == "Auth"){
     debug("authenticated by server");
     notify(socket_authed);
     return;
   }
 
-  if ( eventName != "command" ) return;
+  if (eventName != "command") return; // currently only command events are analyzed
 
   JsonObject payload = doc[1];
-
-  //command:
-
-  /*String componentId;
-  if (!getValue<String>("componentId", payload, componentId)) return;
-  
-  if ( componentId == "" ) return; // make sure the ID isn't empty
-  if ( (componentId != component) and (componentId != alias) and (componentId != "*") ) return;
-  
-  JsonObject commandJson;
-  String commandStr;
-
-  switch(getValue<String,JsonObject>("command", payload, commandStr, commandJson)) {
-    case is_first: {
-      pushCommand(commandStr);
-      return;
-    }
-    case is_second: {
-      String controlId;
-      if (!getValue("controlId", commandJson, controlId, true)) return;
-      if (isBusy) {
-        String errormsg = "[";
-        errormsg += id;
-        errormsg += "] command rejected: component currently moving";
-        sendError(is_busy, errormsg);
-        return;
-      }
-      pushCommand(controlId,commandJson);
-      return;
-    }
-  }*/
-
   String controlId;
   if (!getValue<String>("controlId", payload, controlId, true)) return;
   pushCommand(controlId, payload);
 }
 
 void SocketModule::saveSettings(JsonObject& settings) {
-  //JsonObject saving = settings.createNestedObject(id);
-  
-  settings["ip"] = ip;
+  /*settings["ip"] = ip;
   settings["port"] = port;
   settings["url"] = url;
   settings["key"] = key;
   settings["component"] = component;
   settings["useSSL"] = useSSL;
   
-  return;
+  return;*/
+  parameters.save(settings);
 }
 
 void SocketModule::loadSettings(JsonObject& settings) {
-  //JsonObject loaded = settings[id];
-
-  ip = loadValue<String>("ip", settings, "192.168.1.1");
+  /*ip = loadValue<String>("ip", settings, "192.168.1.1");
   port = loadValue<uint16_t>("port", settings, 3000);
   url = loadValue<String>("url", settings, "/socket.io/?EIO=4");
   key = loadValue<String>("key", settings, "");
@@ -289,11 +263,13 @@ void SocketModule::loadSettings(JsonObject& settings) {
   Serial.printf("url: %s\n", url.c_str());
   Serial.printf("key: %s\n", key.c_str());
   Serial.printf("componentId: %s\n", component.c_str());
-  Serial.printf("%s SSL\n", useSSL ? "" : "no");
+  Serial.printf("%s SSL\n", useSSL ? "" : "no");*/
+  parameters.load(settings);
+  if (debugging) parameters.print();
 }
 
 void SocketModule::setViaSerial() {
-  Serial.println("");
+  /*Serial.println("");
   Serial.println(centerString("",39, '-'));
   Serial.println(centerString(id,39, ' '));
   Serial.println(centerString("",39, '-'));
@@ -304,7 +280,8 @@ void SocketModule::setViaSerial() {
   url = serialInput("URL: ");
   key = serialInput("key: ");
   component = serialInput("componentId: ");
-  useSSL = (serialInput("use SSL (y/n): ") == "y");
+  useSSL = (serialInput("use SSL (y/n): ") == "y");*/
+  parameters.setViaSerial();
 }
 
 String& SocketModule::getComponent() {

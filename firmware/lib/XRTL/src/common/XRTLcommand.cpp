@@ -17,11 +17,11 @@ String& XRTLcommand::getId() {
 
 void XRTLcommand::fillCommand(JsonObject& command) {
     command["controlId"] = id;
-    val.addValueToKey(key, command);
+    val.passValue(key, command);
 }
 
 void XRTLcommand::saveSettings(JsonObject& settings) {
-    val.addValueToKey(key, settings);
+    val.passValue(key, settings);
 }
 
 void XRTLcommand::setViaSerial() {

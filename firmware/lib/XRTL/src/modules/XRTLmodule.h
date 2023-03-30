@@ -2,6 +2,7 @@
 #define XRTLMODULE_H
 
 #include "common/XRTLcommand.h"
+#include "common/XRTLparameterPack.h"
 
 // internal reference for module type
 enum moduleType {
@@ -74,9 +75,10 @@ class XRTLmodule {
   bool debugging = true; // true: print status messages via serial monitor and accept serial events
 
   public:
+  ParameterPack parameters; // stores parameters for the module
   String getID(); // return id
-  virtual moduleType getType();
   String& getComponent();
+  void setParent(XRTL* parent);
   bool isModule(String& moduleName); // @returns (id == moduleName)
 
   virtual bool handleCommand(String& command); // DEPRECATED react on a simple command offered by the core, return false if command is unkown
@@ -103,6 +105,8 @@ class XRTLmodule {
   // @param length size of the data object to be sent
   // @note placeholder: 451-[<event name>,{<additional payload>,{"_placeholder":true,"num":0}}]
   void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length);
+
+  void sendCommand(XRTLcommand& command);
 
   // @brief instruct core to send the status of this module
   // @note content of the status is filled by getStatus(), if empty no status will be send
@@ -192,7 +196,7 @@ class XRTLmodule {
   // @param target store value here if key was found
   // @param minValue lower bound of the constraining interval
   // @param maxValue upper bound of the constraining interval
-  // @param reportMissingField if True a report will be issued in case the key could not be found
+  // @param reportMissingField if True a report will be issued in case the key could not be found, use only for mandatory keys
   // @returns True if the key was found
   template<typename T>
   bool getAndConstrainValue(String name, JsonObject& file, T& target, T minValue, T maxValue, bool reportMissingField = false) {
@@ -215,14 +219,6 @@ class XRTLmodule {
 
     return true;
   }
-
-  // @brief check if a specific controlId is present on the ESP32 and return the Address if so
-  // @param moduleId controlId you are trying to find
-  // @returns pointer to module
-  // @note If the module can't be found on this ESP32 a nullpointer is returned. In that case the specific controlId might still exist on another ESP32
-  XRTLmodule* findModule(String& moduleId);
-
-  
 };
 
 #endif

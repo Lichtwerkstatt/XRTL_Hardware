@@ -1,12 +1,15 @@
 #include "WifiModule.h"
 
-WifiModule::WifiModule(String moduleName, XRTL* source) {
+WifiModule::WifiModule(String moduleName) {
   id = moduleName;
-  xrtl = source;
-}
 
-moduleType WifiModule::getType() {
-  return xrtl_wifi;
+  parameters.setKey(id);
+  parameters.add(type, "type");
+  parameters.add(enterprise, "enterprise", "bool");
+  parameters.add(ssid, "ssid", "String");
+  parameters.add(password, "password", "String");
+  parameters.addDependent(username, "username", "String", "enterprise", true); // username only needed with enterprise WiFi
+  parameters.addDependent(anonymous, "anonymous", "String", "enterprise", true); // anonymous identity only needed with enterprise WiFi
 }
 
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -17,20 +20,19 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
 void WifiModule::saveSettings(JsonObject& settings) {
   //JsonObject saving = settings.createNestedObject(id);
 
-  settings["enterprise"] = enterprise;
+  /*settings["enterprise"] = enterprise;
   settings["ssid"] = ssid;
   settings["password"] = password;
 
   if (enterprise) {
     settings["username"] = username;
     settings["anonymous"] = anonymous;
-  }
+  }*/
+  parameters.save(settings);
 }
 
 void WifiModule::loadSettings(JsonObject& settings) {
-  //JsonObject loaded = settings[id];
-
-  enterprise = loadValue<bool>("enterprise", settings, false);
+  /*enterprise = loadValue<bool>("enterprise", settings, false);
   ssid = loadValue<String>("ssid", settings, "");
   password = loadValue<String>("password", settings, "");
   
@@ -48,11 +50,14 @@ void WifiModule::loadSettings(JsonObject& settings) {
 
   if (!debugging) return;
   Serial.printf("username: %s\n", username.c_str());
-  Serial.printf("anonymous: %s\n", anonymous.c_str());
+  Serial.printf("anonymous: %s\n", anonymous.c_str());*/
+
+  parameters.load(settings);
+  if (debugging) parameters.print();
 }
 
 void WifiModule::setViaSerial() {
-  Serial.println("");
+  /*Serial.println("");
   Serial.println(centerString("",39, '-'));
   Serial.println(centerString(id,39, ' '));
   Serial.println(centerString("",39, '-'));
@@ -65,7 +70,8 @@ void WifiModule::setViaSerial() {
   if (enterprise) {
     username = serialInput("username: ");
     anonymous = serialInput("anonymous identity: ");
-  }
+  }*/
+  parameters.setViaSerial();
 }
 
 void WifiModule::setup() {

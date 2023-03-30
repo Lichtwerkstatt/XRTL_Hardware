@@ -7,12 +7,12 @@
 
 class SocketModule : public XRTLmodule {
   private:
-  String ip;
-  uint16_t port;
-  String url;
-  String key;
-  String component;
-  bool useSSL;
+  String ip = "192.168.178.1";
+  uint16_t port = 3000;
+  String url = "/socket.io/?EIO=4";
+  String key = "key";
+  String component = "XRTL_ESP32";
+  bool useSSL = false;
 
   uint8_t failedConnectionCount = 0;
   bool timeSynced = false;
@@ -22,7 +22,8 @@ class SocketModule : public XRTLmodule {
  
 
   public:
-  SocketModule(String moduleName, XRTL* source);
+  SocketModule(String moduleName);
+  moduleType type = xrtl_socket;
   moduleType getType();
 
   String& getComponent();

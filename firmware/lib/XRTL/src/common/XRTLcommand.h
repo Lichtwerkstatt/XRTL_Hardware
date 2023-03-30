@@ -18,6 +18,9 @@ class XRTLcommand {
     // @brief fill a JsonObject with the command
     // @note the JsonDocument must be called externally or it would not the survive the context of the function call
     void fillCommand(JsonObject& command);
+    // @brief fill a JsonObject with the command but substitute the stored value with the supplied value
+    // @note the JsonDocument must be called externally or it would not the survive the context of the function call
+    void fillCommand(JsonObject& command, JsonVariant& relayVal);
 
     void saveSettings(JsonObject& settings);
     void setViaSerial();

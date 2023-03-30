@@ -1,6 +1,14 @@
 #include "XRTLval.h"
 
-void XRTLval::addValueToKey(String& key, JsonObject& command) {
+void XRTLval::clear() {
+    currentType = xrtlval_bool;
+    valBool = false;
+    valInt = 0;
+    valFloat = 0.0;
+    valString = "";
+}
+
+void XRTLval::passValue(String& key, JsonObject& command) {
     switch (currentType) {
         case (xrtlval_bool): {
             command[key] = valBool;
@@ -23,18 +31,22 @@ void XRTLval::addValueToKey(String& key, JsonObject& command) {
 
 void XRTLval::set(JsonVariant& newVal) {
     if (newVal.is<bool>()) {
+        clear();
         currentType = xrtlval_bool;
         valBool = newVal.as<bool>();
     }
     else if (newVal.is<int>()) {
+        clear();
         currentType = xrtlval_int;
         valInt = newVal.as<int>();
     }
     else if (newVal.is<float>() || newVal.is<double>()) {
+        clear();
         currentType = xrtlval_float;
         valFloat = newVal.as<double>();
     }
     else if (newVal.is<String>()) {
+        clear();
         currentType = xrtlval_string;
         valString = newVal.as<String>();
     }

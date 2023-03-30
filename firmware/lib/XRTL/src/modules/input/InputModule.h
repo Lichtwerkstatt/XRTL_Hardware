@@ -2,7 +2,7 @@
 #define INPUTMODULE_H
 
 #include "XRTLinput.h"
-#include "conversions/Converter.h"
+#include "conversions/InputConverter.h"
 #include "conversions/resdiv/ResistanceDivider.h"
 #include "conversions/thermistor/Thermistor.h"
 #include "conversions/map/MapValue.h"
@@ -16,12 +16,12 @@ class InputModule: public XRTLmodule {
     // maximum number: 16
     uint8_t conversionCount = 0;
     conversion_t conversionType[16]; // array that holds the type of each conversion
-    Converter* conversion[16]; // array that holds the pointers to the individual instances of the conversion class
+    InputConverter* conversion[16]; // array that holds the pointers to the individual instances of the conversion class
 
     // number of the physical input pin
     // WARNING: ADC2 cannot be used when WiFi is active. Be aware of your board limitations.
-    uint8_t pin;
-    uint16_t averageTime; // time that the voltage value is averaged for in milli seconds
+    uint8_t pin = 35;
+    uint16_t averageTime = 0; // time that the voltage value is averaged for in milli seconds
 
     bool isStreaming = false;
     int64_t next;
@@ -38,8 +38,10 @@ class InputModule: public XRTLmodule {
     bool lastState;
 
     public:
+    ParameterPack convParameters;
 
-    InputModule(String moduleName, XRTL* source);
+    InputModule(String moduleName);
+    moduleType type = xrtl_input;
     moduleType getType();
 
     void setup();

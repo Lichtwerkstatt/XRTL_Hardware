@@ -66,7 +66,8 @@ class InfoLEDModule : public XRTLmodule {
   uint16_t userHue = 20000;
   
   public:
-  InfoLEDModule(String moduleName, XRTL* source);
+  InfoLEDModule(String moduleName);
+  moduleType type = xrtl_infoLED;
   moduleType getType();
 
   void saveSettings(JsonObject& settings);
@@ -82,7 +83,6 @@ class InfoLEDModule : public XRTLmodule {
   void handleCommand(String& controlId, JsonObject& command); // TODO: add command for changing color?
 };
 
-uint16_t hexRGBtoHue(String& hexRGB);
-
+void hexRGBtoHSV(String& hexRGB, uint16_t& hueTarget, uint8_t& satTarget, uint8_t& valTarget);
 
 #endif

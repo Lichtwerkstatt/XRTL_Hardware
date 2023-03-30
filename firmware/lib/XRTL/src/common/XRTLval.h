@@ -14,16 +14,20 @@ enum xrtlVal_t {
 // @note can exlusively be set by and read to JSON files because I can't get polymorphism to work anywhere close to how that library does
 class XRTLval {
     private:
-    xrtlVal_t currentType = xrtlval_int;
+    xrtlVal_t currentType = xrtlval_bool;
 
-    bool valBool;
-    int  valInt = 0;
+    bool valBool = false;
+    int  valInt;
     double valFloat;
     String valString;
 
+    void clear();
+
     public:
-    void addValueToKey(String& key, JsonObject& command);
+    void passValue(String& key, JsonObject& command);
     void set(JsonVariant& newVal);
 };
+
+
 
 #endif

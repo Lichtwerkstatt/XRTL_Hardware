@@ -1,8 +1,10 @@
 #include "CameraModule.h"
 
-CameraModule::CameraModule(String moduleName, XRTL* source){
+CameraModule::CameraModule(String moduleName){
     id = moduleName;
-    xrtl = source;
+
+    parameters.setKey(id);
+    parameters.add(type, "type");
 }
 
 moduleType CameraModule::getType() {

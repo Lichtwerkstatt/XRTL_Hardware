@@ -94,9 +94,13 @@ void InfoLED::loop() {
   }
 }
 
-InfoLEDModule::InfoLEDModule(String modulName, XRTL* source) {
+InfoLEDModule::InfoLEDModule(String modulName) {
   id = modulName;
-  xrtl = source;
+
+  parameters.setKey(id);
+  parameters.add(type, "type");
+  parameters.add(pin, "pin", "pin: ");
+  parameters.add(pixel, "pixel", "pixel: ");
 }
 
 moduleType InfoLEDModule::getType() {
@@ -116,24 +120,24 @@ void InfoLEDModule::loop() {
 }
 
 void InfoLEDModule::saveSettings(JsonObject& settings) {
-  //JsonObject saving = settings.createNestedObject(id);
-  settings["pin"] = pin;
-  settings["pixel"] = pixel;
+  /*settings["pin"] = pin;
+  settings["pixel"] = pixel;*/
+  parameters.save(settings);
 }
 
 void InfoLEDModule::loadSettings(JsonObject& settings) {
-  //JsonObject loaded = settings[id];
-
-  pin = loadValue<uint8_t>("pin", settings, 32);
+  /*pin = loadValue<uint8_t>("pin", settings, 32);
   pixel = loadValue<uint8_t>("pixel", settings, 12);
 
   if (!debugging) return;
   Serial.printf("control pin: %i\n", pin);
-  Serial.printf("pixel number: %i\n", pixel);
+  Serial.printf("pixel number: %i\n", pixel);*/
+  parameters.load(settings);
+  if (debugging) parameters.print();
 }
 
 void InfoLEDModule::setViaSerial() {
-  Serial.println("");
+  /*Serial.println("");
   Serial.println(centerString("",39,'-').c_str());
   Serial.println(centerString(id,39,' ').c_str());
   Serial.println(centerString("",39,'-').c_str());
@@ -144,7 +148,8 @@ void InfoLEDModule::setViaSerial() {
   if (serialInput("change pin binding (y/n): ") != "y") return;
   
   pin = serialInput("control pin: ").toInt();
-  pixel = serialInput("pixel number: ").toInt(); 
+  pixel = serialInput("pixel number: ").toInt(); */
+  parameters.setViaSerial();
 }
 
 void InfoLEDModule::stop() {
@@ -173,9 +178,11 @@ void InfoLEDModule::handleCommand(String& controlId, JsonObject& command) {
 
   String hexRGB;
   if (getValue<String>("color", command, hexRGB)){
-    userHue = hexRGBtoHue(hexRGB);
-    debug("selected Hue: %d", userHue);
-    led->hsv(userHue, 255, 110);
+    uint8_t userVal;
+    uint8_t userSat;
+    hexRGBtoHSV(hexRGB, userHue, userSat, userVal);
+    led->hsv(userHue, userSat, 110);
+    debug("accepted color in HSV: %d, %d, %d", userHue, userSat, userVal);
     //led->constant();
     led->loop();
   }
@@ -239,7 +246,7 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String& sourceId) {
   }
 }
 
-uint16_t hexRGBtoHue(String& hexRGB) {
+void hexRGBtoHSV(String& hexRGB, uint16_t& hueTarget, uint8_t& satTarget, uint8_t& valTarget) {
   float RGB[3] = {0,0,0};
   long combinedRGB = strtol(&hexRGB[1], NULL, 16);
   RGB[0] = (combinedRGB >> 16);
@@ -247,25 +254,34 @@ uint16_t hexRGBtoHue(String& hexRGB) {
   RGB[2] = (combinedRGB & 0xFF);
 
   float hue;
-  float minChannel = min(min(RGB[0],RGB[1]),RGB[2]);
+  float sat;
+  float val;
   float maxChannel = max(max(RGB[0],RGB[1]),RGB[2]);
+  float minChannel = min(min(RGB[0],RGB[1]),RGB[2]);
+  val = maxChannel;
 
   if (minChannel == maxChannel) {
     hue = 0;
+    sat = 0;
   }
   else if (maxChannel == RGB[0]) {
     hue = (RGB[1] - RGB[2]) / (maxChannel - minChannel);
+    sat = (maxChannel - minChannel) / maxChannel * 255.0;
   }
   else if (maxChannel == RGB[1]) {
     hue = 2.0 + (RGB[2] - RGB[0]) / (maxChannel - minChannel);
+    sat = (maxChannel - minChannel) / maxChannel * 255.0;
   }
   else if (maxChannel == RGB[2]) {
     hue = 4.0 + (RGB[0] - RGB[1]) / (maxChannel - minChannel);
+    sat = (maxChannel - minChannel) / maxChannel * 255.0;
   }
 
   if (hue < 0) {
     hue += 6;
   }
-
-  return round(hue*10922.5);
+  
+  hueTarget = round(hue * 10922.5);
+  satTarget = round(sat);
+  valTarget = round(val);
 }

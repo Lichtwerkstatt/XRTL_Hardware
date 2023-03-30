@@ -27,7 +27,8 @@ class CameraModule : public XRTLmodule {
     framesize_t frameSize = FRAMESIZE_QVGA;
 
     public:
-    CameraModule(String moduleName, XRTL* source);
+    CameraModule(String moduleName);
+    moduleType type = xrtl_camera;
     moduleType getType();
 
     void setup();

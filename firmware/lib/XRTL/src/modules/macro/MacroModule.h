@@ -8,16 +8,17 @@ class MacroModule : public XRTLmodule {
     uint8_t stateCount = 0;
     MacroState* states[16];
 
-    String controlKey;
-    String currentState;
-    String initState;
+    String controlKey = "key";
+    String currentState = "";
+    String initState = "";
 
     void listStates();
     void dialog();
 
     public:
-    MacroModule(String moduleName, XRTL* source);
-    moduleType getType();
+    MacroModule(String moduleName);
+    moduleType type = xrtl_macro;
+    ParameterPack stateParameters;
 
     void setup();
 

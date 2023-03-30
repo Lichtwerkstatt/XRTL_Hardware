@@ -1,8 +1,18 @@
 #include "ServoModule.h"
 
-ServoModule::ServoModule(String moduleName, XRTL* source) {
+ServoModule::ServoModule(String moduleName) {
   id = moduleName;
-  xrtl = source;
+
+  parameters.setKey(id);
+  parameters.add(type, "type");
+  parameters.add(frequency, "frequency", "Hz");
+  parameters.add(minDuty, "minDuty", "µs");
+  parameters.add(maxDuty, "maxDuty", "µs");
+  parameters.add(minAngle, "minAngle", "int");
+  parameters.add(maxAngle, "maxAngle", "int");
+  parameters.add(maxSpeed, "maxSpeed", "float");
+  parameters.add(initial, "initial", "int");
+  parameters.add(pin, "pin", "int");
 }
 
 moduleType ServoModule::getType() {
@@ -10,21 +20,19 @@ moduleType ServoModule::getType() {
 }
 
 void ServoModule::saveSettings(JsonObject& settings){
-  //JsonObject saving = settings.createNestedObject(id);
-  settings["frequency"] = frequency;
+  /*settings["frequency"] = frequency;
   settings["minDuty"] = minDuty;
   settings["maxDuty"] = maxDuty;
   settings["minAngle"] = minAngle;
   settings["maxAngle"] = maxAngle;
   settings["maxSpeed"] = maxSpeed;
   settings["initial"] = initial;
-  settings["pin"] = pin;
+  settings["pin"] = pin;*/
+  parameters.save(settings);
 }
 
 void ServoModule::loadSettings(JsonObject& settings){
-  //JsonObject loaded = settings[id];
-
-  frequency = loadValue<uint16_t>("frequency", settings, 50);
+  /*frequency = loadValue<uint16_t>("frequency", settings, 50);
   minDuty = loadValue<uint16_t>("minDuty", settings, 1000);
   maxDuty = loadValue<uint16_t>("maxDuty", settings, 2000);
   minAngle = loadValue<int16_t>("minAngle", settings, 0);
@@ -45,11 +53,13 @@ void ServoModule::loadSettings(JsonObject& settings){
   Serial.printf("initial position: %d\n", initial);
 
   Serial.println("");
-  Serial.printf("control pin: %d\n", pin);
+  Serial.printf("control pin: %d\n", pin);*/
+  parameters.load(settings);
+  if (debugging) parameters.print();
 }
 
 void ServoModule::setViaSerial(){
-  Serial.println("");
+  /*Serial.println("");
   Serial.println(centerString("",39, '-'));
   Serial.println(centerString(id,39, ' '));
   Serial.println(centerString("",39, '-'));
@@ -67,7 +77,8 @@ void ServoModule::setViaSerial(){
 
   if ( serialInput("change pin binding (y/n): ") == "y" ) {
     pin = serialInput("pin: ").toInt();
-  }
+  }*/
+  parameters.setViaSerial();
 }
 
 bool ServoModule::getStatus(JsonObject& status){

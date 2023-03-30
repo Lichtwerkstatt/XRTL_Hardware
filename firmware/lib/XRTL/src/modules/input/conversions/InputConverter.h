@@ -1,5 +1,5 @@
-#ifndef CONVERTER_H
-#define CONVERTER_H
+#ifndef INPUTCONVERTER_H
+#define INPUTCONVERTER_H
 
 #include "modules/XRTLmodule.h"
 
@@ -13,7 +13,7 @@ enum conversion_t {
 
 static const char* conversionName[5] = {
     "Thermistor",
-    "Resistance by voltage divider",
+    "Resistance",
     "Map",
     "Offset",
     "Multiplication"
@@ -23,14 +23,18 @@ static const char* conversionName[5] = {
 // class must contain convert function from double to double
 // class must contain methods for handling the conversion settings
 // multiple variables might be needed for a single conversion
-class Converter {
+class InputConverter {
+    protected:
+    conversion_t type;
+
     public:
-    virtual void convert(double& value);
+    ParameterPack parameters;
+    virtual void convert(double& value){};
 
     // handle settings
-    virtual void loadSettings(JsonObject& settings, bool debugMode);
-    virtual void saveSettings(JsonArray& settings);
-    virtual void setViaSerial();
+    virtual void loadSettings(JsonObject& settings, bool debugMode){};
+    virtual void saveSettings(JsonObject& settings){};
+    virtual void setViaSerial(){};
 };
 
 #endif

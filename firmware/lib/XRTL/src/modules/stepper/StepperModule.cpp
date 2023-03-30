@@ -2,9 +2,21 @@
 //when motor running: 
 //infoLED.pulse(0, 40, 100);
 
-StepperModule::StepperModule(String moduleName, XRTL* source) {
+StepperModule::StepperModule(String moduleName) {
   id = moduleName;
-  xrtl = source;
+
+  parameters.setKey(id);
+  parameters.add(type, "type");
+  parameters.add(pin[0], "pin1", "int");
+  parameters.add(pin[1], "pin1", "int");
+  parameters.add(pin[2], "pin1", "int");
+  parameters.add(pin[3], "pin1", "int");
+  parameters.add(accel, "accel", "steps/s²");
+  parameters.add(speed, "speed", "steps/s");
+  parameters.add(position, "position", "int");
+  parameters.add(minimum, "minimum", "int");
+  parameters.add(maximum, "maximum", "int");
+  parameters.add(initial, "initial", "int");
 }
 
 moduleType StepperModule::getType() {
@@ -13,7 +25,7 @@ moduleType StepperModule::getType() {
 
 void StepperModule::saveSettings(JsonObject& settings) {
   //JsonObject saving = settings.createNestedObject(id);
-  
+  /*
   settings["accel"] = accel;
   settings["speed"] = speed;
   if (stepper == NULL) {
@@ -28,13 +40,13 @@ void StepperModule::saveSettings(JsonObject& settings) {
   settings["pin1"] = pin[0];
   settings["pin2"] = pin[1];
   settings["pin3"] = pin[2];
-  settings["pin4"] = pin[3]; 
+  settings["pin4"] = pin[3];*/
+
+  parameters.save(settings);
 }
 
 void StepperModule::loadSettings(JsonObject& settings) {
-  //JsonObject loaded = settings[id];
-
-  accel = loadValue<uint16_t>("accel", settings, 500);
+  /*accel = loadValue<uint16_t>("accel", settings, 500);
   speed = loadValue<uint16_t>("speed", settings, 500);
   position = loadValue<int32_t>("position", settings, 0);
   minimum = loadValue<int32_t>("minimum", settings, -2048);
@@ -61,11 +73,13 @@ void StepperModule::loadSettings(JsonObject& settings) {
   Serial.printf("pin 1: %d\n", pin[0]);
   Serial.printf("pin 2: %d\n", pin[1]);
   Serial.printf("pin 3: %d\n", pin[2]);
-  Serial.printf("pin 4: %d\n", pin[3]);
+  Serial.printf("pin 4: %d\n", pin[3]);*/
+  parameters.load(settings);
+  if (debugging) parameters.print();
 }
 
 void StepperModule::setViaSerial() {
-  Serial.println("");
+  /*Serial.println("");
   Serial.println(centerString("",39, '-'));
   Serial.println(centerString(id,39, ' '));
   Serial.println(centerString("",39, '-'));
@@ -87,7 +101,8 @@ void StepperModule::setViaSerial() {
   pin[0] = serialInput("pin 1: ").toInt();
   pin[1] = serialInput("pin 2: ").toInt();
   pin[2] = serialInput("pin 3: ").toInt();
-  pin[3] = serialInput("pin 4: ").toInt();
+  pin[3] = serialInput("pin 4: ").toInt();*/
+  parameters.setViaSerial();
 }
 
 void StepperModule::setup() {

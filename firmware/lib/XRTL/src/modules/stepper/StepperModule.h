@@ -22,7 +22,8 @@ class StepperModule : public XRTLmodule {
   AccelStepper* stepper = NULL;
   
   public:
-  StepperModule(String moduleName, XRTL* source);
+  StepperModule(String moduleName);
+  moduleType type = xrtl_stepper;
   moduleType getType();
 
   void driveStepper(JsonObject& command);

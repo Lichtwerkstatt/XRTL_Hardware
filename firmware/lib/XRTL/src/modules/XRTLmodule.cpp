@@ -4,12 +4,12 @@ String XRTLmodule::getID(){
   return id;
 }
 
-moduleType XRTLmodule::getType() {
-  return xrtl_socket;// TODO: add "xrtl_none" and set as default, adjust all setting handling functions accordingly 
+void XRTLmodule::setParent(XRTL* parent){
+  xrtl = parent;
 }
 
 bool XRTLmodule::isModule(String& moduleName){
-  return ( id == moduleName);
+  return (id == moduleName);
 }
 
 void XRTLmodule::setup(){

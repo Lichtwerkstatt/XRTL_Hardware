@@ -91,25 +91,7 @@ void MacroState::dialog(){
 void MacroState::activate(){
     macro->debug("activated <%s>", stateName);
     for (int i = 0; i < commandCount; i++) {
-        String controlId = commands[i]->getId();
-        XRTLmodule* targetModule = macro->findModule(controlId);
-        DynamicJsonDocument doc(512);
-
-        if (targetModule != NULL) { // module located on this hardware
-            JsonObject command = doc.to<JsonObject>();
-
-            commands[i]->fillCommand(command);
-            targetModule->handleCommand(controlId, command);
-        }
-        else {
-            JsonArray event = doc.to<JsonArray>();
-            event.add("command");
-            JsonObject command = event.createNestedObject();
-            
-            commands[i]->fillCommand(command);
-            macro->sendEvent(event); 
-        }
-
+        macro->sendCommand(*commands[i]);
     }
 }
 

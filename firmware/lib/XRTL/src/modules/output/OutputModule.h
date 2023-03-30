@@ -8,7 +8,7 @@
 class OutputModule: public XRTLmodule {
     private:
 
-    uint8_t pin;
+    uint8_t pin = 27;
 
     // @brief controls the output behavior
     // @note True: output is 8 bit pwm; False: output is a relay
@@ -18,7 +18,7 @@ class OutputModule: public XRTLmodule {
     uint8_t channel;
     // @brief pwm frequency in Hz
     // @note permitted values: 1000, 5000, 8000, 10000 
-    uint16_t frequency;
+    uint16_t frequency = 1000;
 
     // @brief esp_timer value (µs) at which the module is switched off again
     int64_t switchTime = 0;
@@ -31,7 +31,8 @@ class OutputModule: public XRTLmodule {
 
     public:
 
-    OutputModule(String moduleName, XRTL* source);
+    OutputModule(String moduleName);
+    moduleType type = xrtl_output;
     moduleType getType();
 
     void pulse(uint16_t milliSeconds);

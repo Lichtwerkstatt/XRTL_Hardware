@@ -55,67 +55,78 @@ bool XRTL::addModule(String moduleName, moduleType category) {
     debug("unable to add module: maximum number of modules reached");
     return false;
   }
+
   if ( (moduleName == 0) or (moduleName == "")) {
     debug("unable to add module: ID must not be empty");
-    false;
+    return false;
   }
+
   if (this->operator[](moduleName) != NULL) {
     debug("unable to add module <%s>: ID already in use", moduleName.c_str());
     return false;  
   }
+
   if ( (moduleName == "*") or (moduleName == "none") or (moduleName == "core") ) {
     debug("unable to add module <%s>: ID restricted to internal use", moduleName);
     return false;
   }
+
+  bool ret = false;
   switch(category) {
     case xrtl_socket: {
-      socketIO = new SocketModule(moduleName,this);
-      module[moduleCount++] = socketIO;
-      debug("socket module added: <%s>", moduleName.c_str());
-      return true;
+      socketIO = new SocketModule(moduleName);
+      module[moduleCount] = socketIO;
+      ret = true;
+      break;
     }
     case xrtl_wifi: {
-      module[moduleCount++] = new WifiModule(moduleName,this);
-      debug("wifi module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new WifiModule(moduleName);
+      ret = true;
+      break;
     }
     case xrtl_infoLED: {
-      module[moduleCount++] = new InfoLEDModule(moduleName,this);
-      debug("infoLED module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new InfoLEDModule(moduleName);
+      ret = true;
+      break;
     }
     case xrtl_stepper: {
-      module[moduleCount++] = new StepperModule(moduleName,this);
-      debug("stepper module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new StepperModule(moduleName);
+      ret = true;
+      break;
     }
     case xrtl_servo: {
-      module[moduleCount++] = new ServoModule(moduleName,this);
-      debug("servo module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new ServoModule(moduleName);
+      ret = true;
+      break;
     }
     case xrtl_camera: {
-      module[moduleCount++] = new CameraModule(moduleName,this);
-      debug("camera module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new CameraModule(moduleName);
+      ret = true;
+      break;
     }
     case xrtl_output: {
-      module[moduleCount++] = new OutputModule(moduleName,this);
-      debug("output module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new OutputModule(moduleName);
+      ret = true;
+      break;
     }
     case xrtl_input: {
-      module[moduleCount++] = new InputModule(moduleName,this);
-      debug("input module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new InputModule(moduleName);
+      ret = true;
+      break;
     }
     case xrtl_macro: {
-      module[moduleCount++] = new MacroModule(moduleName, this);
-      debug("macro module added: <%s>", moduleName.c_str());
-      return true;
+      module[moduleCount] = new MacroModule(moduleName);
+      ret = true;
+      break;
     }
   }
-  return false;
+
+  if (ret) {
+    debug("<%s> module added: <%s>", moduleNames[category], moduleName.c_str());
+    module[moduleCount++]->setParent(this);
+  }
+
+  return ret;
 }
 
 void XRTL::listModules() {
@@ -126,7 +137,10 @@ void XRTL::listModules() {
 
 void XRTL::delModule(uint8_t number) {
   if ((number >= 0) and (number < moduleCount)){
-    Serial.printf("[%s] deleting <%s> ... ", id.c_str(), module[number]->getID().c_str());
+    String deletedName = module[number]->getID();
+    Serial.printf("[%s] deleting <%s> ... ", id.c_str(), deletedName.c_str());
+    //parameters.delParameter[deletedName];
+    delete module[number];
     for (int i = number; i < moduleCount - 1; i++) {
       module[i] = module[i+1];
     }
@@ -154,19 +168,18 @@ XRTLmodule* XRTL::operator[](String moduleName) {
       return module[i];
     }
   }
-  return NULL;// probably not a good idea as default, return dummy module instead?
+  return NULL;// probably not a good idea as default, return a special null module instead?
 }
 
 void XRTL::saveSettings() {
   DynamicJsonDocument doc(2048);
+  JsonObject settings = doc.to<JsonObject>();
 
   for (int i = 0; i < moduleCount; i++) {
-    JsonObject settings = doc.createNestedObject(module[i]->getID());
-    settings["type"] = module[i]->getType();
     module[i]->saveSettings(settings);
   }
 
-  //serializeJsonPretty(doc, Serial);
+  serializeJsonPretty(doc, Serial);
 
   if (!LittleFS.begin(false)) {
     debug("failed to mount LittleFS");
@@ -226,25 +239,19 @@ void XRTL::loadSettings() {
   file.close();
   LittleFS.end();
 
+  serializeJsonPretty(doc, Serial);
   JsonObject settings = doc.as<JsonObject>();
 
   for (JsonPair kv : settings) {
     moduleType type;
     if ( (!kv.value().isNull()) and (kv.value().is<JsonObject>()) ) {
-      JsonObject moduleSettings = kv.value().as<JsonObject>();
-      auto typeField = moduleSettings["type"];
+      //JsonObject moduleSettings = kv.value().as<JsonObject>();
+      auto typeField = kv.value()["type"];
+      //auto typeField = moduleSettings["type"];
       if ((!typeField.isNull()) and (typeField.is<int>()) ) {
-        type = (moduleType) typeField.as<int>();
-
-        if (debugging) Serial.println("");
-        if (debugging) Serial.println(centerString("", 39, '-'));
-
+        type = typeField.as<moduleType>();
         addModule(kv.key().c_str(), type);
-
-        if (debugging) Serial.println(centerString("", 39, '-'));
-        if (debugging) Serial.println("");
-
-        module[moduleCount -1]->loadSettings(moduleSettings);
+        module[moduleCount -1]->loadSettings(settings);
       }
     }
   }
@@ -281,7 +288,7 @@ void XRTL::settingsDialogue() {
   String choice = serialInput("choose setup routine: ");
   uint8_t choiceInt = choice.toInt();
   Serial.println("");
-  Serial.println(centerString("", 39, '-'));
+  //Serial.println(centerString("", 39, '-'));
 
   if (choice == "a") {
     Serial.println(centerString("add module", 39, ' '));
@@ -463,6 +470,31 @@ void XRTLmodule::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t le
   xrtl->sendBinary(binaryLeadFrame, payload, length);
 }
 
+void XRTL::sendCommand(XRTLcommand& command) {
+  String& controlId = command.getId();
+  XRTLmodule* targetModule = operator[](controlId);
+  DynamicJsonDocument doc(512);
+
+  if (targetModule != NULL) { // module located on this hardware
+    JsonObject commandObj = doc.to<JsonObject>();
+
+    command.fillCommand(commandObj);
+    targetModule->handleCommand(controlId, commandObj);
+  }
+  else {
+    JsonArray event = doc.to<JsonArray>();
+    event.add("command");
+    JsonObject commandObj = event.createNestedObject();
+    
+    command.fillCommand(commandObj);
+    sendEvent(event); 
+  }
+}
+
+void XRTLmodule::sendCommand(XRTLcommand& command) {
+  xrtl->sendCommand(command);
+}
+
 void XRTL::notify(internalEvent eventId, String& sourceId) {
   // notify modules
   for (int i = 0; i < moduleCount; i++) {
@@ -492,20 +524,15 @@ String& XRTLmodule::getComponent() {
 }
 
 void XRTL::pushCommand(String& controlId, JsonObject& command){
-  //bool ret = false;
 
   for (int i = 0; i < moduleCount; i++) {
     module[i]->handleCommand(controlId, command);
   }
 
-  /*if (!ret){
-    String error = "unknown controlId <";
-    error += controlId;
-    error += ">";
-    sendError(unknown_key, error);
-  }*/
 }
 
+// only module that can get commands externally and needs this methode
+// MacroModule can send commands too but needs a different methode or it would cause a feedback loop with several ESPs
 void SocketModule::pushCommand(String& controlId, JsonObject& command) {
   xrtl->pushCommand(controlId, command);
 }
@@ -566,8 +593,4 @@ void XRTL::sendError(componentError ernr, String msg) {
 
 void XRTLmodule::sendError(componentError ernr, String msg) {
   xrtl->sendError(ernr, msg);
-}
-
-XRTLmodule* XRTLmodule::findModule(String& moduleId) {
-  return xrtl->operator[](moduleId);
 }

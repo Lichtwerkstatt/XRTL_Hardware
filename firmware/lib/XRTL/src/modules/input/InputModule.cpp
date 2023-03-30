@@ -1,8 +1,19 @@
 #include "InputModule.h"
 
-InputModule::InputModule(String moduleName, XRTL* source) {
+InputModule::InputModule(String moduleName) {
     id = moduleName;
-    xrtl = source;
+
+    parameters.setKey(id);
+    convParameters.setKey("conversions");
+
+    parameters.add(pin, "pin", "int");
+    parameters.add(type, "type");
+    parameters.add(averageTime, "averageTime", "ms");
+    parameters.add(rangeChecking, "rangeChecking", "");
+    parameters.addDependent(relayViolations, "relayViolations", "", "rangeChecking", true);
+    parameters.addDependent(loBound, "loBound", "float", "rangeChecking", true);
+    parameters.addDependent(hiBound, "hiBound", "float",  "rangeChecking", true);
+    parameters.add(deadMicroSeconds, "deadMicroSeconds", "µs");
 }
 
 moduleType InputModule::getType() {
@@ -88,48 +99,57 @@ void InputModule::stop() {
 }
 
 void InputModule::saveSettings(JsonObject& settings){
-    settings["pin"] = pin;
+    /*settings["pin"] = pin;
     settings["averageTime"] = averageTime;
     settings["rangeChecking"] = rangeChecking;
     settings["relayViolations"] = relayViolations;
 
     settings["loBound"] = loBound;
     settings["hiBound"] = hiBound;
-    settings["deadMicroSeconds"] = deadMicroSeconds;
+    settings["deadMicroSeconds"] = deadMicroSeconds;*/
+    JsonObject subSettings;
+    parameters.save(settings, subSettings);
 
     // conversion settings
     if (conversionCount == 0) return;
-    JsonArray savingConversion = settings.createNestedArray("conversions");
+    JsonArray conversionSettings = subSettings.createNestedArray("conversions");
     for (int i = 0; i < conversionCount; i++) {
-        conversion[i]->saveSettings(savingConversion);
+        JsonObject saveConversionConfig = conversionSettings.createNestedObject();
+        conversion[i]->saveSettings(saveConversionConfig);
     }
 }
 
 void InputModule::loadSettings(JsonObject& settings) {
     //JsonObject loaded = settings[id];
+    //parameters.load(settings);
 
-    pin = loadValue<uint8_t>("pin", settings, 35);
+    /*pin = loadValue<uint8_t>("pin", settings, 35);
     averageTime = loadValue<uint16_t>("averageTime", settings, 0);
     rangeChecking = loadValue<bool>("rangeChecking", settings, false);
     relayViolations = loadValue<bool>("relayViolations", settings, false);
     
     loBound = loadValue<double>("loBound", settings, 0);// default is minimum ADC voltage in mV -- no conversion
     hiBound = loadValue<double>("hiBound", settings, 3300);// default is maximum ADC voltage in mV -- no conversion
-    deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", settings, 0);
+    deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", settings, 0);*/
+    JsonObject subSettings;
+    parameters.load(settings, subSettings);
 
     // load conversions
-    JsonArray loadedConversion = settings["conversions"];
+    JsonArray loadedConversion = subSettings["conversions"];
     if (!loadedConversion.isNull()) {
-        for (JsonVariant var : loadedConversion) { // iterate over all objects within loadedConversion
-            JsonObject initializer = var.as<JsonObject>();
-            conversion_t type = loadValue<conversion_t>("type", initializer, offset);
-            addConversion(type);
-            conversion[conversionCount - 1]->loadSettings(initializer, debugging);
-            if (debugging) Serial.println("");
+        for (JsonVariant value : loadedConversion) { // iterate over all objects within loadedConversion
+            JsonObject conversionSettings = value.as<JsonObject>();
+            auto typeField = conversionSettings["type"];
+            conversion_t convType = loadValue<conversion_t>("type", conversionSettings, offset);
+            addConversion(convType);
+            conversion[conversionCount - 1]->loadSettings(conversionSettings, debugging);
+            //if (debugging) Serial.println("");
         }
     }
 
-    if (!debugging) return;
+    if (debugging) parameters.print();
+
+    /*if (!debugging) return;
 
     Serial.printf("controlId: %s\n", id.c_str());
     Serial.printf("pin: %d\n", pin);
@@ -139,11 +159,11 @@ void InputModule::loadSettings(JsonObject& settings) {
     Serial.printf("triggers %sactive\n", rangeChecking ? "" : "in");
     Serial.printf("low bound: %f\n", loBound);
     Serial.printf("high bound: %f\n", hiBound);
-    Serial.printf("dead time: %d\n", deadMicroSeconds);
+    Serial.printf("dead time: %d\n", deadMicroSeconds);*/
 }
 
 void InputModule::setViaSerial() {
-    Serial.println("");
+    /*Serial.println("");
     Serial.println(centerString("",39,'-').c_str());
     Serial.println(centerString(id,39,' ').c_str());
     Serial.println(centerString("",39,'-').c_str());
@@ -165,7 +185,8 @@ void InputModule::setViaSerial() {
     }
     else {
         rangeChecking = false;
-    }
+    }*/
+    parameters.setViaSerial();
 
     if ( serialInput("change conversion (y/n): ") != "y" ) return;
     for (int i = 0; i < conversionCount; i++) {
@@ -183,7 +204,6 @@ void InputModule::setViaSerial() {
         Serial.println("");
 
         conversion_t type = (conversion_t) serialInput("conversion: ").toInt();
-        Serial.printf("trying to add conversion: %s\n", conversionName[type]);
         addConversion(type);
         Serial.printf("conversionCount: %d\n", conversionCount);
         conversion[conversionCount - 1]->setViaSerial();
@@ -294,27 +314,37 @@ void InputModule::addConversion(conversion_t type) {
 
     switch (type) {
         case thermistor: {          
-            conversion[conversionCount++] = new Thermistor;
+            conversion[conversionCount] = new Thermistor();
+            conversionCount++;
+            debug("thermistor conversion added");
             return;
         }
         
         case resistance_voltage_divider: {
-            conversion[conversionCount++] = new ResistanceDivider;
+            conversion[conversionCount] = new ResistanceDivider();
+            conversionCount++;
+            debug("resistance conversion added");
             return;
         }
 
         case map_value: {
-            conversion[conversionCount++] = new MapValue;
+            conversion[conversionCount] = new MapValue();
+            conversionCount++;
+            debug("mapping conversion added");
             return;
         }
         
         case offset: {
-            conversion[conversionCount++] = new Offset;
+            conversion[conversionCount] = new Offset();
+            conversionCount++;
+            debug("offset conversion added");
             return;
         }
 
         case multiplication: {
-            conversion[conversionCount++] = new Multiplication;
+            conversion[conversionCount] = new Multiplication();
+            conversionCount++;
+            debug("multiplication conversion added");
             return;
         }
     }

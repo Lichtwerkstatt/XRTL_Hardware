@@ -6,15 +6,15 @@
 
 class ServoModule : public XRTLmodule {
   private:
-  uint16_t frequency;// servo frequency in Hz
-  uint16_t minDuty;// minimum duty time in µs
-  uint16_t maxDuty;// maximum duty time in µs
-  int16_t minAngle;// minimum of value range that duty gets maped to
-  int16_t maxAngle;// maximum of value range that duty gets maped to
-  float maxSpeed;
+  uint16_t frequency = 50;// servo frequency in Hz
+  uint16_t minDuty = 1000;// minimum duty time in µs
+  uint16_t maxDuty = 2000;// maximum duty time in µs
+  int16_t minAngle = 0;// minimum of value range that duty gets maped to
+  int16_t maxAngle = 90;// maximum of value range that duty gets maped to
+  float maxSpeed = 0.0;
   
   uint32_t timeStep;
-  int16_t initial;// value between minAngle and maxAngle that servo gets initialized with
+  int16_t initial = 0;// value between minAngle and maxAngle that servo gets initialized with
   // TODO: implement
 
   int64_t nextStep;
@@ -29,7 +29,8 @@ class ServoModule : public XRTLmodule {
   Servo* servo = NULL;// pointer to the servo module
 
   public:
-  ServoModule(String moduleName, XRTL* source);
+  ServoModule(String moduleName);
+  moduleType type = xrtl_servo;
   moduleType getType();
 
   int16_t read();// read the current servo position, delivered on value range

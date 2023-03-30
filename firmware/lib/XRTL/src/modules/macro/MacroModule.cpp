@@ -1,12 +1,13 @@
 #include "MacroModule.h"
 
-MacroModule::MacroModule(String moduleName, XRTL* source) {
-  id = moduleName;
-  xrtl = source;
-}
+MacroModule::MacroModule(String moduleName) {
+    id = moduleName;
 
-moduleType MacroModule::getType() {
-  return xrtl_macro;
+    parameters.setKey(id);
+    parameters.add(type, "type");
+    parameters.add(currentState, "currentState", "String");
+    parameters.add(initState, "initState", "String");
+    parameters.add(controlKey, "controlKey", "String");
 }
 
 void MacroModule::setup() {
@@ -15,19 +16,21 @@ void MacroModule::setup() {
 }
 
 void MacroModule::loadSettings(JsonObject& settings){
-    currentState = loadValue<String>("currentState", settings, "");
+    //parameters.load(settings);
+
+    /*currentState = loadValue<String>("currentState", settings, "");
     initState = loadValue<String>("initState", settings, "");
     controlKey = loadValue<String>("controlKey", settings, "key");
 
     Serial.printf("current state: %s\n", currentState);
     Serial.printf("initial state: %s\n", initState);
     Serial.printf("control key: %s\n", controlKey);
-    Serial.println("");
+    Serial.println("");*/
+    JsonObject subSettings;
+    parameters.load(settings, subSettings);
 
-    settings.remove("currentVal");
-    settings.remove("initState");
-
-    for (JsonPair kv : settings) {
+    JsonObject stateCollection = subSettings["states"];
+    for (JsonPair kv : stateCollection) {
         if ( (!kv.value().isNull()) && (kv.value().is<JsonObject>()) ) {
             JsonObject moduleSettings = kv.value().as<JsonObject>();
             String stateName = kv.key().c_str();
@@ -38,15 +41,22 @@ void MacroModule::loadSettings(JsonObject& settings){
             Serial.println("");
         }
     }
+
+    if (debugging) parameters.print();
 }
 
 void MacroModule::saveSettings(JsonObject& settings){
-    settings["currentState"] = currentState;
+    /*settings["currentState"] = currentState;
     settings["initState"] = initState;
-    settings["controlKey"] = controlKey;
+    settings["controlKey"] = controlKey;*/
+    JsonObject subSettings;
+    parameters.save(settings, subSettings);
+
+    if (stateCount == 0) return;
+    JsonObject stateSettings = subSettings.createNestedObject("states");
     for (int i = 0; i < stateCount; i++) {
-        JsonObject stateSettings = settings.createNestedObject(states[i]->getName());
-        states[i]->saveSettings(stateSettings);
+        JsonObject currentSettings = stateSettings.createNestedObject(states[i]->getName());
+        states[i]->saveSettings(currentSettings);
     }
 }
 
@@ -57,11 +67,12 @@ void MacroModule::listStates() {
 }
 
 void MacroModule::dialog(){
-    Serial.println("");
+    parameters.setViaSerial();
+    /*Serial.println("");
     Serial.println(centerString("",39,'-').c_str());
     Serial.println(centerString(id,39,' ').c_str());
     Serial.println(centerString("",39,'-').c_str());
-    Serial.println("");
+    Serial.println("");*/
 
     Serial.println("available settings:");
     listStates();

@@ -24,6 +24,8 @@ class XRTL {
   // enable serial debug output
   bool debugging = true;
 
+  ParameterPack parameters;
+
   public:
   // manage Modules
   void listModules();
@@ -42,6 +44,7 @@ class XRTL {
   void sendEvent(JsonArray& event);
   void sendError(componentError err, String msg);
   void sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length);
+  void sendCommand(XRTLcommand& command);
 
   // send string over Serial if debugging is activated
   // (uses printf syntax)

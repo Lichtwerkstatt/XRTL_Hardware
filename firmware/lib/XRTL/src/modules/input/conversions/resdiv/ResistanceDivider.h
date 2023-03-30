@@ -1,7 +1,7 @@
 #ifndef RESISTANCEDIVIDERCONV_H
 #define RESISTANCEDIVIDERCONV_H
 
-#include "modules/input/conversions/Converter.h"
+#include "modules/input/conversions/InputConverter.h"
 
 // convert a voltage into a resistance by use of a simple voltage divider
 // ┌---o    refVoltage 
@@ -14,7 +14,7 @@
 // |
 // └---o    Ground
 // measured voltage
-class ResistanceDivider: public Converter {
+class ResistanceDivider: public InputConverter {
     private:
     // Reference voltage of the voltage divider,
     // unit of measurement must be identical to the input.
@@ -27,8 +27,9 @@ class ResistanceDivider: public Converter {
     double refResistor;
 
     public:
+    ResistanceDivider();
 
-    void saveSettings(JsonArray& settings);
+    void saveSettings(JsonObject& settings);
     void loadSettings(JsonObject& settings, bool debugMode);
     void setViaSerial();
 
