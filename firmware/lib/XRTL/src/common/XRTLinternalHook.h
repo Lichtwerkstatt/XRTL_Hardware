@@ -16,6 +16,7 @@ class InternalHook {
     bool isTriggered(internalEvent& eventId, String& sourceId);
     String& getId();
     void fillCommand(JsonObject& commandObj);
+    XRTLcommand& getCommand();
 
     void save(JsonObject& settings);
     void load(JsonObject& settings);

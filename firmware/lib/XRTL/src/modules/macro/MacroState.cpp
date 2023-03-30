@@ -38,7 +38,7 @@ void MacroState::swpCommand(uint8_t firstNumber, uint8_t secondNumber){
     commands[secondNumber] = temp;
 }
 
-void MacroState::dialog(){
+bool MacroState::dialog(){
     Serial.println(centerString(stateName, 39, ' '));
     Serial.println("");
     listCommands();
@@ -54,11 +54,10 @@ void MacroState::dialog(){
     String choice = serialInput("choice: ");
     uint8_t choiceInt = choice.toInt();
 
-    if (choice == "r") return;
+    if (choice == "r") return false;
     else if (choice == "a") {
         addCommand();
         commands[commandCount - 1]->setViaSerial();
-        return;
     }
     else if (choice == "d") {
         Serial.println("");
@@ -70,22 +69,19 @@ void MacroState::dialog(){
         if (choiceInt < commandCount) {
             delCommand(choiceInt);    
         }
-
-        return;
     }
     else if (choice == "s") {
         uint8_t firstNumber = serialInput("first command: ").toInt();
         uint8_t secondNumber = serialInput("second command: ").toInt();
         swpCommand(firstNumber, secondNumber);
-        return;
     }
     else if (choice == "c") {
         stateName = serialInput("state name: ");
-        return;
     }
     else if (choiceInt < commandCount) {
         commands[choiceInt]->setViaSerial();
     }
+    return true;
 }
 
 void MacroState::activate(){
@@ -126,6 +122,5 @@ void MacroState::loadSettings(JsonObject& settings) {
 }
 
 void MacroState::setViaSerial() {
-    dialog();
-    while ( serialInput("more changes to this state (y/n)?") == "y" ) dialog();
+    while (dialog()) {}
 }

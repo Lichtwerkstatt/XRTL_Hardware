@@ -272,7 +272,7 @@ void XRTL::loadSettings() {
   Serial.println("");
 }
 
-void XRTL::settingsDialogue() {
+bool XRTL::settingsDialog() {
   Serial.println("");
   Serial.println(centerString("",39, '-'));
   Serial.println(centerString("available settings", 39, ' '));
@@ -283,7 +283,9 @@ void XRTL::settingsDialogue() {
   Serial.println("a: add module");
   Serial.println("d: delete module");
   Serial.println("s: swap modules");
-  Serial.println("r: return");
+  Serial.println("i: internal events");// TODO: implement
+  Serial.println("e: custom events");// TODO: implement
+  Serial.println("r: save and restart");
   Serial.println("");
   String choice = serialInput("choose setup routine: ");
   uint8_t choiceInt = choice.toInt();
@@ -355,8 +357,14 @@ void XRTL::settingsDialogue() {
       }
     }
   }
+  else if (choice == "i") {
+    // add internal event hooks
+  }
+  else if (choice == "e") {
+    // add custom event hooks
+  }
   else if (choice == "r") {
-    Serial.println("returning");
+    return false;
   }
   else if (choiceInt < moduleCount) {
     module[choiceInt]->setViaSerial();
@@ -364,6 +372,8 @@ void XRTL::settingsDialogue() {
   else {
     Serial.printf("setup routine <%s> unknown\n", choice);
   }
+  
+  return true;
 }
 
 void XRTL::setViaSerial() {
@@ -375,10 +385,7 @@ void XRTL::setViaSerial() {
   Serial.println(centerString("",39,'='));
   Serial.println("");
 
-  settingsDialogue(); 
-  while (serialInput("more changes? (y/n): ") == "y") {
-    settingsDialogue();
-  }
+  while (settingsDialog()) {}
 
   saveSettings();
 
@@ -471,6 +478,7 @@ void XRTLmodule::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t le
 }
 
 void XRTL::sendCommand(XRTLcommand& command) {
+
   String& controlId = command.getId();
   XRTLmodule* targetModule = operator[](controlId);
   DynamicJsonDocument doc(512);
@@ -504,6 +512,13 @@ void XRTL::notify(internalEvent eventId, String& sourceId) {
   // core event handler
   switch(eventId) {
 
+  }
+
+  for (int i = 0; i < internalCount; i++) {
+    InternalHook* hook = customInternal[i];
+    if (hook->isTriggered(eventId, sourceId)) {
+      sendCommand(hook->getCommand());
+    }
   }
 }
 

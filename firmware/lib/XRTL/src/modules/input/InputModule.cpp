@@ -16,10 +16,6 @@ InputModule::InputModule(String moduleName) {
     parameters.add(deadMicroSeconds, "deadMicroSeconds", "µs");
 }
 
-moduleType InputModule::getType() {
-    return xrtl_input;
-}
-
 void InputModule::setup() {
     input = new XRTLinput;
     input->attach(pin);
@@ -188,15 +184,32 @@ void InputModule::setViaSerial() {
     }*/
     parameters.setViaSerial();
 
-    if ( serialInput("change conversion (y/n): ") != "y" ) return;
-    for (int i = 0; i < conversionCount; i++) {
-        delete conversion[i];
-        conversion[i] = NULL;
-    }
-    conversionCount = 0;
+    while (settingsDialog()) {}
+}
 
-    while ( serialInput("add conversion (y/n): ") == "y" ) {
-        Serial.println("");
+bool InputModule::settingsDialog() {
+    Serial.println("");
+    Serial.println(centerString("current conversion", 39, ' '));
+    Serial.println("");
+
+    for (int i = 0; i < conversionCount; i++) {
+        Serial.printf("%d: %s\n", i, conversionName[conversion[i]->getType()]);
+    }
+
+    Serial.println("");
+    Serial.println("a: add conversion");
+    Serial.println("d: delete conversion");
+    Serial.println("s: swap conversions");
+    Serial.println("r: return");
+
+    Serial.println("");
+    String choice = serialInput("choice: ");
+    uint8_t choiceNum = choice.toInt();
+
+    if (choice == "r") {
+        return false;
+    }
+    else if (choice == "a") {
         Serial.println(centerString("conversions available",39,' ').c_str());
         for (int i = 0; i < 5; i++) {
             Serial.printf("%d: %s\n", i, conversionName[i]);
@@ -208,6 +221,41 @@ void InputModule::setViaSerial() {
         Serial.printf("conversionCount: %d\n", conversionCount);
         conversion[conversionCount - 1]->setViaSerial();
     }
+    else if (choice == "d") {
+        Serial.println("");
+        uint8_t deleteChoice = serialInput("delete: ").toInt();
+
+        if (deleteChoice >= conversionCount - 1) return true;
+
+        delete conversion[deleteChoice];
+        
+        for (int i = deleteChoice; i < conversionCount; i++) {
+            conversion[i] = conversion[i+1];
+        }
+        conversion[conversionCount--] = NULL;
+    }
+    else if (choice == "s") {
+        Serial.println("");
+
+        String choiceOne = serialInput("first conversion: ");
+        if (choiceOne == "r") return true;
+        String choiceTwo = serialInput("second conversion: ");
+        if (choiceTwo == "r") return true;
+
+        uint8_t choiceOneNum = choiceOne.toInt();
+        uint8_t choiceTwoNum = choiceTwo.toInt();
+
+        if (choiceOneNum < conversionCount || choiceTwoNum < conversionCount || choiceOneNum != choiceTwoNum) {
+            InputConverter* tmp = conversion[choiceOneNum];
+            conversion[choiceOneNum] = conversion[choiceTwoNum];
+            conversion[choiceTwoNum] = tmp;
+        }
+    }
+    else if (choiceNum < conversionCount) {
+        conversion[choiceNum]->setViaSerial();
+    }
+
+    return true;
 }
 
 bool InputModule::getStatus(JsonObject& status) {

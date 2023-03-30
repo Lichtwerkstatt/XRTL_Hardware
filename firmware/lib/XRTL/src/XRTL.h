@@ -1,6 +1,7 @@
 #ifndef XRTL_H
 #define XRTL_H
 
+#include "common/XRTLinternalHook.h"
 #include "modules/servo/ServoModule.h"
 #include "modules/socket/SocketModule.h"
 #include "modules/wifi/WifiModule.h"
@@ -20,6 +21,13 @@ class XRTL {
   XRTLmodule* module[16];
   // endpoint for sending
   SocketModule* socketIO = NULL;
+
+  // custom internal events
+  uint8_t internalCount = 0;
+  InternalHook* customInternal[16];
+
+  // custom event handler
+  // EventHook* customEvent[16];
 
   // enable serial debug output
   bool debugging = true;
@@ -60,7 +68,7 @@ class XRTL {
   void loadSettings();
   void saveSettings();
   void setViaSerial();
-  void settingsDialogue();
+  bool settingsDialog();
   //void getStatus();
   void sendStatus();
 

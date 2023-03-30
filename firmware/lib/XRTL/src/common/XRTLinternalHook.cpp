@@ -16,6 +16,10 @@ void InternalHook::fillCommand(JsonObject& commandObj) {
     command->fillCommand(commandObj);
 }
 
+XRTLcommand& InternalHook::getCommand() {
+    return *command;
+}
+
 void InternalHook::save(JsonObject& settings) {
     settings["type"] = eventType;
     settings["id"] = 12;

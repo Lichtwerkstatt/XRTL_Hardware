@@ -30,6 +30,7 @@ class InputConverter {
     public:
     ParameterPack parameters;
     virtual void convert(double& value){};
+    conversion_t& getType();
 
     // handle settings
     virtual void loadSettings(JsonObject& settings, bool debugMode){};

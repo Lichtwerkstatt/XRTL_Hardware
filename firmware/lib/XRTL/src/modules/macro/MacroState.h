@@ -20,7 +20,7 @@ class MacroState {
     void delCommand(uint8_t number);
     void swpCommand(uint8_t firstNumber, uint8_t secondNumber);
 
-    void dialog();
+    bool dialog();
 
     public:
     MacroState(String& name, XRTLmodule* parent);

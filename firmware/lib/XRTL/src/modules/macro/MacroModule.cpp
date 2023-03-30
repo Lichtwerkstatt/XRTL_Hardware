@@ -5,13 +5,12 @@ MacroModule::MacroModule(String moduleName) {
 
     parameters.setKey(id);
     parameters.add(type, "type");
-    parameters.add(currentState, "currentState", "String");
     parameters.add(initState, "initState", "String");
     parameters.add(controlKey, "controlKey", "String");
 }
 
 void MacroModule::setup() {
-    if (initState == "" || initState == NULL ) return;
+    if (initState == "" || initState == NULL  || stateCount == 0) return;
     currentState = initState;
 }
 
@@ -66,7 +65,7 @@ void MacroModule::listStates() {
     }
 }
 
-void MacroModule::dialog(){
+bool MacroModule::dialog(){
     parameters.setViaSerial();
     /*Serial.println("");
     Serial.println(centerString("",39,'-').c_str());
@@ -87,25 +86,17 @@ void MacroModule::dialog(){
     uint8_t choiceInt = choice.toInt();
     Serial.println("");
 
-    if (choice == "r") return;
+    if (choice == "r") return false;
     else if (choice == "c") {
         id = serialInput("controlId: ");
         controlKey = serialInput("control key: ");
         currentState = serialInput("current state: ");
         initState = serialInput("initial state: ");
-        return;
     }
     else if (choice == "a") {
         String newState = serialInput("state name: ");
-        if (newState == NULL || newState == "") return;
-        for (int i = 0; i < stateCount; i++) {
-            if (newState == states[i]->getName()) {
-                debug("state name already in use by this module");
-                return;
-            }
-        }
+        if (newState == NULL || newState == "") return true;
         addState(newState);
-        return;
     }
     else if (choice == "d") {
         Serial.println("available states: ");
@@ -116,17 +107,15 @@ void MacroModule::dialog(){
         if (choiceInt < stateCount){
             delState(choiceInt);
         }
-        return;
     }
     else if (choiceInt <= stateCount) {
         states[choiceInt]->setViaSerial();
-        return;
     }
+    return true;
 }
 
 void MacroModule::setViaSerial(){
-    dialog();
-    while ( serialInput("more changes to this module (y/n)?") == "y" ) dialog();
+    while (dialog()){}
 }
 
 MacroState* MacroModule::findState(String& wantedState) {
@@ -137,6 +126,11 @@ MacroState* MacroModule::findState(String& wantedState) {
 }
 
 void MacroModule::addState(String& stateName){
+    if (findState(stateName) != NULL) {
+        debug("state <%s> already in use by this module", stateName.c_str());
+        return;
+    }
+
     states[stateCount++] = new MacroState(stateName, this);
     debug("state added: %s", stateName);
 }

@@ -13,7 +13,7 @@ class MacroModule : public XRTLmodule {
     String initState = "";
 
     void listStates();
-    void dialog();
+    bool dialog();
 
     public:
     MacroModule(String moduleName);

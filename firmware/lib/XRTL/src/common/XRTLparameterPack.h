@@ -379,7 +379,7 @@ class ParameterPack {
         return nullParameter;
     }
 
-    void setViaSerial() {
+    bool dialog() {
         Serial.println("");
         Serial.println(centerString("", 39, '-'));
         Serial.println(centerString(name(), 39, ' '));
@@ -401,9 +401,11 @@ class ParameterPack {
         String rawInput = serialInput("choice: ");
         uint8_t inputNumber = rawInput.toInt();
 
-        if (rawInput == "c") {
+        if (rawInput == "r") {
+            return false;
+        }
+        else if (rawInput == "c") {
             *linkedName = serialInput("controlId (String) = ");
-            return;
         }
         else if (rawInput == "a") {
             if (linkedName != NULL) {
@@ -414,12 +416,15 @@ class ParameterPack {
                 if (!parameters[i]->notListed) parameters[i]->setViaSerial();
             }
         }
-        else if (rawInput == "r") {
-            return;
-        }
         else if (inputNumber < parameterCount && !parameters[inputNumber]->notListed) {
             parameters[inputNumber]->setViaSerial();
         }
+
+        return true;
+    }
+
+    void setViaSerial() {
+        while (dialog()) {}
     }
 };
 

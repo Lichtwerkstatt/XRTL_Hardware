@@ -42,7 +42,6 @@ class InputModule: public XRTLmodule {
 
     InputModule(String moduleName);
     moduleType type = xrtl_input;
-    moduleType getType();
 
     void setup();
     void loop();
@@ -50,6 +49,7 @@ class InputModule: public XRTLmodule {
 
     void saveSettings(JsonObject& settings);
     void loadSettings(JsonObject& settings);
+    bool settingsDialog();
     void setViaSerial();
     bool getStatus(JsonObject& status);
 

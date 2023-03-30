@@ -145,6 +145,8 @@ class XRTLmodule {
   // @note all neccessary information must be polled from the user, serialInput() might be used for doing so
   virtual void setViaSerial();
 
+  void setViaSerialBasic();
+
   // @brief send a message over the serial monitor if in debug mode
   // @param ... uses printf syntax
   template<typename... Args>
