@@ -3,10 +3,11 @@
 
 #include "MacroState.h"
 
-class MacroModule : public XRTLmodule {
-    private:
+class MacroModule : public XRTLmodule
+{
+private:
     uint8_t stateCount = 0;
-    MacroState* states[16];
+    MacroState *states[16];
 
     String controlKey = "key";
     String currentState = "";
@@ -15,25 +16,25 @@ class MacroModule : public XRTLmodule {
     void listStates();
     bool dialog();
 
-    public:
+public:
     MacroModule(String moduleName);
     moduleType type = xrtl_macro;
     ParameterPack stateParameters;
 
     void setup();
 
-    void addState(String& stateName);
+    void addState(String &stateName);
     void delState(uint8_t number);
 
-    bool getStatus(JsonObject& status);
-    void saveSettings(JsonObject& settings);
-    void loadSettings(JsonObject& settings);
+    bool getStatus(JsonObject &status);
+    void saveSettings(JsonObject &settings);
+    void loadSettings(JsonObject &settings);
     void setViaSerial();
 
-    MacroState* findState(String& state);
-    void selectState(String& targetState);
+    MacroState *findState(String &state);
+    void selectState(String &targetState);
 
-    void handleCommand(String& controlId, JsonObject& command);
+    void handleCommand(String &controlId, JsonObject &command);
 };
 
 #endif

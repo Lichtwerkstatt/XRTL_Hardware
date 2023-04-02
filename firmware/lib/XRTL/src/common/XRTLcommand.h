@@ -4,25 +4,26 @@
 #include "XRTLval.h"
 
 // @brief stores all information necessary to issue a baisc valid command
-class XRTLcommand {
-    private:
+class XRTLcommand
+{
+private:
     String id;
     String key;
     XRTLval val;
 
-    public:
+public:
     XRTLcommand();
-    void set(String& controlId, String& controlKey, JsonVariant& controlVal);
-    
-    String& getId();
+    void set(String &controlId, String &controlKey, JsonVariant &controlVal);
+
+    String &getId();
     // @brief fill a JsonObject with the command
     // @note the JsonDocument must be called externally or it would not the survive the context of the function call
-    void fillCommand(JsonObject& command);
+    void fillCommand(JsonObject &command);
     // @brief fill a JsonObject with the command but substitute the stored value with the supplied value
     // @note the JsonDocument must be called externally or it would not the survive the context of the function call
-    void fillCommand(JsonObject& command, JsonVariant& relayVal);
+    void fillCommand(JsonObject &command, JsonVariant &relayVal);
 
-    void saveSettings(JsonObject& settings);
+    void saveSettings(JsonObject &settings);
     void setViaSerial();
 };
 

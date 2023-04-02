@@ -41,6 +41,7 @@ class InputModule: public XRTLmodule {
     ParameterPack convParameters;
 
     InputModule(String moduleName);
+    ~InputModule();
     moduleType type = xrtl_input;
 
     void setup();

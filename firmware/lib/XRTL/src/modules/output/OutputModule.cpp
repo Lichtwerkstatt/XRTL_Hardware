@@ -1,6 +1,7 @@
 #include "OutputModule.h"
 
-OutputModule::OutputModule(String moduleName) {
+OutputModule::OutputModule(String moduleName)
+{
     id = moduleName;
 
     parameters.setKey(id);
@@ -12,16 +13,19 @@ OutputModule::OutputModule(String moduleName) {
     parameters.addDependent(frequency, "frequency", "Hz", "pwm", true);
 }
 
-moduleType OutputModule::getType() {
+moduleType OutputModule::getType()
+{
     return xrtl_output;
 }
 
-void OutputModule::pulse(uint16_t milliSeconds) {
+void OutputModule::pulse(uint16_t milliSeconds)
+{
     switchTime = esp_timer_get_time() + 1000 * milliSeconds;
     out->toggle(true);
 }
 
-void OutputModule::saveSettings(JsonObject& settings) {
+void OutputModule::saveSettings(JsonObject &settings)
+{
     /*settings["pin"] = pin;
     settings["pwm"] = pwm;
     settings["guardedModule"] = guardedModule;
@@ -32,7 +36,8 @@ void OutputModule::saveSettings(JsonObject& settings) {
     parameters.save(settings);
 }
 
-void OutputModule::loadSettings(JsonObject& settings) {
+void OutputModule::loadSettings(JsonObject &settings)
+{
     /*pin = loadValue<uint8_t>("pin", settings, 27);
     pwm = settings["pwm"].as<bool>();
     pwm = loadValue<bool>("pwm", settings, false);
@@ -60,19 +65,24 @@ void OutputModule::loadSettings(JsonObject& settings) {
     Serial.printf("PWM channel: %d\n", channel);
     Serial.printf("PWM frequency: %d Hz\n", frequency);*/
     parameters.load(settings);
-    if (debugging) parameters.print();
+    if (debugging)
+        parameters.print();
 }
 
-bool OutputModule::getStatus(JsonObject& status){
-    if (out == NULL) return true; // avoid errors: status might be called in setup before init occured
+bool OutputModule::getStatus(JsonObject &status)
+{
+    if (out == NULL)
+        return true; // avoid errors: status might be called in setup before init occured
 
     status["isOn"] = out->getState();
-    if (!pwm) return true;
+    if (!pwm)
+        return true;
     status["pwm"] = out->read();
     return true;
 }
 
-void OutputModule::setViaSerial() {
+void OutputModule::setViaSerial()
+{
     /*Serial.println("");
     Serial.println(centerString("",39,'-'));
     Serial.println(centerString(id,39,' '));
@@ -80,7 +90,7 @@ void OutputModule::setViaSerial() {
     Serial.println("");
 
     id = serialInput("controlId: ");
-    
+
     guardedModule = serialInput("supervise module: ");
 
     pwm = ( serialInput("pwm (y/n): ") == "y" );
@@ -95,109 +105,136 @@ void OutputModule::setViaSerial() {
     parameters.setViaSerial();
 }
 
-void OutputModule::setup() {
+void OutputModule::setup()
+{
     out = new XRTLoutput(pwm);
 
-    if (!pwm) {
+    if (!pwm)
+    {
         out->attach(pin);
     }
-    else {
+    else
+    {
         out->attach(pin, channel, frequency);
     }
 
     out->toggle(false);
 }
 
-void OutputModule::loop() {
-    if (switchTime == 0) return;
-    if (esp_timer_get_time() > switchTime) { // time is up -> switch off
+void OutputModule::loop()
+{
+    if (switchTime == 0)
+        return;
+    if (esp_timer_get_time() > switchTime)
+    { // time is up -> switch off
         out->toggle(false);
         sendStatus();
         switchTime = 0; // return time trigger to off state
     }
 }
 
-void OutputModule::stop() {
+void OutputModule::stop()
+{
     out->toggle(false);
     debug("module stopped, power off");
 }
 
-void OutputModule::handleInternal(internalEvent eventId, String& sourceId){
-    if ( out == NULL) return;
-    switch(eventId) {
-        case socket_disconnected: {
-            if (!out->getState()) return;
-            out->toggle(false);
-            debug("output powered down for safety reasons");
+void OutputModule::handleInternal(internalEvent eventId, String &sourceId)
+{
+    if (out == NULL)
+        return;
+    switch (eventId)
+    {
+    case socket_disconnected:
+    {
+        if (!out->getState())
             return;
-        }
+        out->toggle(false);
+        debug("output powered down for safety reasons");
+        return;
+    }
 
-        case debug_off: {
-            debugging = false;
+    case debug_off:
+    {
+        debugging = false;
+        return;
+    }
+    case debug_on:
+    {
+        debugging = true;
+        return;
+    }
+
+    case input_trigger_high:
+    {
+        if (guardedModule == "")
             return;
-        }
-        case debug_on: {
-            debugging = true;
+        if (sourceId != guardedModule)
             return;
-        }
 
-        case input_trigger_high: {
-            if ( guardedModule == "" ) return;
-            if ( sourceId != guardedModule ) return;
+        out->toggle(false);
 
-            out->toggle(false);
+        String errormsg = "[";
+        errormsg += id;
+        errormsg += "] output turned off: value in <";
+        errormsg += guardedModule;
+        errormsg += "> above limit";
+        sendError(out_of_bounds, errormsg);
 
-            String errormsg = "[";
-            errormsg += id;
-            errormsg += "] output turned off: value in <";
-            errormsg += guardedModule;
-            errormsg += "> above limit";
-            sendError(out_of_bounds, errormsg);
-
-            sendStatus();
+        sendStatus();
+        return;
+    }
+    case input_trigger_low:
+    {
+        if (guardedModule == "")
             return;
-        }
-        case input_trigger_low: {
-            if ( guardedModule == "" ) return;
-            if ( sourceId != guardedModule ) return;
-
-            out->toggle(false);
-
-            String errormsg = "[";
-            errormsg += id;
-            errormsg += "] output turned off: value in <";
-            errormsg += guardedModule;
-            errormsg += "> below limit";
-            sendError(out_of_bounds, errormsg);
-
-            sendStatus();
+        if (sourceId != guardedModule)
             return;
-        }
+
+        out->toggle(false);
+
+        String errormsg = "[";
+        errormsg += id;
+        errormsg += "] output turned off: value in <";
+        errormsg += guardedModule;
+        errormsg += "> below limit";
+        sendError(out_of_bounds, errormsg);
+
+        sendStatus();
+        return;
+    }
     }
 }
 
-void OutputModule::handleCommand(String& controlId, JsonObject& command) {
-    if (!isModule(controlId)) return;
+void OutputModule::handleCommand(String &controlId, JsonObject &command)
+{
+    if (!isModule(controlId))
+        return;
 
-    bool getStatus = false ;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+    bool getStatus = false;
+    if (getValue<bool>("getStatus", command, getStatus) && getStatus)
+    {
         sendStatus();
     }
 
-    if (pwm) {
+    if (pwm)
+    {
         uint8_t powerLvl;
-        if (getValue<uint8_t>("pwm", command, powerLvl)) out->write(powerLvl);
+        if (getValue<uint8_t>("pwm", command, powerLvl))
+            out->write(powerLvl);
         sendStatus();
     }
 
     bool targetState;
-    if (getValue<bool>("switch", command, targetState)) {
+    if (getValue<bool>("switch", command, targetState))
+    {
         out->toggle(targetState);
         sendStatus();
     }
 
     uint32_t toggleTime = 0;
-    if (getValue<uint32_t>("pulse", command, toggleTime)) {
+    if (getValue<uint32_t>("pulse", command, toggleTime))
+    {
         pulse(toggleTime);
         sendStatus();
     }

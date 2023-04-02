@@ -16,6 +16,12 @@ InputModule::InputModule(String moduleName) {
     parameters.add(deadMicroSeconds, "deadMicroSeconds", "µs");
 }
 
+InputModule::~InputModule() {
+    for (int i = 0; i < conversionCount; i++) {
+        delete conversion[i];
+    }
+}
+
 void InputModule::setup() {
     input = new XRTLinput;
     input->attach(pin);

@@ -5,31 +5,32 @@
 #include "esp_wpa2.h"
 #include "modules/XRTLmodule.h"
 
-class WifiModule : public XRTLmodule {
-  private:
-  bool checkConnection = true;
+class WifiModule : public XRTLmodule
+{
+private:
+    bool checkConnection = true;
 
-  bool enterprise;
-  String ssid;
-  String password;
-  String username;
-  String anonymous;
+    bool enterprise;
+    String ssid;
+    String password;
+    String username;
+    String anonymous;
 
-  WiFiEventId_t eventIdDisconnected; // use this when attaching the disconnected handler; needed for deinit
+    WiFiEventId_t eventIdDisconnected; // use this when attaching the disconnected handler; needed for deinit
 
-  public:
-  WifiModule(String moduleName);
-  moduleType type = xrtl_wifi;
+public:
+    WifiModule(String moduleName);
+    moduleType type = xrtl_wifi;
 
-  void saveSettings(JsonObject& settings);
-  void loadSettings(JsonObject& settings);
-  void setViaSerial();
+    void saveSettings(JsonObject &settings);
+    void loadSettings(JsonObject &settings);
+    void setViaSerial();
 
-  void setup();
-  void loop();
-  void stop();
+    void setup();
+    void loop();
+    void stop();
 
-  void handleInternal(internalEvent eventId, String& sourceId);
+    void handleInternal(internalEvent eventId, String &sourceId);
 };
 
 // callback used for automatically reconnecting

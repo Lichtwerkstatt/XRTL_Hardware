@@ -5,9 +5,9 @@
 #include "modules/XRTLmodule.h"
 
 // XRTLmodule for controling output signals, either relays or MOSFETs operated via PWM
-class OutputModule: public XRTLmodule {
-    private:
-
+class OutputModule : public XRTLmodule
+{
+private:
     uint8_t pin = 27;
 
     // @brief controls the output behavior
@@ -17,7 +17,7 @@ class OutputModule: public XRTLmodule {
     // @note do NOT use channel 1 or 2 with ESP32CAM
     uint8_t channel;
     // @brief pwm frequency in Hz
-    // @note permitted values: 1000, 5000, 8000, 10000 
+    // @note permitted values: 1000, 5000, 8000, 10000
     uint16_t frequency = 1000;
 
     // @brief esp_timer value (µs) at which the module is switched off again
@@ -27,10 +27,9 @@ class OutputModule: public XRTLmodule {
     // @note trigger events of this module will cause immediate powerdown of the output
     String guardedModule = "";
 
-    XRTLoutput* out = NULL; 
+    XRTLoutput *out = NULL;
 
-    public:
-
+public:
     OutputModule(String moduleName);
     moduleType type = xrtl_output;
     moduleType getType();
@@ -41,13 +40,13 @@ class OutputModule: public XRTLmodule {
     void loop();
     void stop();
 
-    void saveSettings(JsonObject& settings);
-    void loadSettings(JsonObject& settings);
+    void saveSettings(JsonObject &settings);
+    void loadSettings(JsonObject &settings);
     void setViaSerial();
-    bool getStatus(JsonObject& status);
+    bool getStatus(JsonObject &status);
 
-    void handleInternal(internalEvent eventId, String& sourceId);
-    void handleCommand(String& controlId, JsonObject& command);
+    void handleInternal(internalEvent eventId, String &sourceId);
+    void handleCommand(String &controlId, JsonObject &command);
 };
 
 #endif

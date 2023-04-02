@@ -3,23 +3,22 @@
 
 #include "modules/XRTLmodule.h"
 
-class InternalHook {
-    private:
-
+class InternalHook
+{
+private:
     internalEvent eventType = busy;
-    String listeningId= "";
-    XRTLcommand* command = NULL;
+    String listeningId = "";
+    XRTLcommand *command = NULL;
 
-    public:
-    void setCommand(String& controlId, String& controlKey, JsonVariant& controlVal);
+public:
+    void setCommand(String &controlId, String &controlKey, JsonVariant &controlVal);
 
-    bool isTriggered(internalEvent& eventId, String& sourceId);
-    String& getId();
-    void fillCommand(JsonObject& commandObj);
-    XRTLcommand& getCommand();
+    bool isTriggered(internalEvent &eventId, String &sourceId);
+    String &getId();
+    XRTLcommand &getCommand();
 
-    void save(JsonObject& settings);
-    void load(JsonObject& settings);
+    void save(JsonObject &settings);
+    void load(JsonObject &settings);
 };
 
 #endif

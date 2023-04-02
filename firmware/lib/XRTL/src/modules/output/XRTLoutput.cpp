@@ -1,16 +1,19 @@
 #include "XRTLoutput.h"
 
-XRTLoutput::XRTLoutput(bool isPWM){
+XRTLoutput::XRTLoutput(bool isPWM)
+{
     pwm = isPWM;
 }
 
-void XRTLoutput::attach(uint8_t controlPin) {
+void XRTLoutput::attach(uint8_t controlPin)
+{
     pin = controlPin;
     pinMode(pin, OUTPUT);
     digitalWrite(pin, LOW);
 }
 
-void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency) {
+void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency)
+{
     pin = controlPin;
     channel = pwmChannel;
     frequency = pwmFrequency;
@@ -19,44 +22,57 @@ void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFreq
     ledcAttachPin(pin, channel);
 }
 
-void XRTLoutput::toggle(bool targetState) {
-    //if (targetState == state) return; // prevents update of powerlevel only
+void XRTLoutput::toggle(bool targetState)
+{
+    // if (targetState == state) return; // prevents update of powerlevel only
 
-    if (targetState) {
-        if (pwm) {
+    if (targetState)
+    {
+        if (pwm)
+        {
             ledcWrite(channel, power);
         }
-        else {
+        else
+        {
             digitalWrite(pin, HIGH);
         }
         state = true;
     }
-    else {
-        if (pwm) {
+    else
+    {
+        if (pwm)
+        {
             ledcWrite(channel, 0);
         }
-        else {
+        else
+        {
             digitalWrite(pin, LOW);
         }
         state = false;
     }
-
 }
 
-void XRTLoutput::write(uint8_t powerLvl){
-    if (!pwm) return;
+void XRTLoutput::write(uint8_t powerLvl)
+{
+    if (!pwm)
+        return;
     power = powerLvl;
     toggle(state); // update powerlevel
 }
 
-uint8_t XRTLoutput::read() {
-    if (!pwm) {
-        if (state) return 255;
-        else return 0;
+uint8_t XRTLoutput::read()
+{
+    if (!pwm)
+    {
+        if (state)
+            return 255;
+        else
+            return 0;
     }
     return power;
 }
 
-bool XRTLoutput::getState(){
+bool XRTLoutput::getState()
+{
     return state;
 }

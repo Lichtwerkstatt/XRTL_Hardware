@@ -4,17 +4,18 @@
 #include "modules/XRTLmodule.h"
 #include <esp_camera.h>
 
-class CameraModule : public XRTLmodule {
-    private:
+class CameraModule : public XRTLmodule
+{
+private:
     bool isStreaming = false;
-    int64_t nextFrame = 0;// stores when the next frame should be send; µs
-    uint32_t frameTimeMicroSeconds = 100000;// minimum time interval between frames in µs; time might be higher due to load
-    String binaryLeadFrame;// content of websocket text frame to be send prior to binary data
+    int64_t nextFrame = 0;                   // stores when the next frame should be send; µs
+    uint32_t frameTimeMicroSeconds = 100000; // minimum time interval between frames in µs; time might be higher due to load
+    String binaryLeadFrame;                  // content of websocket text frame to be send prior to binary data
 
     static camera_config_t camera_config;
-    sensor_t* cameraSettings = NULL;
+    sensor_t *cameraSettings = NULL;
 
-    //virtual PTZ
+    // virtual PTZ
     uint8_t panStage = 4;
     uint8_t tiltStage = 4;
     uint8_t zoomStage = 0;
@@ -26,7 +27,7 @@ class CameraModule : public XRTLmodule {
     int exposure = 200;
     framesize_t frameSize = FRAMESIZE_QVGA;
 
-    public:
+public:
     CameraModule(String moduleName);
     moduleType type = xrtl_camera;
     moduleType getType();
@@ -34,18 +35,18 @@ class CameraModule : public XRTLmodule {
     void setup();
     void loop();
 
-    bool getStatus(JsonObject& status);
-    void saveSettings(JsonObject& settings);
-    void loadSettings(JsonObject& settings);
+    bool getStatus(JsonObject &status);
+    void saveSettings(JsonObject &settings);
+    void loadSettings(JsonObject &settings);
     void setViaSerial();
-    
+
     void startStreaming();
     void stopStreaming();
-    bool handleCommand(String& command);
-    void handleCommand(String& controlId, JsonObject& command);
-    void handleInternal(internalEvent eventId, String& sourceId);
+    bool handleCommand(String &command);
+    void handleCommand(String &controlId, JsonObject &command);
+    void handleInternal(internalEvent eventId, String &sourceId);
 
-    //void getStatus();
+    // void getStatus();
 
     void virtualPTZ();
 };

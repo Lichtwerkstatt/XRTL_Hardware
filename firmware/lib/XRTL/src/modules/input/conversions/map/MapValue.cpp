@@ -1,6 +1,7 @@
 #include "MapValue.h"
 
-MapValue::MapValue() {
+MapValue::MapValue()
+{
     type = map_value;
 
     parameters.setKey("");
@@ -11,7 +12,8 @@ MapValue::MapValue() {
     parameters.add(outMax, "outMax", "float");
 }
 
-void MapValue::saveSettings(JsonObject& settings) {
+void MapValue::saveSettings(JsonObject &settings)
+{
     /*JsonObject saving = settings.createNestedObject();
     saving["type"] = map_value;
     saving["inMin"] = inMin;
@@ -21,7 +23,8 @@ void MapValue::saveSettings(JsonObject& settings) {
     parameters.save(settings);
 }
 
-void MapValue::loadSettings(JsonObject& settings, bool debugMode) {
+void MapValue::loadSettings(JsonObject &settings, bool debugMode)
+{
     /*inMin = loadValue<double>("inMin", settings, (double) 0);
     inMax = loadValue<double>("inMax", settings, (double) 3300);
     outMin = loadValue<double>("outMin", settings, (double) 0);
@@ -34,10 +37,12 @@ void MapValue::loadSettings(JsonObject& settings, bool debugMode) {
     Serial.printf("output minimum: %f\n", outMin);
     Serial.printf("output maximum: %f\n", outMax);*/
     parameters.load(settings);
-    if (debugMode) parameters.print();
+    if (debugMode)
+        parameters.print();
 }
 
-void MapValue::setViaSerial() {
+void MapValue::setViaSerial()
+{
     /*inMin = serialInput("input minimum: ").toDouble();
     inMax = serialInput("input maximum: ").toDouble();
     outMin = serialInput("output minimum: ").toDouble();
@@ -45,6 +50,7 @@ void MapValue::setViaSerial() {
     parameters.setViaSerial();
 }
 
-void MapValue::convert(double& value) {
+void MapValue::convert(double &value)
+{
     value = (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }

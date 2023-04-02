@@ -1,409 +1,495 @@
 #include "XRTL.h"
 
-void XRTL::setup(){ 
-  Serial.begin(115200);
+XRTL::~XRTL()
+{
+    for (int i = 0; i < moduleCount; i++)
+    {
+        delete module[i];
+    }
 
-  debug("starting setup");
-  loadSettings();
-
-  // execute setup of all modules
-  for (int i = 0; i < moduleCount; i++){
-    module[i]->setup();
-  }
-  
-  debug("setup complete");
+    for (int i = 0; i < internalCount; i++)
+    {
+        delete customInternal[i];
+    }
 }
 
-void XRTL::loop(){
-  if ( Serial.available() ) {
-    //allow to switch into debug mode
+void XRTL::setup()
+{
+    Serial.begin(115200);
+
+    debug("starting setup");
+    loadSettings();
+
+    // execute setup of all modules
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->setup();
+    }
+
+    debug("setup complete");
+}
+
+void XRTL::loop()
+{
+    // execute loop of each module
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->loop();
+    }
+
+    if (!Serial.available())
+        return;
+    // allow to switch into debug mode
     String input = Serial.readStringUntil('\n');
-    if ( input == "debug" ) {
-      debugging = !debugging;
-      if (debugging) notify(debug_on, id);
-      else notify(debug_off, id);
+    if (input == "debug")
+    {
+        debugging = !debugging;
+        if (debugging)
+            notify(debug_on, id);
+        else
+            notify(debug_off, id);
     }
 
-    //only allow inputs if debugging
-    if (debugging) {
-      if ( input == "setup" ){
+    // only allow inputs if debugging
+    if (!debugging)
+        return;
+    if (input == "setup")
+    {
         setViaSerial();
-      }
-      else if ( input == "debug" ) {} // do not interprete debug as event
-      else {
+    }
+    else if (input == "debug")
+    {
+    } // do not interprete debug as event
+    else
+    { // parse input as event
         DynamicJsonDocument serialEvent(1024);
-        DeserializationError error = deserializeJson(serialEvent,input);
-        if (error) {
-          Serial.printf("[%s] deserializeJson() failed on serial input: %s\n", id.c_str(), error.c_str());
-          Serial.printf("[%s] input: %s\n", id.c_str(), input.c_str());
+        DeserializationError error = deserializeJson(serialEvent, input);
+        if (error)
+        {
+            Serial.printf("[%s] deserializeJson() failed on serial input: %s\n", id.c_str(), error.c_str());
+            Serial.printf("[%s] input: %s\n", id.c_str(), input.c_str());
         }
-        else if (socketIO != NULL) { // make sure the socket is initialized
-          socketIO->handleEvent(serialEvent);
+        else if (socketIO != NULL)
+        { // make sure the socket is initialized
+            socketIO->handleEvent(serialEvent);
         }
-      }
     }
-  }
-
-  // execute loop of each module
-  for (int i = 0; i < moduleCount; i++) {
-    module[i]->loop();
-  }
 }
 
-bool XRTL::addModule(String moduleName, moduleType category) {
-  if (moduleCount == 16) {
-    debug("unable to add module: maximum number of modules reached");
-    return false;
-  }
+bool XRTL::addModule(String moduleName, moduleType category)
+{
+    if (moduleCount == 16)
+    {
+        debug("unable to add module: maximum number of modules reached");
+        return false;
+    }
 
-  if ( (moduleName == 0) or (moduleName == "")) {
-    debug("unable to add module: ID must not be empty");
-    return false;
-  }
+    if (moduleName == 0 || moduleName == "")
+    {
+        debug("unable to add module: ID must not be empty");
+        return false;
+    }
 
-  if (this->operator[](moduleName) != NULL) {
-    debug("unable to add module <%s>: ID already in use", moduleName.c_str());
-    return false;  
-  }
+    if (this->operator[](moduleName) != NULL)
+    {
+        debug("unable to add module <%s>: ID already in use", moduleName.c_str());
+        return false;
+    }
 
-  if ( (moduleName == "*") or (moduleName == "none") or (moduleName == "core") ) {
-    debug("unable to add module <%s>: ID restricted to internal use", moduleName);
-    return false;
-  }
+    if (moduleName == "*" || moduleName == "none" || moduleName == "core")
+    {
+        debug("unable to add module <%s>: ID restricted to internal use", moduleName);
+        return false;
+    }
 
-  bool ret = false;
-  switch(category) {
-    case xrtl_socket: {
-      socketIO = new SocketModule(moduleName);
-      module[moduleCount] = socketIO;
-      ret = true;
-      break;
+    bool ret = false;
+    switch (category)
+    {
+    case xrtl_socket:
+    {
+        socketIO = new SocketModule(moduleName);
+        module[moduleCount] = socketIO;
+        ret = true;
+        break;
     }
-    case xrtl_wifi: {
-      module[moduleCount] = new WifiModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_wifi:
+    {
+        module[moduleCount] = new WifiModule(moduleName);
+        ret = true;
+        break;
     }
-    case xrtl_infoLED: {
-      module[moduleCount] = new InfoLEDModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_infoLED:
+    {
+        module[moduleCount] = new InfoLEDModule(moduleName);
+        ret = true;
+        break;
     }
-    case xrtl_stepper: {
-      module[moduleCount] = new StepperModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_stepper:
+    {
+        module[moduleCount] = new StepperModule(moduleName);
+        ret = true;
+        break;
     }
-    case xrtl_servo: {
-      module[moduleCount] = new ServoModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_servo:
+    {
+        module[moduleCount] = new ServoModule(moduleName);
+        ret = true;
+        break;
     }
-    case xrtl_camera: {
-      module[moduleCount] = new CameraModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_camera:
+    {
+        module[moduleCount] = new CameraModule(moduleName);
+        ret = true;
+        break;
     }
-    case xrtl_output: {
-      module[moduleCount] = new OutputModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_output:
+    {
+        module[moduleCount] = new OutputModule(moduleName);
+        ret = true;
+        break;
     }
-    case xrtl_input: {
-      module[moduleCount] = new InputModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_input:
+    {
+        module[moduleCount] = new InputModule(moduleName);
+        ret = true;
+        break;
     }
-    case xrtl_macro: {
-      module[moduleCount] = new MacroModule(moduleName);
-      ret = true;
-      break;
+    case xrtl_macro:
+    {
+        module[moduleCount] = new MacroModule(moduleName);
+        ret = true;
+        break;
     }
-  }
+    }
 
-  if (ret) {
-    debug("<%s> module added: <%s>", moduleNames[category], moduleName.c_str());
-    module[moduleCount++]->setParent(this);
-  }
+    if (ret)
+    {
+        debug("<%s> module added: <%s>", moduleNames[category], moduleName.c_str());
+        module[moduleCount++]->setParent(this);
+    }
 
-  return ret;
+    return ret;
 }
 
-void XRTL::listModules() {
-  for (int i= 0; i < moduleCount; i++) {
-    Serial.printf("%d: %s\n", i, module[i]->getID().c_str());
-  }
+void XRTL::listModules()
+{
+    for (int i = 0; i < moduleCount; i++)
+    {
+        Serial.printf("%d: %s\n", i, module[i]->getID().c_str());
+    }
 }
 
-void XRTL::delModule(uint8_t number) {
-  if ((number >= 0) and (number < moduleCount)){
+void XRTL::delModule(uint8_t number)
+{
+    if (number < 0 || number >= moduleCount)
+        return;
+    // any number not in range defaults as exit methode
+
     String deletedName = module[number]->getID();
     Serial.printf("[%s] deleting <%s> ... ", id.c_str(), deletedName.c_str());
-    //parameters.delParameter[deletedName];
     delete module[number];
-    for (int i = number; i < moduleCount - 1; i++) {
-      module[i] = module[i+1];
+    for (int i = number; i < moduleCount - 1; i++)
+    {
+        module[i] = module[i + 1];
     }
     moduleCount--;
     Serial.println("done");
-  }// any number not in range defaults as exit methode
 }
 
-void XRTL::swapModules(uint8_t numberX, uint8_t numberY) {
-  if ( (numberX != numberY)
-      and (numberX >= 0) and (numberX <= moduleCount)
-      and (numberY >= 0) and (numberY <= moduleCount) ) {
-        XRTLmodule* temp = module[numberX];
-        module[numberX] = module[numberY];
-        module[numberY] = temp;
+void XRTL::swapModules(uint8_t numberX, uint8_t numberY)
+{
+    if (numberX == numberY || numberX < 0 || numberX >= moduleCount || numberY < 0 || numberY >= moduleCount)
+        return;
 
-        debug("swapped <%s> and <%s>", module[numberX]->getID().c_str(), module[numberY]->getID().c_str());
-      }
-  
+    XRTLmodule *temp = module[numberX];
+    module[numberX] = module[numberY];
+    module[numberY] = temp;
+
+    debug("swapped <%s> and <%s>", module[numberX]->getID().c_str(), module[numberY]->getID().c_str());
 }
 
-XRTLmodule* XRTL::operator[](String moduleName) {
-  for (int i = 0; i < moduleCount; i++) {
-    if (module[i]->isModule(moduleName)) {
-      return module[i];
+XRTLmodule *XRTL::operator[](String moduleName)
+{
+    for (int i = 0; i < moduleCount; i++)
+    {
+        if (module[i]->isModule(moduleName))
+        {
+            return module[i];
+        }
     }
-  }
-  return NULL;// probably not a good idea as default, return a special null module instead?
+    return NULL; // probably not a good idea as default, return a special null module instead?
 }
 
-void XRTL::saveSettings() {
-  DynamicJsonDocument doc(2048);
-  JsonObject settings = doc.to<JsonObject>();
+void XRTL::saveSettings()
+{
+    DynamicJsonDocument doc(2048);
+    JsonObject settings = doc.to<JsonObject>();
 
-  for (int i = 0; i < moduleCount; i++) {
-    module[i]->saveSettings(settings);
-  }
-
-  serializeJsonPretty(doc, Serial);
-
-  if (!LittleFS.begin(false)) {
-    debug("failed to mount LittleFS");
-    debug("trying to format LittleFS");
-    if (!LittleFS.begin(true)) {
-      debug("failed to mount LittleFS again");
-      debug("unable to format LittleFS");
-      debug("unable to save settings");
-      return;
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->saveSettings(settings);
     }
-  }
 
-  File file = LittleFS.open("/settings.txt", "w");
-  if (serializeJsonPretty(doc, file) == 0) {
-    debug("failed to write file");
-    debug("could not save settings");
-  }
-  else {
-    debug("settings successfully saved");
-  }
-  file.close();
-  LittleFS.end();
+    serializeJsonPretty(doc, Serial);
+
+    if (!LittleFS.begin(false))
+    {
+        debug("failed to mount LittleFS");
+        debug("trying to format LittleFS");
+        if (!LittleFS.begin(true))
+        {
+            debug("failed to mount LittleFS again");
+            debug("unable to format LittleFS");
+            debug("unable to save settings");
+            return;
+        }
+    }
+
+    File file = LittleFS.open("/settings.txt", "w");
+    if (serializeJsonPretty(doc, file) == 0)
+    {
+        debug("failed to write file");
+        debug("could not save settings");
+    }
+    else
+    {
+        debug("settings successfully saved");
+    }
+    file.close();
+    LittleFS.end();
 }
 
-void XRTL::loadSettings() {
-  if (debugging) {
+void XRTL::loadSettings()
+{
+    if (debugging)
+    {
+        Serial.println("");
+        Serial.println(centerString("", 39, '='));
+        Serial.println(centerString("loading settings", 39, ' '));
+        Serial.println(centerString("", 39, '='));
+        Serial.println("");
+    }
+
+    if (!LittleFS.begin(false))
+    {
+        debug("failed to mount LittleFS");
+        debug("trying to format LittleFS");
+        if (!LittleFS.begin(true))
+        {
+            debug("failed to mount LittleFS again");
+            debug("unable to format LittleFS");
+            debug("could not load settings");
+            return;
+        }
+        else
+        {
+            debug("successfully formated file system");
+            debug("creating new settings file");
+
+            saveSettings();
+        }
+    }
+
+    File file = LittleFS.open("/settings.txt", "r");
+    DynamicJsonDocument doc(2048);
+    DeserializationError error = deserializeJson(doc, file);
+    if (error)
+    {
+        debug("deserializeJson() failed while loading settings: <%s>", error.c_str());
+    }
+    file.close();
+    LittleFS.end();
+
+    serializeJsonPretty(doc, Serial);
+    JsonObject settings = doc.as<JsonObject>();
+
+    for (JsonPair kv : settings)
+    {
+        moduleType type;
+        if ((!kv.value().isNull()) and (kv.value().is<JsonObject>()))
+        {
+            // JsonObject moduleSettings = kv.value().as<JsonObject>();
+            auto typeField = kv.value()["type"];
+            // auto typeField = moduleSettings["type"];
+            if ((!typeField.isNull()) and (typeField.is<int>()))
+            {
+                type = typeField.as<moduleType>();
+                addModule(kv.key().c_str(), type);
+                module[moduleCount - 1]->loadSettings(settings);
+            }
+        }
+    }
+
+    if (moduleCount == 0)
+    { //
+        debug("WARNING: no modules found, adding socket and wifi module");
+        addModule("socket", xrtl_socket);
+        addModule("wifi", xrtl_wifi);
+        saveSettings();
+        ESP.restart();
+    }
+
+    if (!debugging)
+        return;
     Serial.println("");
-    Serial.println(centerString("",39,'='));
-    Serial.println(centerString("loading settings",39,' '));
-    Serial.println(centerString("",39,'='));
+    Serial.println(centerString("", 39, '='));
+    Serial.println(centerString("loading successfull", 39, ' '));
+    Serial.println(centerString("", 39, '='));
     Serial.println("");
-  }
-  
-  if (!LittleFS.begin(false)) {
-    debug("failed to mount LittleFS");
-    debug("trying to format LittleFS");
-    if(!LittleFS.begin(true)) {
-      debug("failed to mount LittleFS again");
-      debug("unable to format LittleFS");
-      debug("could not load settings");
-      return;
+}
+
+bool XRTL::settingsDialog()
+{
+    Serial.println("");
+    Serial.println(centerString("", 39, '-'));
+    Serial.println(centerString("available settings", 39, ' '));
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("");
+    listModules();
+    Serial.println("");
+    Serial.println("a: add module");
+    Serial.println("d: delete module");
+    Serial.println("s: swap modules");
+    Serial.println("i: internal events"); // TODO: implement
+    Serial.println("e: custom events");   // TODO: implement
+    Serial.println("r: save and restart");
+    Serial.println("");
+    String choice = serialInput("choose setup routine: ");
+    uint8_t choiceInt = choice.toInt();
+    Serial.println("");
+    // Serial.println(centerString("", 39, '-'));
+
+    if (choice == "a")
+    {
+        Serial.println(centerString("add module", 39, ' '));
+        Serial.println(centerString("", 39, '-'));
+        Serial.println("");
+        Serial.println("module type is determined by number, available types:");
+        Serial.println("");
+        for (int i = 0; i < 9; i++)
+        {
+            Serial.printf("%d: %s\n", i, moduleNames[i]);
+        }
+        Serial.println("");
+        Serial.println("r: return");
+        Serial.println("");
+
+        choice.clear();
+        choice = serialInput("new module type: ");
+        choiceInt = choice.toInt();
+
+        if (choice != "r" && choiceInt < 9)
+        {
+            moduleType newModuleType = (moduleType)choiceInt;
+            String newModuleName = serialInput("new module name: ");
+            if (addModule(newModuleName, newModuleType))
+            {
+                JsonObject emptySettings;
+                module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
+                module[moduleCount - 1]->setup();                     // run setup if necessary
+            }
+        }
     }
-    else {
-      debug("successfully formated file system");
-      debug("creating new settings file");
+    else if (choice == "d")
+    {
+        Serial.println(centerString("remove module", 39, ' '));
+        Serial.println(centerString("", 39, '-'));
+        Serial.println("");
+        Serial.println("choose module to delete: ");
+        Serial.println("");
+        listModules();
+        Serial.println("");
+        Serial.println("r: return");
+        Serial.println("");
 
-      saveSettings();
+        choice.clear();
+        choice = serialInput("delete: ");
+
+        if (choice != "r")
+        {
+            uint8_t deleteChoice = choice.toInt();
+            delModule(deleteChoice);
+        }
     }
-  }
+    else if (choice == "s")
+    {
+        Serial.println(centerString("swap modules", 39, ' '));
+        Serial.println(centerString("", 39, '-'));
+        Serial.println("choose two modules to swap:");
+        Serial.println("");
+        listModules();
+        Serial.println("");
+        Serial.println("r: exit");
+        Serial.println("");
 
-  File file = LittleFS.open("/settings.txt","r");
-  DynamicJsonDocument doc(2048);
-  DeserializationError error = deserializeJson(doc, file);
-  if (error) {
-    debug("deserializeJson() failed while loading settings: <%s>", error.c_str());
-  }
-  file.close();
-  LittleFS.end();
+        String firstModule = serialInput("first module: ");
 
-  serializeJsonPretty(doc, Serial);
-  JsonObject settings = doc.as<JsonObject>();
-
-  for (JsonPair kv : settings) {
-    moduleType type;
-    if ( (!kv.value().isNull()) and (kv.value().is<JsonObject>()) ) {
-      //JsonObject moduleSettings = kv.value().as<JsonObject>();
-      auto typeField = kv.value()["type"];
-      //auto typeField = moduleSettings["type"];
-      if ((!typeField.isNull()) and (typeField.is<int>()) ) {
-        type = typeField.as<moduleType>();
-        addModule(kv.key().c_str(), type);
-        module[moduleCount -1]->loadSettings(settings);
-      }
+        if (firstModule != "r")
+        {
+            String secondModule = serialInput("second module: ");
+            if (secondModule != "r")
+            {
+                swapModules((uint8_t)firstModule.toInt(), (uint8_t)secondModule.toInt());
+            }
+        }
     }
-  }
+    else if (choice == "i")
+    {
+        // add internal event hooks
+    }
+    else if (choice == "e")
+    {
+        // add custom event hooks
+    }
+    else if (choice == "r")
+    {
+        return false;
+    }
+    else if (choiceInt < moduleCount)
+    {
+        module[choiceInt]->setViaSerial();
+    }
+    else
+    {
+        Serial.printf("setup routine <%s> unknown\n", choice);
+    }
 
-  if (moduleCount == 0) { // 
-    debug("WARNING: no modules found, adding socket and wifi module");
-    addModule("socket", xrtl_socket);
-    addModule("wifi", xrtl_wifi);
+    return true;
+}
+
+void XRTL::setViaSerial()
+{
+    stop();
+
+    Serial.println("");
+    Serial.println(centerString("", 39, '='));
+    Serial.println(centerString("serial setup", 39, ' '));
+    Serial.println(centerString("", 39, '='));
+    Serial.println("");
+
+    while (settingsDialog())
+    {
+    }
+
     saveSettings();
+
+    Serial.println("");
+    Serial.println(centerString("", 39, '='));
+    Serial.println(centerString("setup complete", 39, ' '));
+    Serial.println(centerString("", 39, '='));
+    Serial.println("");
+    Serial.println("restarting now");
     ESP.restart();
-  }
-
-  if (!debugging) return;
-  Serial.println("");
-  Serial.println(centerString("",39,'='));
-  Serial.println(centerString("loading successfull", 39, ' '));
-  Serial.println(centerString("",39,'='));
-  Serial.println("");
 }
 
-bool XRTL::settingsDialog() {
-  Serial.println("");
-  Serial.println(centerString("",39, '-'));
-  Serial.println(centerString("available settings", 39, ' '));
-  Serial.println(centerString("",39, '-'));
-  Serial.println("");
-  listModules();
-  Serial.println("");
-  Serial.println("a: add module");
-  Serial.println("d: delete module");
-  Serial.println("s: swap modules");
-  Serial.println("i: internal events");// TODO: implement
-  Serial.println("e: custom events");// TODO: implement
-  Serial.println("r: save and restart");
-  Serial.println("");
-  String choice = serialInput("choose setup routine: ");
-  uint8_t choiceInt = choice.toInt();
-  Serial.println("");
-  //Serial.println(centerString("", 39, '-'));
+void XRTL::stop()
+{
+    debug("stopping all modules");
 
-  if (choice == "a") {
-    Serial.println(centerString("add module", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
-    Serial.println("module type is determined by number, available types:");
-    Serial.println("");
-    for (int i = 0; i < 9; i++) {
-      Serial.printf("%d: %s\n",i,moduleNames[i]);
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->stop();
     }
-    Serial.println("");
-    Serial.println("r: return");
-    Serial.println("");
-
-    choice.clear();
-    choice = serialInput("new module type: ");
-    choiceInt = choice.toInt();
-
-    if (choice != "r" && choiceInt < 9) {
-      moduleType newModuleType = (moduleType) choiceInt;
-      String newModuleName = serialInput("new module name: ");
-      if (addModule(newModuleName, newModuleType)) {
-        JsonObject emptySettings;
-        module[moduleCount - 1]->loadSettings(emptySettings); // initialize with default parameters
-        module[moduleCount - 1]->setup(); // run setup if necessary
-      }
-    }
-  }
-  else if (choice == "d") {
-    Serial.println(centerString("remove module", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
-    Serial.println("choose module to delete: ");
-    Serial.println("");
-    listModules();
-    Serial.println("");
-    Serial.println("r: return");
-    Serial.println("");
-
-    choice.clear();
-    choice = serialInput("delete: ");
-
-    if (choice != "r") {
-      uint8_t deleteChoice = choice.toInt();
-      delModule(deleteChoice);
-    }
-  }
-  else if (choice == "s") {
-    Serial.println(centerString("swap modules", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("choose two modules to swap:");
-    Serial.println("");
-    listModules();
-    Serial.println("");
-    Serial.println("r: exit");
-    Serial.println("");
-
-    String firstModule = serialInput("first module: ");
-
-    if (firstModule != "r") {
-      String secondModule = serialInput("second module: ");
-      if (secondModule != "r") {
-        swapModules((uint8_t) firstModule.toInt(), (uint8_t) secondModule.toInt());
-      }
-    }
-  }
-  else if (choice == "i") {
-    // add internal event hooks
-  }
-  else if (choice == "e") {
-    // add custom event hooks
-  }
-  else if (choice == "r") {
-    return false;
-  }
-  else if (choiceInt < moduleCount) {
-    module[choiceInt]->setViaSerial();
-  }
-  else {
-    Serial.printf("setup routine <%s> unknown\n", choice);
-  }
-  
-  return true;
-}
-
-void XRTL::setViaSerial() {
-  stop();
-
-  Serial.println("");
-  Serial.println(centerString("",39,'='));
-  Serial.println(centerString("serial setup",39,' '));
-  Serial.println(centerString("",39,'='));
-  Serial.println("");
-
-  while (settingsDialog()) {}
-
-  saveSettings();
-
-  Serial.println("");
-  Serial.println(centerString("",39,'='));
-  Serial.println(centerString("setup complete", 39, ' '));
-  Serial.println(centerString("",39,'='));
-  Serial.println("");
-  Serial.println("restarting now");
-  ESP.restart();
-}
-
-void XRTL::stop(){
-  debug("stopping all modules");
-
-  for (int i = 0; i < moduleCount; i++) {
-    module[i]->stop();
-  }
 }
 
 /*void XRTL::getStatus(){
@@ -415,7 +501,7 @@ void XRTL::stop(){
   payload["componentId"] = "null";
   JsonObject status = payload.createNestedObject("status");
   status["busy"] = false;
-  
+
   for (int i = 0; i < moduleCount; i++) {
     module[i]->getStatus(payload, status);
   }
@@ -427,185 +513,242 @@ void XRTL::stop(){
   socketIO->sendEvent(event);
 }*/
 
-void XRTLmodule::sendStatus(){
-  DynamicJsonDocument doc(1024);
-  JsonArray event = doc.to<JsonArray>();
-  event.add("status");
-
-  JsonObject payload = event.createNestedObject();
-  payload["controlId"] = id;
-  
-  JsonObject status = payload.createNestedObject("status");
-  if (!getStatus(status)) return;
-  xrtl->sendEvent(event);
-}
-
-void XRTL::sendStatus(){
-  for (int i = 0; i < moduleCount; i++) {
-    module[i]->sendStatus();
-  }
-}
-
-void SocketModule::sendAllStatus() {
-  xrtl->sendStatus();
-}
-
-/*void XRTLmodule::sendStatus(){
-  xrtl->getStatus();
-}*/
-
-void XRTL::sendEvent(JsonArray& event){
-  if (socketIO == NULL) {
-    debug("unable to send event: no endpoint module");
-    return;
-  }
-  socketIO->sendEvent(event);
-}
-
-void XRTLmodule::sendEvent(JsonArray& event){
-  xrtl->sendEvent(event);
-}
-
-void XRTL::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length) {
-  if (socketIO == NULL) {
-    debug("unable to send event: no endpoint module");
-  }
-  socketIO->sendBinary(binaryLeadFrame, payload, length);
-}
-
-void XRTLmodule::sendBinary(String& binaryLeadFrame, uint8_t* payload, size_t length) {
-  xrtl->sendBinary(binaryLeadFrame, payload, length);
-}
-
-void XRTL::sendCommand(XRTLcommand& command) {
-
-  String& controlId = command.getId();
-  XRTLmodule* targetModule = operator[](controlId);
-  DynamicJsonDocument doc(512);
-
-  if (targetModule != NULL) { // module located on this hardware
-    JsonObject commandObj = doc.to<JsonObject>();
-
-    command.fillCommand(commandObj);
-    targetModule->handleCommand(controlId, commandObj);
-  }
-  else {
+/**
+ * 
+ * @brief instruct core to send the status of this module
+ * @note content of the status is filled by getStatus(), if getStatus() returns false
+ */
+void XRTLmodule::sendStatus()
+{
+    DynamicJsonDocument doc(1024);
     JsonArray event = doc.to<JsonArray>();
-    event.add("command");
-    JsonObject commandObj = event.createNestedObject();
-    
-    command.fillCommand(commandObj);
-    sendEvent(event); 
-  }
+    event.add("status");
+
+    JsonObject payload = event.createNestedObject();
+    payload["controlId"] = id;
+
+    JsonObject status = payload.createNestedObject("status");
+    if (!getStatus(status))
+        return;
+    xrtl->sendEvent(event);
 }
 
-void XRTLmodule::sendCommand(XRTLcommand& command) {
-  xrtl->sendCommand(command);
-}
-
-void XRTL::notify(internalEvent eventId, String& sourceId) {
-  // notify modules
-  for (int i = 0; i < moduleCount; i++) {
-    module[i]->handleInternal(eventId, sourceId);
-  }
-
-  // core event handler
-  switch(eventId) {
-
-  }
-
-  for (int i = 0; i < internalCount; i++) {
-    InternalHook* hook = customInternal[i];
-    if (hook->isTriggered(eventId, sourceId)) {
-      sendCommand(hook->getCommand());
+/**
+ * 
+ * @brief send the status of all modules that provide status information to the server
+ * @note SocketModule::sendAllStatus() is the only methode of a XRTLmodule that can trigger this
+ */
+void XRTL::sendStatus()
+{
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->sendStatus();
     }
-  }
 }
 
-void XRTLmodule::notify(internalEvent state) {
-  xrtl->notify(state, id);
+/**
+ * 
+ * @brief send the status of all modules that provide status information to the server
+ */
+void SocketModule::sendAllStatus()
+{
+    xrtl->sendStatus();
 }
 
-String& XRTL::getComponent() {
-  if (socketIO == NULL) {
-    debug("WARNING: no socket module present");
-    return id;
-  }
-  return socketIO->getComponent();
+/**
+ * 
+ * @brief send event via socket module
+ * @param event reference to the event to send (JsonArray)
+ * @note event Format: [<event name>,{<payload>}]
+ */
+void XRTL::sendEvent(JsonArray &event)
+{
+    if (socketIO == NULL)
+    {
+        debug("unable to send event: no endpoint module");
+        return;
+    }
+    socketIO->sendEvent(event);
 }
 
-String& XRTLmodule::getComponent() {
-  return xrtl->getComponent();
+/**
+ * 
+ * @brief instruct core to send an event
+ * @param event reference to the event to send (JsonArray)
+ * @note event Format: [<event name>,{<payload>}]
+ */
+void XRTLmodule::sendEvent(JsonArray &event)
+{
+    xrtl->sendEvent(event);
 }
 
-void XRTL::pushCommand(String& controlId, JsonObject& command){
-
-  for (int i = 0; i < moduleCount; i++) {
-    module[i]->handleCommand(controlId, command);
-  }
-
+/**
+ * 
+ * @brief send binary data via the endpoint
+ * @param binaryLeadFrame complete websocket frame to be sent prior to the data frame. Must include placeholder for data, see note
+ * @param payload pointer to the data to be included
+ * @param length size of the data object to be sent
+ * @note placeholder: 451-[<event name>,{<additional payload>,{"_placeholder":true,"num":0}}]
+ */
+void XRTL::sendBinary(String &binaryLeadFrame, uint8_t *payload, size_t length)
+{
+    if (socketIO == NULL)
+    {
+        debug("unable to send event: no endpoint module");
+    }
+    socketIO->sendBinary(binaryLeadFrame, payload, length);
 }
 
-// only module that can get commands externally and needs this methode
+/**
+ * 
+ * @brief send binary data via the endpoint
+ * @param binaryLeadFrame complete websocket frame to be sent prior to the data frame. Must include placeholder for data, see note
+ * @param payload pointer to the data to be included
+ * @param length size of the data object to be sent
+ * @note placeholder: 451-[<event name>,{<additional payload>,{"_placeholder":true,"num":0}}]
+ */
+void XRTLmodule::sendBinary(String &binaryLeadFrame, uint8_t *payload, size_t length)
+{
+    xrtl->sendBinary(binaryLeadFrame, payload, length);
+}
+
+/**
+ * 
+ * @brief send command to a module
+ * @param command reference to the command to send
+ * @note if the requested controlId can not be found on the hardware, the command will be send to the socket server instead 
+ */
+void XRTL::sendCommand(XRTLcommand &command)
+{
+
+    String &controlId = command.getId();
+    XRTLmodule *targetModule = operator[](controlId);
+    DynamicJsonDocument doc(512);
+
+    if (targetModule != NULL)
+    { // module located on this hardware
+        JsonObject commandObj = doc.to<JsonObject>();
+
+        command.fillCommand(commandObj);
+        targetModule->handleCommand(controlId, commandObj);
+    }
+    else
+    {
+        JsonArray event = doc.to<JsonArray>();
+        event.add("command");
+        JsonObject commandObj = event.createNestedObject();
+
+        command.fillCommand(commandObj);
+        sendEvent(event);
+    }
+}
+
+/**
+ * 
+ * @brief send command to a module
+ * @param command reference to the command to send
+ * @note if the requested controlId can not be found on the hardware, the command will be send to the socket server instead 
+ */
+void XRTLmodule::sendCommand(XRTLcommand &command)
+{
+    xrtl->sendCommand(command);
+}
+
+/**
+ * 
+ * @brief send internal event to all modules
+ * @param eventId type of the occuring event, see internalEvent
+ * @param sourceId controlId of the module issuing the event
+ * @note events can be reacted on by using handleInternal() or internal hook of the core
+ */
+void XRTL::notify(internalEvent eventId, String &sourceId)
+{
+    // notify modules
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->handleInternal(eventId, sourceId);
+    }
+
+    // core event handler
+    switch (eventId)
+    {
+    }
+
+    for (int i = 0; i < internalCount; i++)
+    {
+        InternalHook *hook = customInternal[i];
+        if (hook->isTriggered(eventId, sourceId))
+        {
+            sendCommand(hook->getCommand());
+        }
+    }
+}
+
+/**
+ * 
+ * @brief send internal event to all modules
+ * @param eventId type of the occuring event, see internalEvent
+ * @note events can be reacted on by using handleInternal() or internal hook of the core
+ */
+void XRTLmodule::notify(internalEvent state)
+{
+    xrtl->notify(state, id);
+}
+
+String &XRTL::getComponent()
+{
+    if (socketIO == NULL)
+    {
+        debug("WARNING: no socket module present");
+        return id;
+    }
+    return socketIO->getComponent();
+}
+
+String &XRTLmodule::getComponent()
+{
+    return xrtl->getComponent();
+}
+
+void XRTL::pushCommand(String &controlId, JsonObject &command)
+{
+
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->handleCommand(controlId, command);
+    }
+}
+
+// only module that can receive commands externally and needs this methode
 // MacroModule can send commands too but needs a different methode or it would cause a feedback loop with several ESPs
-void SocketModule::pushCommand(String& controlId, JsonObject& command) {
-  xrtl->pushCommand(controlId, command);
+void SocketModule::pushCommand(String &controlId, JsonObject &command)
+{
+    xrtl->pushCommand(controlId, command);
 }
 
-void XRTL::pushCommand(String& command){
-  bool ret = false;
-  if ( (command == 0 ) or (command == "null") or (command == "") ) {
-    String errormsg = "[";
-    errormsg += id;
-    errormsg += "] command field is null";
-    sendError(field_is_null, errormsg);
-    return;
-  }
-
-  /*if ( command == "getStatus" ) {
-    getStatus();
-    return;
-  }*/
-
-  // offering command to modules, register if one or more respond true
-  for (int i = 0; i < moduleCount; i++) {
-    ret = module[i]->handleCommand(command) or ret;
-  }
-
-  // stuff happening after modules were informed
-  if ( command == "init" ) {
-    saveSettings();
-    ret = true;
-  }
-
-  if ( command == "reset" ) {
-    stop();
-    saveSettings();
-    ESP.restart();
-  }
-
-  if (!ret) {
-    String error = "[";
-    error += id;
-    error += "] unknown command: <";
-    error += command;
-    error += ">";
-    sendError(unknown_key, error);
-  }
+/**
+ * 
+ * @brief send an error via the endpoint
+ * @param ernr refers to the errortype, see componentError for details
+ * @param message errormessage as single string
+ */
+void XRTL::sendError(componentError ernr, String msg)
+{
+    if (socketIO == NULL)
+    {
+        debug("unable to send event: no endpoint module");
+        return;
+    }
+    socketIO->sendError(ernr, msg);
 }
 
-void SocketModule::pushCommand(String& command) {
-  xrtl->pushCommand(command);
-}
-
-void XRTL::sendError(componentError ernr, String msg) {
-  if (socketIO == NULL) {
-    debug("unable to send event: no endpoint module");
-    return;
-  }
-  socketIO->sendError(ernr, msg);
-}
-
-void XRTLmodule::sendError(componentError ernr, String msg) {
-  xrtl->sendError(ernr, msg);
+/**
+ * 
+ * @brief send an error via the endpoint
+ * @param ernr refers to the errortype, see componentError for details
+ * @param message errormessage as single string
+ */
+void XRTLmodule::sendError(componentError ernr, String msg)
+{
+    xrtl->sendError(ernr, msg);
 }

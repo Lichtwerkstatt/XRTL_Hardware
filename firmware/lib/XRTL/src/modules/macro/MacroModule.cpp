@@ -1,6 +1,7 @@
 #include "MacroModule.h"
 
-MacroModule::MacroModule(String moduleName) {
+MacroModule::MacroModule(String moduleName)
+{
     id = moduleName;
 
     parameters.setKey(id);
@@ -9,13 +10,16 @@ MacroModule::MacroModule(String moduleName) {
     parameters.add(controlKey, "controlKey", "String");
 }
 
-void MacroModule::setup() {
-    if (initState == "" || initState == NULL  || stateCount == 0) return;
+void MacroModule::setup()
+{
+    if (initState == "" || initState == NULL || stateCount == 0)
+        return;
     currentState = initState;
 }
 
-void MacroModule::loadSettings(JsonObject& settings){
-    //parameters.load(settings);
+void MacroModule::loadSettings(JsonObject &settings)
+{
+    // parameters.load(settings);
 
     /*currentState = loadValue<String>("currentState", settings, "");
     initState = loadValue<String>("initState", settings, "");
@@ -29,8 +33,10 @@ void MacroModule::loadSettings(JsonObject& settings){
     parameters.load(settings, subSettings);
 
     JsonObject stateCollection = subSettings["states"];
-    for (JsonPair kv : stateCollection) {
-        if ( (!kv.value().isNull()) && (kv.value().is<JsonObject>()) ) {
+    for (JsonPair kv : stateCollection)
+    {
+        if ((!kv.value().isNull()) && (kv.value().is<JsonObject>()))
+        {
             JsonObject moduleSettings = kv.value().as<JsonObject>();
             String stateName = kv.key().c_str();
             addState(stateName);
@@ -41,31 +47,38 @@ void MacroModule::loadSettings(JsonObject& settings){
         }
     }
 
-    if (debugging) parameters.print();
+    if (debugging)
+        parameters.print();
 }
 
-void MacroModule::saveSettings(JsonObject& settings){
+void MacroModule::saveSettings(JsonObject &settings)
+{
     /*settings["currentState"] = currentState;
     settings["initState"] = initState;
     settings["controlKey"] = controlKey;*/
     JsonObject subSettings;
     parameters.save(settings, subSettings);
 
-    if (stateCount == 0) return;
+    if (stateCount == 0)
+        return;
     JsonObject stateSettings = subSettings.createNestedObject("states");
-    for (int i = 0; i < stateCount; i++) {
+    for (int i = 0; i < stateCount; i++)
+    {
         JsonObject currentSettings = stateSettings.createNestedObject(states[i]->getName());
         states[i]->saveSettings(currentSettings);
     }
 }
 
-void MacroModule::listStates() {
-    for (int i = 0; i < stateCount; i++) {
+void MacroModule::listStates()
+{
+    for (int i = 0; i < stateCount; i++)
+    {
         printf("%i: %s\n", i, states[i]->getName());
     }
 }
 
-bool MacroModule::dialog(){
+bool MacroModule::dialog()
+{
     parameters.setViaSerial();
     /*Serial.println("");
     Serial.println(centerString("",39,'-').c_str());
@@ -80,53 +93,68 @@ bool MacroModule::dialog(){
     Serial.println("d: delete state");
     Serial.println("c: change settings");
     Serial.println("r: return");
-    
+
     Serial.println("");
     String choice = serialInput("choice: ");
     uint8_t choiceInt = choice.toInt();
     Serial.println("");
 
-    if (choice == "r") return false;
-    else if (choice == "c") {
+    if (choice == "r")
+        return false;
+    else if (choice == "c")
+    {
         id = serialInput("controlId: ");
         controlKey = serialInput("control key: ");
         currentState = serialInput("current state: ");
         initState = serialInput("initial state: ");
     }
-    else if (choice == "a") {
+    else if (choice == "a")
+    {
         String newState = serialInput("state name: ");
-        if (newState == NULL || newState == "") return true;
+        if (newState == NULL || newState == "")
+            return true;
         addState(newState);
     }
-    else if (choice == "d") {
+    else if (choice == "d")
+    {
         Serial.println("available states: ");
         listStates();
         Serial.println("");
 
         choiceInt = serialInput("delete: ").toInt();
-        if (choiceInt < stateCount){
+        if (choiceInt < stateCount)
+        {
             delState(choiceInt);
         }
     }
-    else if (choiceInt <= stateCount) {
+    else if (choiceInt <= stateCount)
+    {
         states[choiceInt]->setViaSerial();
     }
     return true;
 }
 
-void MacroModule::setViaSerial(){
-    while (dialog()){}
+void MacroModule::setViaSerial()
+{
+    while (dialog())
+    {
+    }
 }
 
-MacroState* MacroModule::findState(String& wantedState) {
-    for (int i = 0; i < stateCount; i++) {
-        if (states[i]->getName() == wantedState) return states[i];
+MacroState *MacroModule::findState(String &wantedState)
+{
+    for (int i = 0; i < stateCount; i++)
+    {
+        if (states[i]->getName() == wantedState)
+            return states[i];
     }
     return NULL;
 }
 
-void MacroModule::addState(String& stateName){
-    if (findState(stateName) != NULL) {
+void MacroModule::addState(String &stateName)
+{
+    if (findState(stateName) != NULL)
+    {
         debug("state <%s> already in use by this module", stateName.c_str());
         return;
     }
@@ -135,22 +163,27 @@ void MacroModule::addState(String& stateName){
     debug("state added: %s", stateName);
 }
 
-void MacroModule::delState(uint8_t number) {
+void MacroModule::delState(uint8_t number)
+{
     delete states[number];
-    for (int i = number; i < stateCount; i ++) {
-        states[i] = states[i+1];
+    for (int i = number; i < stateCount; i++)
+    {
+        states[i] = states[i + 1];
     }
     states[stateCount--] = NULL;
 }
 
-bool MacroModule::getStatus(JsonObject& status) {
+bool MacroModule::getStatus(JsonObject &status)
+{
     status[controlKey] = currentState;
     return true;
 }
 
-void MacroModule::selectState(String& targetState) {
-    MacroState* targetStatePointer = findState(targetState);
-    if (targetStatePointer == NULL) {
+void MacroModule::selectState(String &targetState)
+{
+    MacroState *targetStatePointer = findState(targetState);
+    if (targetStatePointer == NULL)
+    {
         String errmsg = "target state <";
         errmsg += targetState;
         errmsg += "> could not be found";
@@ -163,16 +196,20 @@ void MacroModule::selectState(String& targetState) {
     sendStatus();
 }
 
-void MacroModule::handleCommand(String& controlId, JsonObject& command) {
-    if (!isModule(controlId)) return;
+void MacroModule::handleCommand(String &controlId, JsonObject &command)
+{
+    if (!isModule(controlId))
+        return;
 
-    bool getStatus = false ;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+    bool getStatus = false;
+    if (getValue<bool>("getStatus", command, getStatus) && getStatus)
+    {
         sendStatus();
     }
 
     String targetState;
-    if (getValue<String>(controlKey, command, targetState)) {
+    if (getValue<String>(controlKey, command, targetState))
+    {
         selectState(targetState);
     }
 }

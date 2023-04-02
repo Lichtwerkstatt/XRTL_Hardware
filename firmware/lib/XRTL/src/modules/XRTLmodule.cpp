@@ -1,66 +1,122 @@
 #include "XRTLmodule.h"
 
-String XRTLmodule::getID(){
-  return id;
+String XRTLmodule::getID()
+{
+    return id;
 }
 
-void XRTLmodule::setParent(XRTL* parent){
-  xrtl = parent;
+void XRTLmodule::setParent(XRTL *parent)
+{
+    xrtl = parent;
 }
 
-bool XRTLmodule::isModule(String& moduleName){
-  return (id == moduleName);
+/**
+ * 
+ * @brief confirm the identity of a module by its controlId
+ * @param moduleName controlId that is searched for
+ * @returns true if controlId and moduleName match 
+ */
+bool XRTLmodule::isModule(String &moduleName)
+{
+    return (id == moduleName);
 }
 
-void XRTLmodule::setup(){
-  return;
+/**
+ *
+ * @brief initialization of the module, takes place only once 
+ */
+void XRTLmodule::setup()
+{
+    return;
 }
 
-void XRTLmodule::loop(){
-  return;
+/**
+ * 
+ * @brief gets called once during every loop of the main program 
+ */
+void XRTLmodule::loop()
+{
+    return;
 }
 
-bool XRTLmodule::getStatus(JsonObject& status) {
-  return false;
+/**
+ * 
+ * @brief define if a status should be send and what information it should contain
+ * @param status JsonObject to be filled with status information by the module
+ * @returns true if this module should send a status, defaults to false
+ */
+bool XRTLmodule::getStatus(JsonObject &status)
+{
+    return false;
 }
 
-void XRTLmodule::saveSettings(JsonObject& settings) {
-  return;
+/**
+ * 
+ * @brief save settings to flash when a planned shutdown occurs
+ * @param settings JsonObject that must be filled with the data to be saved
+ * @note format: {<key1>:<value1>,...,<keyN>:<valueN>}
+ */
+void XRTLmodule::saveSettings(JsonObject &settings)
+{
+    return;
 }
 
-void XRTLmodule::loadSettings(JsonObject& settings) {
-  return;
+/**
+ * 
+ * @brief load settings when device is started
+ * @param settings JsonObject containing the data for this module loaded from flash
+ * @note use this->loadValue() to safely initialize the settings
+ */
+void XRTLmodule::loadSettings(JsonObject &settings)
+{
+    return;
 }
 
-void XRTLmodule::setViaSerial() {
-  return;
+/**
+ * @brief methode called when the settings of a module are to be set via the serial interface
+ * @note all neccessary information must be polled from the user
+ */
+void XRTLmodule::setViaSerial()
+{
+    return;
 }
 
-void XRTLmodule::stop() {
-  return;
+void XRTLmodule::stop()
+{
+    return;
 }
 
-void XRTLmodule::handleInternal(internalEvent eventId, String& sourceId){
-  switch(eventId) {
+/**
+ * 
+ * @brief react to internal events issued by a module
+ * @param eventId type of the occuring event
+ * @param sourceId ID of the module triggering the event
+ */
+void XRTLmodule::handleInternal(internalEvent eventId, String &sourceId)
+{
+    switch (eventId)
+    {
     case debug_off:
     {
-      debugging = false;
-      break;
+        debugging = false;
+        break;
     }
     case debug_on:
     {
-      debugging = true;
-      break;
+        debugging = true;
+        break;
     }
-  }
+    }
 }
 
-//
-void XRTLmodule::handleCommand(String& controlId, JsonObject& command){
-  return;
-}
-
-bool XRTLmodule::handleCommand(String& command) {
-  //Serial.printf("[%s] got command: %s\n", id.c_str(), command.c_str());
-  return false;
+/**
+ * 
+ * @brief processes and reacts to commands
+ * @param controlId reference to the separated controlId
+ * @param command reference to the whole command message including the command keys
+ * @note to avoid controlId being separated by every individual module, it has to be done before distributing the command to the modules 
+ */
+void XRTLmodule::handleCommand(String &controlId, JsonObject &command)
+{
+    return;
 }
