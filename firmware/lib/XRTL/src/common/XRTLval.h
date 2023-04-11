@@ -26,8 +26,76 @@ private:
     void clear();
 
 public:
-    void passValue(String &key, JsonObject &command);
+    virtual void passValue(const String &key, JsonObject &command);
     void set(JsonVariant &newVal);
+};
+
+class XRTLvalBool : public XRTLval
+{
+private:
+    bool val;
+
+public:
+    XRTLvalBool(bool newVal)
+    {
+        val = newVal;
+    }
+
+    void passValue(const String &key, JsonObject &command)
+    {
+        command[key] = val;
+    }
+};
+
+class XRTLvalInt : public XRTLval
+{
+private:
+    int val;
+
+public:
+    XRTLvalInt(int newVal)
+    {
+        val = newVal;
+    }
+
+    void passValue(const String &key, JsonObject &command)
+    {
+        command[key] = val;
+    }
+};
+
+class XRTLvalFloat : public XRTLval
+{
+private:
+    double val;
+
+public:
+    XRTLvalFloat(double newVal)
+    {
+        val = newVal;
+    }
+
+    void passValue(const String &key, JsonObject &command)
+    {
+        command[key] = val;
+    }
+};
+
+class XRTLvalString : public XRTLval
+{
+private:
+    String val;
+
+public:
+    XRTLvalString(String newVal)
+    {
+        val = newVal;
+    }
+
+    void passValue(const String &key, JsonObject &command)
+    {
+        command[key] = val;
+    }
 };
 
 #endif

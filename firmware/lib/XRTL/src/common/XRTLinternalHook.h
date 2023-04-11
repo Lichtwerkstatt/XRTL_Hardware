@@ -8,17 +8,20 @@ class InternalHook
 private:
     internalEvent eventType = busy;
     String listeningId = "";
-    XRTLcommand *command = NULL;
+    XRTLcommand command;
+    ParameterPack parameters;
 
 public:
-    void setCommand(String &controlId, String &controlKey, JsonVariant &controlVal);
-
+    InternalHook();
     bool isTriggered(internalEvent &eventId, String &sourceId);
+    internalEvent &getType();
     String &getId();
     XRTLcommand &getCommand();
 
+    void set(internalEvent &eventId, String &sourceId);
+    void setViaSerial();
     void save(JsonObject &settings);
-    void load(JsonObject &settings);
+    void load(JsonObject &settings, bool &debugging);
 };
 
 #endif

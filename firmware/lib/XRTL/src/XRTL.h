@@ -53,7 +53,13 @@ public:
     void sendEvent(JsonArray &event);
     void sendError(componentError err, String msg);
     void sendBinary(String &binaryLeadFrame, uint8_t *payload, size_t length);
-    void sendCommand(XRTLcommand &command);
+    void sendCommand(XRTLcommand &command, const String &userId);
+    
+    // custom internal hooks
+    void manageInternal();
+    void addInternal();
+    void delInternal();
+    void swpInternal();
 
     // send string over Serial if debugging is activated
     // (uses printf syntax)
@@ -72,7 +78,6 @@ public:
     void saveSettings();
     void setViaSerial();
     bool settingsDialog();
-    // void getStatus();
     void sendStatus();
 
     // calls corresponding methodes of all modules

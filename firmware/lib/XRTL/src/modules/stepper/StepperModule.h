@@ -21,6 +21,7 @@ private:
     bool holdOn = false;
 
     AccelStepper *stepper = NULL;
+    String infoLED = "";
 
 public:
     StepperModule(String moduleName);

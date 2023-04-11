@@ -24,6 +24,15 @@ String centerString(String str, uint8_t targetLength, char filler = ' ')
     return String(output);
 }
 
+void highlightString(String str, char filler = '-')
+{
+    Serial.println("");
+    Serial.println(centerString("", 39, filler));
+    Serial.println(centerString(str, 39));
+    Serial.println(centerString("", 39, filler));
+    Serial.println("");
+}
+
 float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
 {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

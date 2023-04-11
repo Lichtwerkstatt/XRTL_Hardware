@@ -1,5 +1,11 @@
 #include "XRTLinternalHook.h"
 
+InternalHook::InternalHook()
+{
+    parameters.add(eventType, "eventId", "0-12");
+    parameters.add(listeningId, "listeningId", "String");
+}
+
 bool InternalHook::isTriggered(internalEvent &eventId, String &sourceId)
 {
     if (eventType != eventId)
@@ -9,22 +15,72 @@ bool InternalHook::isTriggered(internalEvent &eventId, String &sourceId)
     return true;
 }
 
-void InternalHook::setCommand(String &controlId, String &controlKey, JsonVariant &controlVal)
+internalEvent &InternalHook::getType() {
+    return eventType;
+}
+
+String &InternalHook::getId()
 {
-    command = new XRTLcommand();
-    command->set(controlId, controlKey, controlVal);
+    return listeningId;
 }
 
 XRTLcommand &InternalHook::getCommand()
 {
-    return *command;
+    return command;
+}
+
+void InternalHook::setViaSerial()
+{
+    parameters.setViaSerial();
+    command.setViaSerial();
+}
+
+void InternalHook::set(internalEvent &eventId, String &sourceId)
+{
+    eventType = eventId;
+    listeningId = sourceId;
 }
 
 void InternalHook::save(JsonObject &settings)
 {
-    settings["type"] = eventType;
-    settings["id"] = 12;
-    void *test = NULL;
-    XRTLmodule *ptr = (XRTLmodule *)test;
-    ptr->debug("test");
+    parameters.save(settings);
+    JsonObject commandSettings = settings.createNestedObject(command.getId());
+    command.saveSettings(commandSettings);
+}
+
+void InternalHook::load(JsonObject &settings, bool &debugging)
+{
+    parameters.load(settings);
+    settings.remove("eventId");
+    settings.remove("listeningId");
+
+    for (JsonPair kv : settings)
+    {
+        if (kv.value().isNull() || !kv.value().is<JsonObject>())
+            return;
+            
+        JsonObject commandSettings = kv.value().as<JsonObject>();
+
+        String commandId = kv.key().c_str();
+        String commandKey;
+        JsonVariant commandVal;
+
+        for (JsonPair commandKv : commandSettings)
+        {
+            commandKey = commandKv.key().c_str();
+            commandVal = commandKv.value();
+        }
+        
+        command.set(commandId, commandKey, commandVal);
+
+        if (debugging)
+        {
+            Serial.printf("%s(%s) -> %s:{%s:%s}\n",
+                listeningId.c_str(),
+                internalEventNames[eventType],
+                commandId.c_str(), commandKey.c_str(),
+                commandVal.as<String>().c_str()
+            );
+        }
+    }
 }

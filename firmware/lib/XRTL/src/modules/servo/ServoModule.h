@@ -28,6 +28,7 @@ private:
     uint8_t pin = 26;
 
     Servo *servo = NULL; // pointer to the servo module
+    String infoLED = "";
 
 public:
     ServoModule(String moduleName);

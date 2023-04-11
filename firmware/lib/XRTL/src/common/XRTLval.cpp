@@ -9,7 +9,7 @@ void XRTLval::clear()
     valString = "";
 }
 
-void XRTLval::passValue(String &key, JsonObject &command)
+void XRTLval::passValue(const String &key, JsonObject &command)
 {
     switch (currentType)
     {

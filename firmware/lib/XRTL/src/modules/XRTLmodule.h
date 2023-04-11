@@ -19,7 +19,8 @@ enum moduleType
 };
 
 // display names for modules
-static const char *moduleNames[9] = {
+static const char *moduleNames[9] =
+{
     "socket",
     "wifi",
     "info LED",
@@ -28,7 +29,8 @@ static const char *moduleNames[9] = {
     "camera",
     "input",
     "output",
-    "macro"};
+    "macro"
+};
 
 // used to push state changes to other modules
 enum internalEvent
@@ -50,6 +52,22 @@ enum internalEvent
 
     input_trigger_low,
     input_trigger_high
+};
+
+static const char *internalEventNames[12] =
+{
+    "socket disconnected",
+    "socket connected",
+    "socket authed",
+    "wifi disconnected",
+    "wifi connected",
+    "busy",
+    "ready",
+    "time synced",
+    "debug on",
+    "debug off",
+    "low input trigger",
+    "high input trigger",
 };
 
 // identify error category

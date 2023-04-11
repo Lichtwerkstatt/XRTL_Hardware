@@ -230,7 +230,18 @@ void XRTL::saveSettings()
         module[i]->saveSettings(settings);
     }
 
+    if (internalCount > 0)
+    {
+        JsonArray internalEventSettings = settings.createNestedArray("internal");
+        for (int i = 0; i < internalCount; i++)
+        {
+            JsonObject currentSettings = internalEventSettings.createNestedObject();
+            customInternal[i]->save(currentSettings);
+        }
+    }
+
     serializeJsonPretty(doc, Serial);
+    Serial.println("");
 
     if (!LittleFS.begin(false))
     {
@@ -263,11 +274,7 @@ void XRTL::loadSettings()
 {
     if (debugging)
     {
-        Serial.println("");
-        Serial.println(centerString("", 39, '='));
-        Serial.println(centerString("loading settings", 39, ' '));
-        Serial.println(centerString("", 39, '='));
-        Serial.println("");
+        highlightString("loading settings", '=');
     }
 
     if (!LittleFS.begin(false))
@@ -301,6 +308,8 @@ void XRTL::loadSettings()
     LittleFS.end();
 
     serializeJsonPretty(doc, Serial);
+    Serial.println("");
+
     JsonObject settings = doc.as<JsonObject>();
 
     for (JsonPair kv : settings)
@@ -329,22 +338,26 @@ void XRTL::loadSettings()
         ESP.restart();
     }
 
-    if (!debugging)
-        return;
-    Serial.println("");
-    Serial.println(centerString("", 39, '='));
-    Serial.println(centerString("loading successfull", 39, ' '));
-    Serial.println(centerString("", 39, '='));
-    Serial.println("");
+    JsonArray internalSettings = settings["internal"];
+    if (!internalSettings.isNull())
+    {
+        if (debugging)
+            highlightString("custom internal events", '-');
+
+        for (JsonObject eventSettings : internalSettings)
+        {
+            customInternal[internalCount] = new InternalHook;
+            customInternal[internalCount++]->load(eventSettings, debugging);
+        }
+    }
+
+    if (debugging)
+        highlightString("loading successfull", '=');
 }
 
 bool XRTL::settingsDialog()
 {
-    Serial.println("");
-    Serial.println(centerString("", 39, '-'));
-    Serial.println(centerString("available settings", 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
+    highlightString("available settings", '-');
     listModules();
     Serial.println("");
     Serial.println("a: add module");
@@ -356,14 +369,11 @@ bool XRTL::settingsDialog()
     Serial.println("");
     String choice = serialInput("choose setup routine: ");
     uint8_t choiceInt = choice.toInt();
-    Serial.println("");
     // Serial.println(centerString("", 39, '-'));
 
     if (choice == "a")
     {
-        Serial.println(centerString("add module", 39, ' '));
-        Serial.println(centerString("", 39, '-'));
-        Serial.println("");
+        highlightString("add module", '-');
         Serial.println("module type is determined by number, available types:");
         Serial.println("");
         for (int i = 0; i < 9; i++)
@@ -392,9 +402,7 @@ bool XRTL::settingsDialog()
     }
     else if (choice == "d")
     {
-        Serial.println(centerString("remove module", 39, ' '));
-        Serial.println(centerString("", 39, '-'));
-        Serial.println("");
+        highlightString("remove module", '-');
         Serial.println("choose module to delete: ");
         Serial.println("");
         listModules();
@@ -413,8 +421,7 @@ bool XRTL::settingsDialog()
     }
     else if (choice == "s")
     {
-        Serial.println(centerString("swap modules", 39, ' '));
-        Serial.println(centerString("", 39, '-'));
+        highlightString("swap modules", '-');
         Serial.println("choose two modules to swap:");
         Serial.println("");
         listModules();
@@ -436,6 +443,7 @@ bool XRTL::settingsDialog()
     else if (choice == "i")
     {
         // add internal event hooks
+        manageInternal();
     }
     else if (choice == "e")
     {
@@ -491,27 +499,6 @@ void XRTL::stop()
         module[i]->stop();
     }
 }
-
-/*void XRTL::getStatus(){
-  DynamicJsonDocument doc(1024);
-  JsonArray event = doc.to<JsonArray>();
-  event.add("status");
-
-  JsonObject payload = event.createNestedObject();
-  payload["componentId"] = "null";
-  JsonObject status = payload.createNestedObject("status");
-  status["busy"] = false;
-
-  for (int i = 0; i < moduleCount; i++) {
-    module[i]->getStatus(payload, status);
-  }
-
-  if (socketIO == NULL) {
-    debug("unable to send event: no endpoint module");
-    return;
-  }
-  socketIO->sendEvent(event);
-}*/
 
 /**
  * 
@@ -616,11 +603,11 @@ void XRTLmodule::sendBinary(String &binaryLeadFrame, uint8_t *payload, size_t le
  * 
  * @brief send command to a module
  * @param command reference to the command to send
+ * @param userId reference to the String used as userId in the command message
  * @note if the requested controlId can not be found on the hardware, the command will be send to the socket server instead 
  */
-void XRTL::sendCommand(XRTLcommand &command)
+void XRTL::sendCommand(XRTLcommand &command, const String &userId = "")
 {
-
     String &controlId = command.getId();
     XRTLmodule *targetModule = operator[](controlId);
     DynamicJsonDocument doc(512);
@@ -638,6 +625,15 @@ void XRTL::sendCommand(XRTLcommand &command)
         event.add("command");
         JsonObject commandObj = event.createNestedObject();
 
+        if (userId == "" && socketIO != NULL) // only use default if socketIO is no socket module is present
+        {
+            commandObj["userId"] = socketIO->getComponent();
+        }
+        else
+        {
+            commandObj["userId"] = userId; 
+        }
+
         command.fillCommand(commandObj);
         sendEvent(event);
     }
@@ -651,7 +647,7 @@ void XRTL::sendCommand(XRTLcommand &command)
  */
 void XRTLmodule::sendCommand(XRTLcommand &command)
 {
-    xrtl->sendCommand(command);
+    xrtl->sendCommand(command, id);
 }
 
 /**
@@ -677,7 +673,7 @@ void XRTL::notify(internalEvent eventId, String &sourceId)
     for (int i = 0; i < internalCount; i++)
     {
         InternalHook *hook = customInternal[i];
-        if (hook->isTriggered(eventId, sourceId))
+        if (hook->isTriggered(eventId, sourceId)    )
         {
             sendCommand(hook->getCommand());
         }
@@ -751,4 +747,93 @@ void XRTL::sendError(componentError ernr, String msg)
 void XRTLmodule::sendError(componentError ernr, String msg)
 {
     xrtl->sendError(ernr, msg);
+}
+
+void XRTL::manageInternal()
+{
+    highlightString("internal events", '-');
+
+    for (int i = 0; i < internalCount; i++)
+    {
+        Serial.printf("%d: %s, %s -> %s \n",
+            i,
+            internalEventNames[customInternal[i]->getType()],
+            customInternal[i]->getId().c_str(),
+            customInternal[i]->getCommand().getId().c_str()
+        );
+    }
+
+    Serial.println("");
+    Serial.println("a: add internal listener");
+    Serial.println("s: swap listeners");
+    Serial.println("d: delete listener");
+    Serial.println("r: return");
+
+    String choice = serialInput("choice: ");
+    uint8_t choiceNum = choice.toInt();
+
+    if (choice == "r") return;
+    else if (choice == "a") addInternal();
+    else if (choice == "s") swpInternal();
+    else if (choice == "d") delInternal();
+    else if (choiceNum < internalCount)
+    {
+        customInternal[choiceNum]->setViaSerial();
+    }
+}
+
+void XRTL::addInternal()
+{
+    if (internalCount >= 16)
+    {
+        Serial.println("maximum event count reached");
+        return;
+    }
+
+    Serial.println("");
+    Serial.println("available events:");
+    Serial.println("");
+    for (int i = 0; i < 12; i++)
+    {
+        Serial.printf("%d: %s\n", i, internalEventNames[i]);
+    }
+
+    Serial.println("");
+    uint8_t choiceNum = serialInput("event type: ").toInt();
+    if (choiceNum > 11) return;
+    internalEvent eventType = (internalEvent) choiceNum;
+    
+    String listeningId = serialInput("source ID: ");
+    if (listeningId == "core") return;
+
+    customInternal[internalCount] = new InternalHook();
+    customInternal[internalCount]->set(eventType, listeningId);
+    customInternal[internalCount++]->getCommand().setViaSerial();
+}
+
+void XRTL::swpInternal() {
+    uint8_t choiceNum1 = serialInput("first event: ").toInt();
+    uint8_t choiceNum2 = serialInput("second event:").toInt();
+
+    if (choiceNum1 > internalCount || choiceNum2 > internalCount || choiceNum1 == choiceNum2)
+        return;
+
+    InternalHook* tmp = customInternal[choiceNum1];
+    customInternal[choiceNum1] = customInternal[choiceNum2];
+    customInternal[choiceNum2] = tmp;
+}
+
+void XRTL::delInternal() {
+    uint8_t choiceNum = serialInput("delete: ").toInt();
+
+    if (choiceNum >= internalCount)
+        return;
+
+    delete customInternal[choiceNum];
+
+    for (int i = choiceNum; i < internalCount; i++)
+    {
+        customInternal[i] = customInternal[i+1];
+    }
+    internalCount--;
 }

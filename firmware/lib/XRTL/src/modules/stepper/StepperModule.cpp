@@ -9,15 +9,16 @@ StepperModule::StepperModule(String moduleName)
     parameters.setKey(id);
     parameters.add(type, "type");
     parameters.add(pin[0], "pin1", "int");
-    parameters.add(pin[1], "pin1", "int");
-    parameters.add(pin[2], "pin1", "int");
-    parameters.add(pin[3], "pin1", "int");
+    parameters.add(pin[1], "pin2", "int");
+    parameters.add(pin[2], "pin3", "int");
+    parameters.add(pin[3], "pin4", "int");
     parameters.add(accel, "accel", "steps/s²");
     parameters.add(speed, "speed", "steps/s");
     parameters.add(position, "position", "int");
     parameters.add(minimum, "minimum", "int");
     parameters.add(maximum, "maximum", "int");
     parameters.add(initial, "initial", "int");
+    parameters.add(infoLED, "infoLED", "String");
 }
 
 moduleType StepperModule::getType()
@@ -136,6 +137,13 @@ void StepperModule::loop()
     {
         if (!holdOn)
             stepper->disableOutputs();
+
+        if (infoLED != "")
+        {
+            XRTLdisposableCommand command(infoLED);
+            command.add("hold", false);
+            sendCommand(command);
+        }
 
         wasRunning = false;
         notify(ready);
@@ -292,8 +300,37 @@ void StepperModule::driveStepper(JsonObject &command)
         debug("hold %sactive", holdOn ? "" : "in");
     }
 
-    if (!stepper->isRunning())
+    if (!stepper->isRunning()) // check whether position is reached already
         return;
+
+    // estimate travelTime in ms
+    uint32_t distance = abs(stepper->targetPosition() - stepper->currentPosition());
+    uint32_t travelTime = 0;
+    if (distance > speed * speed / accel)
+    {
+        travelTime = 1000 * distance / speed;
+        travelTime += 1000 * speed / accel;
+    }
+    else
+    {
+        travelTime = 2 * sqrt(1000 * distance / accel);
+    }
+
+    if (infoLED != "")
+    {
+        XRTLdisposableCommand ledCommand(infoLED);
+
+        String color;
+        if (getValue("color", command, color))
+        {
+            ledCommand.add("color", color);
+        }
+
+        ledCommand.add("hold", true);
+        ledCommand.add("cycle", (int) travelTime);
+        sendCommand(ledCommand);
+    }
+
     stepper->enableOutputs();
     debug("moving from %d to %d", stepper->currentPosition(), stepper->targetPosition());
     wasRunning = true;

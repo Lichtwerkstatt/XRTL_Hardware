@@ -10,7 +10,7 @@ InputModule::InputModule(String moduleName) {
     parameters.add(type, "type");
     parameters.add(averageTime, "averageTime", "ms");
     parameters.add(rangeChecking, "rangeChecking", "");
-    parameters.addDependent(relayViolations, "relayViolations", "", "rangeChecking", true);
+    parameters.addDependent(relayViolations, "relayViolations", "y/n", "rangeChecking", true);
     parameters.addDependent(loBound, "loBound", "float", "rangeChecking", true);
     parameters.addDependent(hiBound, "hiBound", "float",  "rangeChecking", true);
     parameters.add(deadMicroSeconds, "deadMicroSeconds", "µs");

@@ -14,6 +14,7 @@ ServoModule::ServoModule(String moduleName)
     parameters.add(maxSpeed, "maxSpeed", "float");
     parameters.add(initial, "initial", "int");
     parameters.add(pin, "pin", "int");
+    parameters.add(infoLED, "infoLED", "String");
 }
 
 moduleType ServoModule::getType()
@@ -136,6 +137,14 @@ void ServoModule::loop()
         sendStatus();
         if (!holdOn)
             servo->detach(); // if hold is activated: keep motor powered
+
+        if (infoLED != "")
+        {
+            XRTLdisposableCommand ledCommand(infoLED);
+            ledCommand.add("hold", false);
+            sendCommand(ledCommand);
+        }
+
         debug("done moving");
         notify(ready);
         return;
@@ -284,12 +293,14 @@ void ServoModule::driveServo(JsonObject &command)
         sendError(out_of_bounds, error);
     }
 
+    uint32_t travelTime;
     if (timeStep > 0)
     {
         wasRunning = true;
         servo->attach(pin, minDuty, maxDuty);
         servo->writeMicroseconds(currentDuty);
         targetDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
+        travelTime = abs(targetDuty - currentDuty) * timeStep / 1000; // travelTime in ms
 
         if (targetDuty > currentDuty)
         {
@@ -303,7 +314,7 @@ void ServoModule::driveServo(JsonObject &command)
         }
         else if (targetDuty == currentDuty)
         {
-            nextStep = esp_timer_get_time() + 750000;
+            nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
         }
     }
     else
@@ -312,8 +323,24 @@ void ServoModule::driveServo(JsonObject &command)
         write(target);
         targetDuty = currentDuty;
         wasRunning = true;
-        nextStep = esp_timer_get_time() + 750000;
+        travelTime = 750;
+        nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
     }
+    
+    if (infoLED != "")
+    {
+        XRTLdisposableCommand ledCommand(infoLED);
+        String color;
+        if (getValue("color", command, color))
+        {
+            ledCommand.add("color", color);
+        }
+
+        ledCommand.add("hold", true);
+        ledCommand.add("cycle", (int) travelTime);
+        sendCommand(ledCommand);
+    }
+
     notify(busy);
     debug("moving from %d to %d", currentDuty, targetDuty);
     sendStatus();

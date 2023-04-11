@@ -14,13 +14,13 @@
 template <typename T>
 T loadValue(String key, JsonObject &file, T defaultValue)
 {
-  auto field = file[key];
-  if (field.isNull())
-  {
-    Serial.printf("WARNING: %s not set, using default value\n", key.c_str());
-    return defaultValue;
-  }
-  return field.as<T>();
+    auto field = file[key];
+    if (field.isNull())
+    {
+        Serial.printf("WARNING: %s not set, using default value\n", key.c_str());
+        return defaultValue;
+    }
+    return field.as<T>();
 }
 
 // @brief poll user input via serial monitor
@@ -34,6 +34,8 @@ String serialInput(String query);
 // @param filler remaining space is filled with this char
 // @note example: filler + =>  ++++str++++
 String centerString(String str, uint8_t targetLength, char filler);
+
+void highlightString(String str, char filler);
 
 // @brief rescale floats, analogue to map
 // @param x value to be mapped
