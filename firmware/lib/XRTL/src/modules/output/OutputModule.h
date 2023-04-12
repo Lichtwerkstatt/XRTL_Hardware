@@ -28,6 +28,7 @@ private:
     String guardedModule = "";
 
     XRTLoutput *out = NULL;
+    String infoLED = "";
 
 public:
     OutputModule(String moduleName);

@@ -29,18 +29,27 @@ void MacroState::addCommand()
         Serial.println("maximum number of commands reached");
         return;
     }
-    commands[commandCount++] = new XRTLcommand();
+    commands[commandCount++] = new XRTLcommand2();
 }
 
 void MacroState::addCommand(String &id, String &key, JsonVariant &val)
 {
     addCommand();
-    commands[commandCount - 1]->set(id, key, val);
+
+    if (val.is<bool>())
+        commands[commandCount - 1]->set(id, key, val.as<bool>());
+    else if (val.is<int>())
+        commands[commandCount - 1]->set(id, key, val.as<long>());
+    else if (val.is<float>())
+        commands[commandCount - 1]->set(id, key, val.as<double>());
+    if (val.is<String>())
+        commands[commandCount - 1]->set(id, key, val.as<String>());
 }
 
 void MacroState::delCommand(uint8_t number)
 {
-    delete commands[number];
+    if (commands[number] == NULL)
+        delete commands[number];
     for (int i = number; i < commandCount - 1; i++)
     {
         commands[i] = commands[i + 1];

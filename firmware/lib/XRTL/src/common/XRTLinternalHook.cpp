@@ -71,7 +71,14 @@ void InternalHook::load(JsonObject &settings, bool &debugging)
             commandVal = commandKv.value();
         }
         
-        command.set(commandId, commandKey, commandVal);
+        if (commandVal.is<bool>())
+            command.set(commandId, commandKey, commandVal.as<bool>());
+        else if (commandVal.is<int>())
+            command.set(commandId, commandKey, commandVal.as<long>());
+        else if (commandVal.is<float>())
+            command.set(commandId, commandKey, commandVal.as<double>());
+        else if (commandVal.is<String>())
+            command.set(commandId, commandKey, commandVal.as<String>());
 
         if (debugging)
         {

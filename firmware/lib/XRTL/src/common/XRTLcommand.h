@@ -8,23 +8,26 @@ class XRTLcommand
 {
 protected:
     String id;
-    String key;
-    XRTLval val;
 
 public:
-    XRTLcommand();
-    virtual void set(String &controlId, String &controlKey, JsonVariant &controlVal);
+    virtual void set(const String &controlId, const String &controlKey, bool controlVal){}
+    virtual void set(const String &controlId, const String &controlKey, long controlVal){}
+    virtual void set(const String &controlId, const String &controlKey, double controlVal){}
+    virtual void set(const String &controlId, const String &controlKey, String controlVal){}
 
-    String &getId();
+    String &getId()
+    {
+        return id;
+    }
     // @brief fill a JsonObject with the command
     // @note the JsonDocument must be called externally or it would not the survive the context of the function call
-    virtual void fillCommand(JsonObject &command);
+    virtual void fillCommand(JsonObject &command){}
     // @brief fill a JsonObject with the command but substitute the stored value with the supplied value
     // @note the JsonDocument must be called externally or it would not the survive the context of the function call
-    void fillCommand(JsonObject &command, JsonVariant &relayVal);
+    //void fillCommand(JsonObject &command, JsonVariant &relayVal);
 
-    void saveSettings(JsonObject &settings);
-    void setViaSerial();
+    virtual void saveSettings(JsonObject &settings) {}
+    virtual void setViaSerial(){}
 };
 
 class XRTLcommand2 : public XRTLcommand

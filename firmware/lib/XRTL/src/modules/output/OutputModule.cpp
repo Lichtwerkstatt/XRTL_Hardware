@@ -11,6 +11,7 @@ OutputModule::OutputModule(String moduleName)
     parameters.add(guardedModule, "guardedModule", "String");
     parameters.addDependent(channel, "channel", "int", "pwm", true);
     parameters.addDependent(frequency, "frequency", "Hz", "pwm", true);
+    parameters.add(infoLED, "infoLED", "String");
 }
 
 moduleType OutputModule::getType()
@@ -235,6 +236,20 @@ void OutputModule::handleCommand(String &controlId, JsonObject &command)
     uint32_t toggleTime = 0;
     if (getValue<uint32_t>("pulse", command, toggleTime))
     {
+        if (infoLED != "")
+        {
+            XRTLdisposableCommand ledCommand(infoLED);
+
+            String color;
+            if (getValue("color", command, color))
+            {
+                ledCommand.add("color", color);
+            }
+
+            ledCommand.add("cycle", (int) toggleTime);
+            sendCommand(ledCommand);
+        }
+
         pulse(toggleTime);
         sendStatus();
     }
