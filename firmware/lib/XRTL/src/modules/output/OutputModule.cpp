@@ -8,10 +8,15 @@ OutputModule::OutputModule(String moduleName)
     parameters.add(type, "type");
     parameters.add(pin, "pin", "int");
     parameters.add(pwm, "pwm", "");
-    parameters.add(guardedModule, "guardedModule", "String");
     parameters.addDependent(channel, "channel", "int", "pwm", true);
     parameters.addDependent(frequency, "frequency", "Hz", "pwm", true);
     parameters.add(infoLED, "infoLED", "String");
+}
+
+OutputModule::~OutputModule()
+{
+    if (out != NULL)
+        delete out;
 }
 
 moduleType OutputModule::getType()
@@ -166,7 +171,7 @@ void OutputModule::handleInternal(internalEvent eventId, String &sourceId)
         return;
     }
 
-    case input_trigger_high:
+    /* case input_trigger_high:
     {
         if (guardedModule == "")
             return;
@@ -184,8 +189,8 @@ void OutputModule::handleInternal(internalEvent eventId, String &sourceId)
 
         sendStatus();
         return;
-    }
-    case input_trigger_low:
+    } */
+    /* case input_trigger_low:
     {
         if (guardedModule == "")
             return;
@@ -203,7 +208,7 @@ void OutputModule::handleInternal(internalEvent eventId, String &sourceId)
 
         sendStatus();
         return;
-    }
+    } */
     }
 }
 
@@ -218,17 +223,47 @@ void OutputModule::handleCommand(String &controlId, JsonObject &command)
         sendStatus();
     }
 
-    if (pwm)
+    if (pwm) // prevent pwm if a relay is used
     {
         uint8_t powerLvl;
         if (getValue<uint8_t>("pwm", command, powerLvl))
+        {
+            if (infoLED != "")
+            {
+                XRTLdisposableCommand ledCommand(infoLED);
+
+                String color;
+                if (getValue("color", command, color))
+                {
+                    ledCommand.add("color", color);
+                }
+
+                ledCommand.add("pulse", 2000);
+                sendCommand(ledCommand);
+            }
+
             out->write(powerLvl);
-        sendStatus();
+            sendStatus();
+        }
     }
 
     bool targetState;
     if (getValue<bool>("switch", command, targetState))
     {
+        if (infoLED != "")
+        {
+            XRTLdisposableCommand ledCommand(infoLED);
+
+            String color;
+            if (getValue("color", command, color))
+            {
+                ledCommand.add("color", color);
+            }
+
+            ledCommand.add("pulse", 2000);
+            sendCommand(ledCommand);
+        }
+
         out->toggle(targetState);
         sendStatus();
     }

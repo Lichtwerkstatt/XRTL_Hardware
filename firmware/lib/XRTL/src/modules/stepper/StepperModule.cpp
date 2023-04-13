@@ -313,7 +313,7 @@ void StepperModule::driveStepper(JsonObject &command)
     }
     else
     {
-        travelTime = 2 * sqrt(1000 * distance / accel);
+        travelTime = round(2000 * sqrt(distance / accel));
     }
 
     if (infoLED != "")

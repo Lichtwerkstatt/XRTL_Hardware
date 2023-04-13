@@ -28,13 +28,14 @@ class InputModule: public XRTLmodule {
     uint32_t intervalMicroSeconds = 1000000; // TODO: add interface for streaming interval
 
     bool rangeChecking = false;
-    bool relayViolations = false; // True: boundary violations will be reported to server as status; False: violations are errors
+    bool isBinary = false;
     double loBound = 0.0; // lowest ADC output: 142 mV, 0 will never get triggered
     double hiBound = 3300.0; // voltage reference, will never get triggered due to cut off typically around 3150 mV
     uint32_t deadMicroSeconds = 0;
     int64_t nextCheck;
 
     // TODO: add option to inform server of every status change
+    double value;
     bool lastState;
 
     public:

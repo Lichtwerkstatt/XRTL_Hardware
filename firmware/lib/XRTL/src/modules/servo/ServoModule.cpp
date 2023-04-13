@@ -141,7 +141,7 @@ void ServoModule::loop()
         if (infoLED != "")
         {
             XRTLdisposableCommand ledCommand(infoLED);
-            ledCommand.add("hold", false);
+            ledCommand.add("hold", false); // TODO: prevent this from canceling patterns during connection phase
             sendCommand(ledCommand);
         }
 

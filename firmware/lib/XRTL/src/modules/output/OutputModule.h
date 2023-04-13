@@ -23,15 +23,12 @@ private:
     // @brief esp_timer value (µs) at which the module is switched off again
     int64_t switchTime = 0;
 
-    // @brief ID (string) of the guarded module
-    // @note trigger events of this module will cause immediate powerdown of the output
-    String guardedModule = "";
-
     XRTLoutput *out = NULL;
     String infoLED = "";
 
 public:
     OutputModule(String moduleName);
+    ~OutputModule();
     moduleType type = xrtl_output;
     moduleType getType();
 

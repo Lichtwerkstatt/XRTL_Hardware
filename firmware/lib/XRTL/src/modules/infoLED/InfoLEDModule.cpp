@@ -109,12 +109,6 @@ void InfoLEDModule::handleCommand(String &controlId, JsonObject &command)
             stop();
     }
 
-    if (getValue("const", command, tempBool))
-    {
-        if (tempBool)
-            led->constant();
-    }
-
     if (getValue<uint16_t>("hue", command, userHue))
     {
         led->hsv(userHue, 255, 110);
@@ -130,21 +124,25 @@ void InfoLEDModule::handleCommand(String &controlId, JsonObject &command)
         hexRGBtoHSV(hexRGB, userHue, userSat, userVal);
         led->hsv(userHue, userSat, 110);
         debug("accepted color in HSV: %d, %d, %d", userHue, userSat, userVal);
-        // led->constant();
-        //led->loop();
-        //led->constant(2500);// TODO: implement afterglow as parameter
     }
 
-    uint16_t pulseDuration;
-    if (getValue("pulse", command, pulseDuration))
+    uint16_t duration;
+    if (getValue("const", command, duration))
     {
-        led->pulse(40, 110, pulseDuration);
+        led->fill(true);
+        led->constant(duration);
     }
 
-    uint16_t cycleDuration;
-    if (getValue("cycle", command, cycleDuration))
+    if (getValue("pulse", command, duration))
     {
-        led->cycle(cycleDuration);
+        led->fill(true);
+        duration = ceil(duration / 500); // aprroximate number of pulses
+        led->pulse(40, 110, 500, duration);
+    }
+
+    if (getValue("cycle", command, duration))
+    {
+        led->cycle(duration);
     }
 
     // return false;
@@ -160,7 +158,9 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
     {
         // led->hsv(0, 255, 110);
         // led->pulse(0, 40, 110);
-        led->cycle(500);
+        led->hsv(0, 255, 110);
+        led->hold(true);
+        led->cycle(5000);
         break;
     }
     case wifi_disconnected:
@@ -169,6 +169,7 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
         // led->cycle(100, false);
         led->hsv(0, 255, 110);
         led->fill(true);
+        led->hold(true);
         led->constant();
         break;
     }
@@ -177,6 +178,7 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
         // led->hsv(8000, 255, 110);
         led->hsv(8000, 255, 110);
         led->fill(true);
+        led->hold(true);
         led->constant();
         break;
     }
@@ -186,13 +188,17 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
         // led->constant();
         led->hsv(20000, 255, 110);
         led->fill(true);
-        led->constant(2500); // TODO: afterglow
+        led->hold(false);
+        led->constant(2500);
         break;
     }
     case wifi_connected:
     {
         // led->pulse(0, 40, 110);
-        led->cycle(500);
+        led->hsv(0, 255, 110);
+        led->fill(true);
+        led->hold(true);
+        led->pulse(40, 100, 1000, 600); // after 600 seconds the device restarts anyway
         break;
     }
 

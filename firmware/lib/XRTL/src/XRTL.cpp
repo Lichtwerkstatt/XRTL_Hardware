@@ -222,7 +222,7 @@ XRTLmodule *XRTL::operator[](String moduleName)
 
 void XRTL::saveSettings()
 {
-    DynamicJsonDocument doc(2048);
+    DynamicJsonDocument doc(4096);
     JsonObject settings = doc.to<JsonObject>();
 
     for (int i = 0; i < moduleCount; i++)
@@ -298,7 +298,7 @@ void XRTL::loadSettings()
     }
 
     File file = LittleFS.open("/settings.txt", "r");
-    DynamicJsonDocument doc(2048);
+    DynamicJsonDocument doc(4096);
     DeserializationError error = deserializeJson(doc, file);
     if (error)
     {

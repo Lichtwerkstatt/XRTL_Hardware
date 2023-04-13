@@ -2,7 +2,7 @@
 
 InternalHook::InternalHook()
 {
-    parameters.add(eventType, "eventId", "0-12");
+    parameters.add(eventType, "eventId", "0-11");
     parameters.add(listeningId, "listeningId", "String");
 }
 

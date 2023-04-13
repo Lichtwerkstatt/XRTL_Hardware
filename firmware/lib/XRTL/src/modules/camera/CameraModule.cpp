@@ -4,8 +4,8 @@ CameraModule::CameraModule(String moduleName)
 {
     id = moduleName;
 
-    // parameters.setKey(id);
-    // parameters.add(type, "type");
+    parameters.setKey(id);
+    parameters.add(type, "type");
 }
 
 moduleType CameraModule::getType()
@@ -37,7 +37,9 @@ camera_config_t CameraModule::camera_config = {
     .ledc_channel = LEDC_CHANNEL_0,
 
     .pixel_format = PIXFORMAT_JPEG, // YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size = FRAMESIZE_QVGA,   // UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
+    // IMPORTANT: frame size must be initialized with a high value
+    // frame buffer might otherwise be initialized too small and _WILL_ fail if the size is increased later
+    .frame_size = FRAMESIZE_UXGA,   // UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 10,             // 0-63 lower number means higher quality
     .fb_count = 2,                  // if more than one, i2s runs in continuous mode. Use only with JPEG
@@ -54,6 +56,7 @@ void CameraModule::setup()
         return;
     }
     cameraSettings = esp_camera_sensor_get();
+    cameraSettings->set_framesize(cameraSettings, FRAMESIZE_QVGA);
     cameraSettings->set_gain_ctrl(cameraSettings, 0);
     cameraSettings->set_exposure_ctrl(cameraSettings, 0);
     cameraSettings->set_aec_value(cameraSettings, exposure);
@@ -92,10 +95,12 @@ bool CameraModule::getStatus(JsonObject &status)
 
 void CameraModule::saveSettings(JsonObject &settings)
 {
+    parameters.save(settings);
 }
 
 void CameraModule::loadSettings(JsonObject &settings)
 {
+    parameters.load(settings);
 }
 
 void CameraModule::setViaSerial()
