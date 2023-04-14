@@ -84,6 +84,7 @@ public:
 
     void saveSettings(JsonObject& settings)
     {
+        settings["id"] = id;
         val->passValue(*key, settings);
     }
 

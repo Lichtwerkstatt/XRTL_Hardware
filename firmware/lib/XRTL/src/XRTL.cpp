@@ -34,6 +34,7 @@ void XRTL::loop()
     // execute loop of each module
     for (int i = 0; i < moduleCount; i++)
     {
+        //debug("loop <%s>", module[i]->getID().c_str());
         module[i]->loop();
     }
 

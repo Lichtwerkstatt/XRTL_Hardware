@@ -6,11 +6,13 @@
 class MacroModule : public XRTLmodule
 {
 private:
+    int64_t nextAction = 0;
     uint8_t stateCount = 0;
     MacroState *states[16];
+    MacroState *activeState = NULL;
 
     String controlKey = "key";
-    String currentState = "";
+    String currentStateName = "";
     String initState = "";
 
     void listStates();
@@ -18,10 +20,13 @@ private:
 
 public:
     MacroModule(String moduleName);
+    ~MacroModule();
     moduleType type = xrtl_macro;
     ParameterPack stateParameters;
 
     void setup();
+    void loop();
+    void stop();
 
     void addState(String &stateName);
     void delState(uint8_t number);

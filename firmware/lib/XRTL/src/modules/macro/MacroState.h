@@ -11,6 +11,7 @@ class MacroState
 private:
     XRTLmodule *macro;
     uint8_t commandCount = 0;
+    uint8_t currentCommand = 0;
     XRTLcommand *commands[8];
 
     String stateName;
@@ -29,10 +30,12 @@ public:
 
     void activate();
 
+    void loop();
+
     String getName();
 
-    void saveSettings(JsonObject &settings);
-    void loadSettings(JsonObject &settings);
+    void saveSettings(JsonArray &settings);
+    void loadSettings(JsonArray &settings);
     void setViaSerial();
 };
 

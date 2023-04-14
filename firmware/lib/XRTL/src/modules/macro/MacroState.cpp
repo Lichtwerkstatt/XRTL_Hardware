@@ -121,10 +121,22 @@ bool MacroState::dialog()
 void MacroState::activate()
 {
     macro->debug("activated <%s>", stateName);
-    for (int i = 0; i < commandCount; i++)
+    currentCommand = 0;
+/*     for (int i = 0; i < commandCount; i++)
     {
         macro->sendCommand(*commands[i]);
+    } */
+}
+
+void MacroState::loop()
+{
+    if (currentCommand >= commandCount)
+    {
+        macro->stop();
+        return;
     }
+
+    macro->sendCommand(*commands[currentCommand++]);
 }
 
 String MacroState::getName()
@@ -132,18 +144,36 @@ String MacroState::getName()
     return stateName;
 }
 
-void MacroState::saveSettings(JsonObject &settings)
+void MacroState::saveSettings(JsonArray &settings)
 {
     for (int i = 0; i < commandCount; i++)
     {
-        JsonObject commandSettings = settings.createNestedObject(commands[i]->getId());
+        //JsonObject commandSettings = settings.createNestedObject(commands[i]->getId());
+        JsonObject commandSettings = settings.createNestedObject();
         commands[i]->saveSettings(commandSettings);
     }
 }
 
-void MacroState::loadSettings(JsonObject &settings)
+void MacroState::loadSettings(JsonArray &settings)
 {
-    for (JsonPair kv : settings)
+    for (JsonObject commandSettings : settings)
+    {
+        String commandId = loadValue("id", commandSettings, "");
+        if (commandId == "")
+            continue;
+        
+        commandSettings.remove("id");
+        String commandKey;
+        JsonVariant commandVal;
+        for (JsonPair commandKV : commandSettings)
+        {
+            commandKey = commandKV.key().c_str();
+            commandVal = commandKV.value();
+        }
+        Serial.printf("%s:{%s:%s}\n", commandId, commandKey, commandVal.as<String>().c_str());
+        addCommand(commandId, commandKey, commandVal);
+    }
+    /* for (JsonPair kv : settings)
     {
         if ((!kv.value().isNull()) && (kv.value().is<JsonObject>()))
         {
@@ -161,7 +191,7 @@ void MacroState::loadSettings(JsonObject &settings)
             Serial.printf("%s:{%s:%s}\n", commandId, commandKey, commandVal.as<String>());
             addCommand(commandId, commandKey, commandVal);
         }
-    }
+    } */
 }
 
 void MacroState::setViaSerial()

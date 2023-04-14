@@ -10,11 +10,40 @@ MacroModule::MacroModule(String moduleName)
     parameters.add(controlKey, "controlKey", "String");
 }
 
+MacroModule::~MacroModule()
+{
+    for (int i = 0; i < stateCount; i++)
+    {
+        delete states[i];
+    }
+}
+
 void MacroModule::setup()
 {
     if (initState == "" || initState == NULL || stateCount == 0)
         return;
-    currentState = initState;
+
+    currentStateName = initState;
+    activeState = NULL;
+}
+
+void MacroModule::loop()
+{
+    if (!activeState)
+        return;
+    if (nextAction > 0 && esp_timer_get_time() < nextAction)
+        return;
+    
+    activeState->loop();
+}
+
+void MacroModule::stop()
+{
+    if (!activeState)
+        return;
+    currentStateName = activeState->getName();
+    activeState = NULL;
+    sendStatus();
 }
 
 void MacroModule::loadSettings(JsonObject &settings)
@@ -35,13 +64,12 @@ void MacroModule::loadSettings(JsonObject &settings)
     JsonObject stateCollection = subSettings["states"];
     for (JsonPair kv : stateCollection)
     {
-        if ((!kv.value().isNull()) && (kv.value().is<JsonObject>()))
+        if (!kv.value().isNull() && kv.value().is<JsonArray>())
         {
-            JsonObject moduleSettings = kv.value().as<JsonObject>();
             String stateName = kv.key().c_str();
             addState(stateName);
 
-            JsonObject stateSettings = kv.value().as<JsonObject>();
+            JsonArray stateSettings = kv.value().as<JsonArray>();
             states[stateCount - 1]->loadSettings(stateSettings);
             Serial.println("");
         }
@@ -61,10 +89,11 @@ void MacroModule::saveSettings(JsonObject &settings)
 
     if (stateCount == 0)
         return;
+
     JsonObject stateSettings = subSettings.createNestedObject("states");
     for (int i = 0; i < stateCount; i++)
     {
-        JsonObject currentSettings = stateSettings.createNestedObject(states[i]->getName());
+        JsonArray currentSettings = stateSettings.createNestedArray(states[i]->getName());
         states[i]->saveSettings(currentSettings);
     }
 }
@@ -105,7 +134,7 @@ bool MacroModule::dialog()
     {
         id = serialInput("controlId: ");
         controlKey = serialInput("control key: ");
-        currentState = serialInput("current state: ");
+        currentStateName = serialInput("current state: ");
         initState = serialInput("initial state: ");
     }
     else if (choice == "a")
@@ -175,14 +204,15 @@ void MacroModule::delState(uint8_t number)
 
 bool MacroModule::getStatus(JsonObject &status)
 {
-    status[controlKey] = currentState;
+    status["busy"] = activeState ? true : false;
+    status[controlKey] = currentStateName;
     return true;
 }
 
 void MacroModule::selectState(String &targetState)
 {
-    MacroState *targetStatePointer = findState(targetState);
-    if (targetStatePointer == NULL)
+    activeState = findState(targetState);
+    if (!activeState)
     {
         String errmsg = "target state <";
         errmsg += targetState;
@@ -191,8 +221,7 @@ void MacroModule::selectState(String &targetState)
         return;
     }
 
-    targetStatePointer->activate();
-    currentState = targetStatePointer->getName();
+    activeState->activate();
     sendStatus();
 }
 
@@ -205,6 +234,12 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     if (getValue<bool>("getStatus", command, getStatus) && getStatus)
     {
         sendStatus();
+    }
+
+    uint32_t duration;
+    if (getValue("pause", command, duration))
+    {
+        nextAction = esp_timer_get_time() + 1000 * duration;
     }
 
     String targetState;

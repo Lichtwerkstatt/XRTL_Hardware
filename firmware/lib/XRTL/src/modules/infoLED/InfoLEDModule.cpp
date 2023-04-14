@@ -126,7 +126,7 @@ void InfoLEDModule::handleCommand(String &controlId, JsonObject &command)
         debug("accepted color in HSV: %d, %d, %d", userHue, userSat, userVal);
     }
 
-    uint16_t duration;
+    uint64_t duration;
     if (getValue("const", command, duration))
     {
         led->fill(true);
