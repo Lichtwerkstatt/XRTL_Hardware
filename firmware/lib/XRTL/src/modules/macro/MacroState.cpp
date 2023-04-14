@@ -173,25 +173,6 @@ void MacroState::loadSettings(JsonArray &settings)
         Serial.printf("%s:{%s:%s}\n", commandId, commandKey, commandVal.as<String>().c_str());
         addCommand(commandId, commandKey, commandVal);
     }
-    /* for (JsonPair kv : settings)
-    {
-        if ((!kv.value().isNull()) && (kv.value().is<JsonObject>()))
-        {
-            JsonObject commandSettings = kv.value().as<JsonObject>();
-
-            String commandId = kv.key().c_str();
-            String commandKey;
-            JsonVariant commandVal;
-
-            for (JsonPair commandKv : commandSettings)
-            {
-                commandKey = commandKv.key().c_str();
-                commandVal = commandKv.value();
-            }
-            Serial.printf("%s:{%s:%s}\n", commandId, commandKey, commandVal.as<String>());
-            addCommand(commandId, commandKey, commandVal);
-        }
-    } */
 }
 
 void MacroState::setViaSerial()

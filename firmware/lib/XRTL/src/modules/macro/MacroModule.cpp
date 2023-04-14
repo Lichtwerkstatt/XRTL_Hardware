@@ -217,7 +217,7 @@ void MacroModule::selectState(String &targetState)
         String errmsg = "target state <";
         errmsg += targetState;
         errmsg += "> could not be found";
-        sendError(out_of_bounds, errmsg);
+        sendError(out_of_bounds, errmsg);   
         return;
     }
 
