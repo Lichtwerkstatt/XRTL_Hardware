@@ -261,9 +261,6 @@ void StepperModule::driveStepper(JsonObject &command)
         stepper->moveTo(moveValue);
     }
 
-    if (!stepper->isRunning())
-        return; // no movement command detected, omit checks
-
     int32_t target = stepper->targetPosition();
 
     if ((target > maximum) or (target < minimum))
@@ -301,7 +298,10 @@ void StepperModule::driveStepper(JsonObject &command)
     }
 
     if (!stepper->isRunning()) // check whether position is reached already
+    {
+        wasRunning = true;
         return;
+    }
 
     // estimate travelTime in ms
     uint32_t distance = abs(stepper->targetPosition() - stepper->currentPosition());

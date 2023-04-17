@@ -122,10 +122,6 @@ void MacroState::activate()
 {
     macro->debug("activated <%s>", stateName);
     currentCommand = 0;
-/*     for (int i = 0; i < commandCount; i++)
-    {
-        macro->sendCommand(*commands[i]);
-    } */
 }
 
 void MacroState::loop()

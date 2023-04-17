@@ -19,7 +19,6 @@ private:
     bool dialog();
 
     String listeningId = "";
-    void waitForReady(String &waitingId);
 
     MacroState *findState(String &state);
     void selectState(String &targetState);

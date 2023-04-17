@@ -29,12 +29,13 @@ void MacroModule::setup()
 
 void MacroModule::loop()
 {
-    if (!activeState)
-        return;
-    if (nextAction >= 0 && esp_timer_get_time() < nextAction)
+    if (!activeState || esp_timer_get_time() < nextAction)
         return;
     
-    activeState->loop();
+    while (nextAction == 0 && activeState) // nextAction > 0 indicates module is waiting, !activeState indicates command finished
+    {
+        activeState->loop();
+    }
 }
 
 void MacroModule::stop()
@@ -166,15 +167,6 @@ bool MacroModule::dialog()
     return true;
 }
 
-void MacroModule::waitForReady(String &waitingId)
-{
-    listeningId = waitingId;
-    if (nextAction == 0)
-    {
-        nextAction = esp_timer_get_time() + 60000000;
-    }
-}
-
 void MacroModule::setViaSerial()
 {
     while (dialog())
@@ -233,6 +225,7 @@ void MacroModule::selectState(String &targetState)
         return;
     }
 
+    nextAction = 0;
     activeState->activate();
     sendStatus();
     notify(busy);
@@ -265,7 +258,11 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     String waitingId;
     if (activeState && getValue("waitFor", command, waitingId))
     {
-        waitForReady(waitingId);
+        listeningId = waitingId;
+        if (nextAction == 0)
+        {
+            nextAction = esp_timer_get_time() + 60000000; // default to 60 seconds
+        }
     }    
 }
 
@@ -275,7 +272,7 @@ void MacroModule::handleInternal(internalEvent eventId, String &sourceId)
         return;
     else
     {
-        nextAction = esp_timer_get_time();
+        nextAction = 0;
     } 
 }
 
@@ -286,5 +283,5 @@ void MacroModule::handleStatus(String &controlId, JsonObject &status)
     bool isBusy;
     if (getValue("busy", status, isBusy) && isBusy)
         return;
-    nextAction = esp_timer_get_time();
+    nextAction = 0;
 }
