@@ -18,9 +18,19 @@ private:
     void listStates();
     bool dialog();
 
+    String listeningId = "";
+    void waitForReady(String &waitingId);
+
+    MacroState *findState(String &state);
+    void selectState(String &targetState);
+
+    void addState(String &stateName);
+    void delState(uint8_t number);
+
 public:
     MacroModule(String moduleName);
     ~MacroModule();
+
     moduleType type = xrtl_macro;
     ParameterPack stateParameters;
 
@@ -28,18 +38,14 @@ public:
     void loop();
     void stop();
 
-    void addState(String &stateName);
-    void delState(uint8_t number);
-
     bool getStatus(JsonObject &status);
     void saveSettings(JsonObject &settings);
     void loadSettings(JsonObject &settings);
     void setViaSerial();
 
-    MacroState *findState(String &state);
-    void selectState(String &targetState);
-
     void handleCommand(String &controlId, JsonObject &command);
+    void handleInternal(internalEvent eventId, String &sourceId);
+    void handleStatus(String &controlId, JsonObject &status);
 };
 
 #endif

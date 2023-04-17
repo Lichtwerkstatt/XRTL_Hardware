@@ -32,6 +32,7 @@ public:
     void handleEvent(DynamicJsonDocument &doc);
 
     void pushCommand(String &controlId, JsonObject &command);
+    void pushStatus(String &controlId, JsonObject &status);
 
     String createJWT();
     void sendConnect();

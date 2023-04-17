@@ -120,3 +120,14 @@ void XRTLmodule::handleCommand(String &controlId, JsonObject &command)
 {
     return;
 }
+
+/**
+ * @brief processes and reacts to status EventBits_t
+ * @param controlId reference to the separated controlId of the issuing module
+ * @param status JsonObject holding the status information
+ * @note to avoid controlId being separated by every individual module, it has to be done before distributing the command to the modules
+ */
+void XRTLmodule::handleStatus(String &controlId, JsonObject &status)
+{
+    return;
+}

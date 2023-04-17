@@ -315,14 +315,26 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc)
         return;
     }
 
-    if (eventName != "command")
-        return; // currently only command events are analyzed
+    if (eventName == "command")
+    {
+        JsonObject payload = doc[1];
+        String controlId;
+        if (!getValue<String>("controlId", payload, controlId, true))
+            return;
+        pushCommand(controlId, payload);
+    }
 
-    JsonObject payload = doc[1];
-    String controlId;
-    if (!getValue<String>("controlId", payload, controlId, true))
-        return;
-    pushCommand(controlId, payload);
+    if (eventName == "status") // TODO: complete status pipeline
+    {
+        JsonObject payload = doc[1];
+        String controlId;
+        if (!getValue("controlId", payload, controlId, true))
+            return;
+        JsonObject status;
+        if (!getValue("status", payload, status, true))
+            return;
+        pushStatus(controlId, status);
+    }
 }
 
 void SocketModule::saveSettings(JsonObject &settings)

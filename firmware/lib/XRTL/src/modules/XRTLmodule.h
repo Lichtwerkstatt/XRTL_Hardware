@@ -103,6 +103,7 @@ public:
     bool isModule(String &moduleName); // @returns (id == moduleName)
 
     virtual void handleCommand(String &controlId, JsonObject &command);
+    virtual void handleStatus(String &controlId, JsonObject &status);
 
     void sendEvent(JsonArray &event);
     void sendError(componentError ernr, String message);

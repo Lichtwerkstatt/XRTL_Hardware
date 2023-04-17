@@ -709,10 +709,17 @@ String &XRTLmodule::getComponent()
 
 void XRTL::pushCommand(String &controlId, JsonObject &command)
 {
-
     for (int i = 0; i < moduleCount; i++)
     {
         module[i]->handleCommand(controlId, command);
+    }
+}
+
+void XRTL::pushStatus(String &controlId, JsonObject &status)
+{
+    for (int i = 0; i < moduleCount; i++)
+    {
+        module[i]->handleStatus(controlId, status);
     }
 }
 
@@ -721,6 +728,11 @@ void XRTL::pushCommand(String &controlId, JsonObject &command)
 void SocketModule::pushCommand(String &controlId, JsonObject &command)
 {
     xrtl->pushCommand(controlId, command);
+}
+
+void SocketModule::pushStatus(String &controlId, JsonObject &status)
+{
+    xrtl->pushStatus(controlId, status);
 }
 
 /**

@@ -39,11 +39,14 @@ void MacroModule::loop()
 
 void MacroModule::stop()
 {
-    if (!activeState)
+    if (!activeState) // no active state: nothing to stop
         return;
+    
+    nextAction = 0;
     currentStateName = activeState->getName();
     activeState = NULL;
     sendStatus();
+    notify(ready);
 }
 
 void MacroModule::loadSettings(JsonObject &settings)
@@ -163,6 +166,15 @@ bool MacroModule::dialog()
     return true;
 }
 
+void MacroModule::waitForReady(String &waitingId)
+{
+    listeningId = waitingId;
+    if (nextAction == 0)
+    {
+        nextAction = esp_timer_get_time() + 60000;
+    }
+}
+
 void MacroModule::setViaSerial()
 {
     while (dialog())
@@ -223,6 +235,7 @@ void MacroModule::selectState(String &targetState)
 
     activeState->activate();
     sendStatus();
+    notify(busy);
 }
 
 void MacroModule::handleCommand(String &controlId, JsonObject &command)
@@ -245,6 +258,33 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     String targetState;
     if (getValue<String>(controlKey, command, targetState))
     {
+        // custom control key recognized
         selectState(targetState);
     }
+
+    String waitingId;
+    if (activeState && getValue("waitFor", command, waitingId))
+    {
+        waitForReady(waitingId);
+    }    
+}
+
+void MacroModule::handleInternal(internalEvent eventId, String &sourceId)
+{
+    if (!activeState || listeningId == "" || eventId != ready || sourceId != listeningId)
+        return;
+    else
+    {
+        nextAction = esp_timer_get_time();
+    } 
+}
+
+void MacroModule::handleStatus(String &controlId, JsonObject &status)
+{
+    if (!activeState || listeningId == "" || controlId != listeningId)
+        return;
+    bool isBusy;
+    if (getValue("busy", status, isBusy) && isBusy)
+        return;
+    nextAction = esp_timer_get_time();
 }

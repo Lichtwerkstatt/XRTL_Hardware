@@ -46,8 +46,9 @@ public:
 
     String &getComponent();
 
-    // offer command events to modules
+    // offer command and status events to modules
     void pushCommand(String &controlId, JsonObject &command);
+    void pushStatus(String &controlId, JsonObject &status);
 
     // send stuff via endpoint
     void sendEvent(JsonArray &event);

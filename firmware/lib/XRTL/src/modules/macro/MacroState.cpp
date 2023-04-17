@@ -18,7 +18,7 @@ void MacroState::listCommands()
 {
     for (int i = 0; i < commandCount; i++)
     {
-        printf("%i: %s\n", i, commands[i]->getId());
+        printf("%i: %s\n", i, commands[i]->getId().c_str());
     }
 }
 
@@ -170,7 +170,7 @@ void MacroState::loadSettings(JsonArray &settings)
             commandKey = commandKV.key().c_str();
             commandVal = commandKV.value();
         }
-        Serial.printf("%s:{%s:%s}\n", commandId, commandKey, commandVal.as<String>().c_str());
+        Serial.printf("%s:{%s:%s}\n", commandId.c_str(), commandKey, commandVal.as<String>().c_str());
         addCommand(commandId, commandKey, commandVal);
     }
 }

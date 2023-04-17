@@ -52,9 +52,11 @@ void CameraModule::setup()
     esp_err_t err = esp_camera_init(&camera_config);
     if (err != ESP_OK)
     {
-        debug("camera init failed: %s", err);
+        //debug("camera init failed: %s", err); // TODO: investigate core panic if init failed after restart
+        debug("camera init failed");
         return;
     }
+
     cameraSettings = esp_camera_sensor_get();
     cameraSettings->set_framesize(cameraSettings, FRAMESIZE_QVGA);
     cameraSettings->set_gain_ctrl(cameraSettings, 0);
