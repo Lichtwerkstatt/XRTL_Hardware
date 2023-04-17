@@ -31,7 +31,7 @@ void MacroModule::loop()
 {
     if (!activeState)
         return;
-    if (nextAction > 0 && esp_timer_get_time() < nextAction)
+    if (nextAction >= 0 && esp_timer_get_time() < nextAction)
         return;
     
     activeState->loop();
@@ -171,7 +171,7 @@ void MacroModule::waitForReady(String &waitingId)
     listeningId = waitingId;
     if (nextAction == 0)
     {
-        nextAction = esp_timer_get_time() + 60000;
+        nextAction = esp_timer_get_time() + 60000000;
     }
 }
 

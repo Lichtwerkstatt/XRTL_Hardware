@@ -146,10 +146,10 @@ void StepperModule::loop()
         }
 
         wasRunning = false;
-        notify(ready);
 
         debug("done moving");
         sendStatus();
+        notify(ready);
     }
 }
 
@@ -334,7 +334,7 @@ void StepperModule::driveStepper(JsonObject &command)
     stepper->enableOutputs();
     debug("moving from %d to %d", stepper->currentPosition(), stepper->targetPosition());
     wasRunning = true;
-    notify(busy);
     sendStatus();
+    notify(busy);
     return;
 }

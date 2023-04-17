@@ -136,6 +136,7 @@ void OutputModule::loop()
         out->toggle(false);
         sendStatus();
         switchTime = 0; // return time trigger to off state
+        notify(ready);
     }
 }
 
@@ -287,5 +288,6 @@ void OutputModule::handleCommand(String &controlId, JsonObject &command)
 
         pulse(toggleTime);
         sendStatus();
+        notify(busy);
     }
 }

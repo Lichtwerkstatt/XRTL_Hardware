@@ -341,7 +341,7 @@ void ServoModule::driveServo(JsonObject &command)
         sendCommand(ledCommand);
     }
 
-    notify(busy);
     debug("moving from %d to %d", currentDuty, targetDuty);
     sendStatus();
+    notify(busy);
 }
