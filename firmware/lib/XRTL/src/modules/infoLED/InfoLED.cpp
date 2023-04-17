@@ -293,5 +293,5 @@ void InfoLED::loop()
         }
     }
 
-    led.show();
+    led.show(); // always push updates to LED
 }
