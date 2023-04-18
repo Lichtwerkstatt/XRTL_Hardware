@@ -124,9 +124,14 @@ void MacroState::activate()
     currentCommand = 0;
 }
 
+bool MacroState::isCompleted()
+{
+    return (currentCommand >= commandCount);
+}
+
 void MacroState::loop()
 {
-    if (currentCommand >= commandCount)
+    if (isCompleted())
     {
         macro->stop();
         return;

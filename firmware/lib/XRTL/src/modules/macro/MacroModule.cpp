@@ -32,7 +32,7 @@ void MacroModule::loop()
     if (!activeState || esp_timer_get_time() < nextAction)
         return;
     
-    while (nextAction == 0 && activeState) // nextAction > 0 indicates module is waiting, !activeState indicates command finished
+    while (nextAction == 0 && activeState) // loop through commands until paused or completed (indicated by activeState == NULL)
     {
         activeState->loop();
     }
@@ -43,8 +43,8 @@ void MacroModule::stop()
     if (!activeState) // no active state: nothing to stop
         return;
     
-    nextAction = 0;
     currentStateName = activeState->getName();
+    nextAction = 0;
     activeState = NULL;
     sendStatus();
     notify(ready);
@@ -215,6 +215,23 @@ bool MacroModule::getStatus(JsonObject &status)
 
 void MacroModule::selectState(String &targetState)
 {
+    /* if (activeState) // already active
+    {
+        if (activeState->isCompleted()) // auto switching to new state is permitted only at the very end
+        {
+            stop();
+        }
+        else
+        {
+            //TODO: send error? will make switching impossible in certain cases
+            String errmsg = "currently activating <";
+            errmsg += activeState->getName();
+            errmsg += ">";
+            sendError(is_busy, errmsg);
+            return;
+        }
+    } */
+
     activeState = findState(targetState);
     if (!activeState)
     {
@@ -236,10 +253,15 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     if (!isModule(controlId))
         return;
 
-    bool getStatus = false;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus)
+    bool tmpBool = false;
+    if (getValue<bool>("getStatus", command, tmpBool) && tmpBool)
     {
         sendStatus();
+    }
+
+    if (getValue<bool>("stop", command, tmpBool) && tmpBool)
+    {
+        stop();
     }
 
     uint32_t duration;
@@ -256,13 +278,14 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     String waitingId;
-    if (activeState && getValue("waitFor", command, waitingId))
+    if (activeState && getValue("await", command, waitingId))
     {
         listeningId = waitingId;
-        if (nextAction == 0)
+        /* if (nextAction == 0)
         {
             nextAction = esp_timer_get_time() + 60000000; // default to 60 seconds
-        }
+            //nextAction = 9223372036854775807; // maximum of int64_t
+        } */
     }    
 }
 

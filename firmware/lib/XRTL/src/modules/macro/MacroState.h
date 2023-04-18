@@ -29,6 +29,7 @@ public:
     ~MacroState();
 
     void activate();
+    bool isCompleted();
 
     void loop();
 

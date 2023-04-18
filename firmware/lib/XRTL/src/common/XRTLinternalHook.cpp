@@ -2,8 +2,8 @@
 
 InternalHook::InternalHook()
 {
-    parameters.add(eventType, "eventId", "0-11");
-    parameters.add(listeningId, "listeningId", "String");
+    parameters.add(eventType, "type", "0-11");
+    parameters.add(listeningId, "listen", "String");
 }
 
 bool InternalHook::isTriggered(internalEvent &eventId, String &sourceId)
