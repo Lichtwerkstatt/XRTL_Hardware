@@ -34,6 +34,7 @@ public:
     void loop();
 
     String getName();
+    XRTLcommand *relCommand(int8_t distance);
 
     void saveSettings(JsonArray &settings);
     void loadSettings(JsonArray &settings);

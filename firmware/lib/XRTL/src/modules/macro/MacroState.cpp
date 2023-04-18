@@ -145,6 +145,15 @@ String MacroState::getName()
     return stateName;
 }
 
+XRTLcommand *MacroState::relCommand(int8_t distance)
+{
+    int8_t query = commandCount + distance;
+    if (query < 0 || query >= commandCount)
+        return NULL;
+    
+    return commands[query];
+}
+
 void MacroState::saveSettings(JsonArray &settings)
 {
     for (int i = 0; i < commandCount; i++)

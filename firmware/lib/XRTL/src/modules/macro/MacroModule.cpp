@@ -29,9 +29,10 @@ void MacroModule::setup()
 
 void MacroModule::loop()
 {
-    if (!activeState || esp_timer_get_time() < nextAction)
+    if (!activeState || esp_timer_get_time() < nextAction) // only continue if executing a state AND no timer condition is violated (interrupts reset timer) 
         return;
-    
+
+    nextAction = 0; // reset timer if condition met
     while (nextAction == 0 && activeState) // loop through commands until paused or completed (indicated by activeState == NULL)
     {
         activeState->loop();
@@ -264,10 +265,27 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
         stop();
     }
 
+    if (getValue("hold", command, tmpBool))
+    {
+        nextAction = tmpBool ? 9223372036854775807 : 0; // maximum int64_t value 
+    }
+
     uint32_t duration;
-    if (getValue("pause", command, duration))
+    if (getValue("wait", command, duration))
     {
         nextAction = esp_timer_get_time() + 1000 * duration;
+    }
+
+    if (getValue("waitFor", command, duration))
+    {
+        nextAction = duration == 0 ? 9223372036854775807 : 1000 * duration + esp_timer_get_time();
+        listeningId = activeState ? activeState->relCommand(-2)->getId() : "";
+    }
+
+    String waitingId;
+    if (activeState && getValue("listen", command, waitingId))
+    {
+        listeningId = waitingId;
     }
 
     String targetState;
@@ -277,16 +295,6 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
         selectState(targetState);
     }
 
-    String waitingId;
-    if (activeState && getValue("await", command, waitingId))
-    {
-        listeningId = waitingId;
-        /* if (nextAction == 0)
-        {
-            nextAction = esp_timer_get_time() + 60000000; // default to 60 seconds
-            //nextAction = 9223372036854775807; // maximum of int64_t
-        } */
-    }    
 }
 
 void MacroModule::handleInternal(internalEvent eventId, String &sourceId)
