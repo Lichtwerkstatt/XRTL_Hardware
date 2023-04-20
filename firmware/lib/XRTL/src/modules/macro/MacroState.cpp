@@ -147,7 +147,7 @@ String MacroState::getName()
 
 XRTLcommand *MacroState::relCommand(int8_t distance)
 {
-    int8_t query = commandCount + distance;
+    int8_t query = currentCommand + distance;
     if (query < 0 || query >= commandCount)
         return NULL;
     

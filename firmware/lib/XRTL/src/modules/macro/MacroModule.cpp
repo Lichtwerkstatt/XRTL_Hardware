@@ -20,7 +20,7 @@ MacroModule::~MacroModule()
 
 void MacroModule::setup()
 {
-    if (initState == "" || initState == NULL || stateCount == 0)
+    if (!initState || initState == "" || stateCount == 0)
         return;
 
     currentStateName = initState;
@@ -35,7 +35,7 @@ void MacroModule::loop()
     nextAction = 0; // reset timer if condition met
     while (nextAction == 0 && activeState) // loop through commands until paused or completed (indicated by activeState == NULL)
     {
-        activeState->loop();
+        activeState->loop(); // state will call stop() when completed
     }
 }
 
@@ -44,6 +44,7 @@ void MacroModule::stop()
     if (!activeState) // no active state: nothing to stop
         return;
     
+    listeningId = ""; // listeningId not persistent beyond state execution
     currentStateName = activeState->getName();
     nextAction = 0;
     activeState = NULL;
@@ -267,25 +268,29 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
 
     if (getValue("hold", command, tmpBool))
     {
-        nextAction = tmpBool ? 9223372036854775807 : 0; // maximum int64_t value 
+        nextAction = tmpBool ? 9223372036854775807 : 0; // maximum int64_t value
+        debug("hold %s", tmpBool ? "on" : "off");
     }
 
     uint32_t duration;
     if (getValue("wait", command, duration))
     {
         nextAction = esp_timer_get_time() + 1000 * duration;
+        debug("waiting for %d ms", duration);
     }
 
-    if (getValue("waitFor", command, duration))
+    if (getValue("complete", command, duration))
     {
         nextAction = duration == 0 ? 9223372036854775807 : 1000 * duration + esp_timer_get_time();
-        listeningId = activeState ? activeState->relCommand(-2)->getId() : "";
+        listeningId = activeState ? activeState->relCommand(-2)->getId() : ""; // get controlId of the last command (currentCommand was incremented twice)
+        debug("waiting for completion of <%s>", listeningId);
     }
 
     String waitingId;
     if (activeState && getValue("listen", command, waitingId))
     {
         listeningId = waitingId;
+        debug("listening for <%s>", listeningId);
     }
 
     String targetState;
