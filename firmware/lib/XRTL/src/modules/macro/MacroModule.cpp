@@ -8,6 +8,7 @@ MacroModule::MacroModule(String moduleName)
     parameters.add(type, "type");
     parameters.add(initState, "initState", "String");
     parameters.add(controlKey, "controlKey", "String");
+    parameters.add(infoLED, "infoLED", "String");
 }
 
 MacroModule::~MacroModule()
@@ -264,6 +265,14 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     if (getValue<bool>("stop", command, tmpBool) && tmpBool)
     {
         stop();
+    }
+
+    String color;
+    if (infoLED != "" && getValue("color", command, color))
+    {
+        XRTLdisposableCommand ledCommand(infoLED);
+        ledCommand.add("color", color);
+        sendCommand(ledCommand);
     }
 
     if (getValue("hold", command, tmpBool))

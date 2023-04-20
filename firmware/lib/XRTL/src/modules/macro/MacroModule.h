@@ -19,6 +19,7 @@ private:
     bool dialog();
 
     String listeningId = "";
+    String infoLED = "";
 
     MacroState *findState(String &state);
     void selectState(String &targetState);
