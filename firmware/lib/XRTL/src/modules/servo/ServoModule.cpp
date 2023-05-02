@@ -128,15 +128,27 @@ void ServoModule::loop()
     if (!wasRunning)
         return;
     int64_t now = esp_timer_get_time();
-    if (now <= nextStep)
+    if (now < nextStep)
         return;
+
+    if (currentDuty != targetDuty)
+    {
+        if (positiveDirection)
+        {
+            servo->writeMicroseconds(currentDuty++);
+        }
+        else
+        {
+            servo->writeMicroseconds(currentDuty--);
+        }
+    }
 
     if (currentDuty == targetDuty)
     {
-        wasRunning = false;
-        sendStatus();
-        if (!holdOn)
+        if (!holdOn) // note: when detaching pin do so as close as possible to last write command to avoid unwanted movements
+        {
             servo->detach(); // if hold is activated: keep motor powered
+        }
 
         if (infoLED != "")
         {
@@ -145,21 +157,14 @@ void ServoModule::loop()
             sendCommand(ledCommand);
         }
 
+        wasRunning = false;
+        sendStatus();
         debug("done moving");
         notify(ready);
         return;
     }
 
     nextStep = now + timeStep;
-
-    if (positiveDirection)
-    {
-        servo->writeMicroseconds(++currentDuty);
-    }
-    else
-    {
-        servo->writeMicroseconds(--currentDuty);
-    }
 }
 
 void ServoModule::stop()
@@ -222,17 +227,7 @@ void ServoModule::handleCommand(String &controlId, JsonObject &command)
         debug("hold %sactive", holdOn ? "" : "in");
     }
 
-    if (wasRunning)
-    { // ignore move commands if already moving
-        String error = "[";
-        error += id;
-        error += "] already moving";
-        sendError(is_busy, error);
-        return;
-    }
-
-    driveServo(command);
-    // return true;
+    driveServo(command); // only reached if not busy
 }
 
 int16_t ServoModule::read()
@@ -278,6 +273,15 @@ void ServoModule::driveServo(JsonObject &command)
     else
         return; // command is accepted after this point; check bounds and drive servo
 
+    if (wasRunning)
+    { // ignore move commands if already moving
+        String error = "[";
+        error += id;
+        error += "] already moving";
+        sendError(is_busy, error);
+        return;
+    }
+
     if ((target < minAngle) or (target > maxAngle))
     { // check if bounds are violated after relative movement
         target = constrain(target, minAngle, maxAngle);
@@ -294,7 +298,7 @@ void ServoModule::driveServo(JsonObject &command)
     }
 
     uint32_t travelTime;
-    if (timeStep > 0)
+    if (timeStep > 0) // speed has been limited
     {
         wasRunning = true;
         servo->attach(pin, minDuty, maxDuty);
