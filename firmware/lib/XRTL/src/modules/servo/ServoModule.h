@@ -16,7 +16,6 @@ private:
 
     uint32_t timeStep;
     int16_t initial = 0; // value between minAngle and maxAngle that servo gets initialized with
-    // TODO: implement
 
     int64_t nextStep;
     uint16_t targetDuty;
@@ -24,6 +23,7 @@ private:
     bool positiveDirection;
     bool wasRunning = false;
     bool holdOn = false;
+    bool isHolding = false;
 
     uint8_t pin = 26;
 

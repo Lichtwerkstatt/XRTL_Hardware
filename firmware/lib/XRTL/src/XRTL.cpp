@@ -97,7 +97,7 @@ bool XRTL::addModule(String moduleName, moduleType category)
         return false;
     }
 
-    if (moduleName == "*" || moduleName == "none" || moduleName == "core")
+    if (moduleName == "*" || moduleName == "none" || moduleName == "core" || moduleName == "internal")
     {
         debug("unable to add module <%s>: ID restricted to internal use", moduleName);
         return false;
