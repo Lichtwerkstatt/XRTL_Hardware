@@ -38,7 +38,7 @@ camera_config_t CameraModule::camera_config = {
 
     .pixel_format = PIXFORMAT_JPEG, // YUV422,GRAYSCALE,RGB565,JPEG
     // IMPORTANT: frame size must be initialized with a high value
-    // frame buffer might otherwise be initialized too small and _WILL_ fail if the size is increased later
+    // frame buffer might otherwise be initialized too small and _WILL_ fail silently if the size is increased later
     .frame_size = FRAMESIZE_UXGA,   // UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 10,             // 0-63 lower number means higher quality

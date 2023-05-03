@@ -90,9 +90,9 @@ class XRTLmodule
 {
 protected:
     // @brief (supposedly) unique identifier the module listens to
-    // @note if two modules share the same ID, both will react to all commands
+    // @note if two modules share the same ID, both will react to commands issued under that ID
     String id;
-    XRTL *xrtl;            // core address, must be assigned when constructed: XRTLmodule(String id, XRTLmodule* source)
+    XRTL *xrtl;            // core address, must be assigned after construction using setParent()
     bool debugging = true; // true: print status messages via serial monitor and accept serial events
 
 public:
@@ -100,7 +100,7 @@ public:
     String getID();           // return id
     String &getComponent();
     void setParent(XRTL *parent);
-    bool isModule(String &moduleName); // @returns (id == moduleName)
+    bool isModule(String &moduleName);
 
     virtual void handleCommand(String &controlId, JsonObject &command);
     virtual void handleStatus(String &controlId, JsonObject &status);
