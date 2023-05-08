@@ -113,21 +113,19 @@ void MacroModule::listStates()
     }
 }
 
-bool MacroModule::dialog()
+bool MacroModule::stateDialog()
 {
-    parameters.setViaSerial();
-    /*Serial.println("");
-    Serial.println(centerString("",39,'-').c_str());
-    Serial.println(centerString(id,39,' ').c_str());
-    Serial.println(centerString("",39,'-').c_str());
-    Serial.println("");*/
+    Serial.println("");
+    Serial.println(centerString("",39,'-'));
+    Serial.println(centerString(id.c_str(), 39, ' '));
+    Serial.println(centerString("",39,'-'));
+    Serial.println("");
 
-    Serial.println("available settings:");
+    Serial.println("available states:");
     listStates();
     Serial.println("");
     Serial.println("a: add state");
     Serial.println("d: delete state");
-    Serial.println("c: change settings");
     Serial.println("r: return");
 
     Serial.println("");
@@ -137,13 +135,6 @@ bool MacroModule::dialog()
 
     if (choice == "r")
         return false;
-    else if (choice == "c")
-    {
-        id = serialInput("controlId: ");
-        controlKey = serialInput("control key: ");
-        currentStateName = serialInput("current state: ");
-        initState = serialInput("initial state: ");
-    }
     else if (choice == "a")
     {
         String newState = serialInput("state name: ");
@@ -167,6 +158,36 @@ bool MacroModule::dialog()
     {
         states[choiceInt]->setViaSerial();
     }
+    return true;
+}
+
+bool MacroModule::dialog()
+{
+    Serial.println("");
+    Serial.println(centerString("",39,'-'));
+    Serial.println(centerString(id.c_str(), 39, ' '));
+    Serial.println(centerString("",39,'-'));
+    Serial.println("");
+
+    Serial.println("available settings:");
+    Serial.println("");
+    Serial.println("b: basic settings");
+    Serial.println("m: manage states");
+    Serial.println("r: return");
+    Serial.println("");
+
+    String choice = serialInput("choice: ");
+    if (choice == "r")
+        return false;
+    else if (choice == "b")
+        parameters.setViaSerial();
+    else if (choice == "m")
+    {
+        while (stateDialog())
+        {
+        }
+    }
+
     return true;
 }
 

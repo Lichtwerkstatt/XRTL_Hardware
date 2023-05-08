@@ -126,14 +126,6 @@ void InputModule::stop()
 
 void InputModule::saveSettings(JsonObject &settings)
 {
-    /*settings["pin"] = pin;
-    settings["averageTime"] = averageTime;
-    settings["rangeChecking"] = rangeChecking;
-    settings["relayViolations"] = relayViolations;
-
-    settings["loBound"] = loBound;
-    settings["hiBound"] = hiBound;
-    settings["deadMicroSeconds"] = deadMicroSeconds;*/
     JsonObject subSettings;
     parameters.save(settings, subSettings);
 
@@ -150,17 +142,6 @@ void InputModule::saveSettings(JsonObject &settings)
 
 void InputModule::loadSettings(JsonObject &settings)
 {
-    // JsonObject loaded = settings[id];
-    // parameters.load(settings);
-
-    /*pin = loadValue<uint8_t>("pin", settings, 35);
-    averageTime = loadValue<uint16_t>("averageTime", settings, 0);
-    rangeChecking = loadValue<bool>("rangeChecking", settings, false);
-    relayViolations = loadValue<bool>("relayViolations", settings, false);
-
-    loBound = loadValue<double>("loBound", settings, 0);// default is minimum ADC voltage in mV -- no conversion
-    hiBound = loadValue<double>("hiBound", settings, 3300);// default is maximum ADC voltage in mV -- no conversion
-    deadMicroSeconds = loadValue<uint32_t>("deadMicroSeconds", settings, 0);*/
     JsonObject subSettings;
     parameters.load(settings, subSettings);
 
@@ -181,53 +162,16 @@ void InputModule::loadSettings(JsonObject &settings)
 
     if (debugging)
         parameters.print();
-
-    /*if (!debugging) return;
-
-    Serial.printf("controlId: %s\n", id.c_str());
-    Serial.printf("pin: %d\n", pin);
-    Serial.printf("averaging time: %d\n", averageTime);
-    Serial.println("");
-
-    Serial.printf("triggers %sactive\n", rangeChecking ? "" : "in");
-    Serial.printf("low bound: %f\n", loBound);
-    Serial.printf("high bound: %f\n", hiBound);
-    Serial.printf("dead time: %d\n", deadMicroSeconds);*/
 }
 
 void InputModule::setViaSerial()
 {
-    /*Serial.println("");
-    Serial.println(centerString("",39,'-').c_str());
-    Serial.println(centerString(id,39,' ').c_str());
-    Serial.println(centerString("",39,'-').c_str());
-    Serial.println("");
-
-    id = serialInput("controlId: ");
-    averageTime = serialInput("averaging time: ").toInt();
-
-    if ( serialInput("change pin binding (y/n): ") == "y" ) {
-        pin = serialInput("pin: ").toInt();
-    }
-
-    if ( serialInput("check range (y/n): ") == "y" ) {
-        rangeChecking = true;
-        relayViolations = (serialInput("relay violations to server (y/n): ") == "y");
-        loBound = serialInput("low bound: ").toDouble();
-        hiBound = serialInput("high bound: ").toDouble();
-        deadMicroSeconds = serialInput("dead time: ").toInt() * 1000; // milli seconds are sufficient
-    }
-    else {
-        rangeChecking = false;
-    }*/
-    parameters.setViaSerial();
-
-    while (settingsDialog())
+    while (dialog())
     {
     }
 }
 
-bool InputModule::settingsDialog()
+bool InputModule::conversionDialog()
 {
     Serial.println("");
     Serial.println(centerString("current conversion", 39, ' '));
@@ -306,6 +250,36 @@ bool InputModule::settingsDialog()
     else if (choiceNum < conversionCount)
     {
         conversion[choiceNum]->setViaSerial();
+    }
+
+    return true;
+}
+
+bool InputModule::dialog()
+{
+    Serial.println("");
+    Serial.println(centerString("", 39, '-'));
+    Serial.println(centerString(id.c_str(), 39, ' '));
+    Serial.println(centerString("", 39, '-'));
+    Serial.println("");
+
+    Serial.println("available settings:");
+    Serial.println("");
+    Serial.println("b: basic settings");
+    Serial.println("m: manage conversions");
+    Serial.println("r: return");
+    Serial.println("");
+
+    String choice = serialInput("choice: ");
+    if (choice == "r")
+        return false;
+    else if (choice == "b")
+        parameters.setViaSerial();
+    else if (choice == "m")
+    {
+        while (conversionDialog())
+        {
+        }
     }
 
     return true;

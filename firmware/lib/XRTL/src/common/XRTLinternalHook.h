@@ -8,7 +8,7 @@ class InternalHook
 private:
     internalEvent eventType = busy;
     String listeningId = "";
-    XRTLcommand2 command;
+    XRTLsetableCommand command;
     ParameterPack parameters;
 
 public:

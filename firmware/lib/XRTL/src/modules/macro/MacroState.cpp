@@ -29,7 +29,7 @@ void MacroState::addCommand()
         Serial.println("maximum number of commands reached");
         return;
     }
-    commands[commandCount++] = new XRTLcommand2();
+    commands[commandCount++] = new XRTLsetableCommand();
 }
 
 void MacroState::addCommand(String &id, String &key, JsonVariant &val)
@@ -158,7 +158,6 @@ void MacroState::saveSettings(JsonArray &settings)
 {
     for (int i = 0; i < commandCount; i++)
     {
-        //JsonObject commandSettings = settings.createNestedObject(commands[i]->getId());
         JsonObject commandSettings = settings.createNestedObject();
         commands[i]->saveSettings(commandSettings);
     }

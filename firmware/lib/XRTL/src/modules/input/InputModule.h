@@ -51,7 +51,8 @@ class InputModule: public XRTLmodule {
 
     void saveSettings(JsonObject& settings);
     void loadSettings(JsonObject& settings);
-    bool settingsDialog();
+    bool conversionDialog();
+    bool dialog();
     void setViaSerial();
     bool getStatus(JsonObject& status);
 

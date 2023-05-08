@@ -364,8 +364,7 @@ bool XRTL::settingsDialog()
     Serial.println("a: add module");
     Serial.println("d: delete module");
     Serial.println("s: swap modules");
-    Serial.println("i: internal events"); // TODO: implement
-    Serial.println("e: custom events");   // TODO: implement
+    Serial.println("i: internal events");
     Serial.println("r: save and restart");
     Serial.println("");
     String choice = serialInput("choose setup routine: ");

@@ -339,34 +339,11 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc)
 
 void SocketModule::saveSettings(JsonObject &settings)
 {
-    /*settings["ip"] = ip;
-    settings["port"] = port;
-    settings["url"] = url;
-    settings["key"] = key;
-    settings["component"] = component;
-    settings["useSSL"] = useSSL;
-
-    return;*/
     parameters.save(settings);
 }
 
 void SocketModule::loadSettings(JsonObject &settings)
 {
-    /*ip = loadValue<String>("ip", settings, "192.168.1.1");
-    port = loadValue<uint16_t>("port", settings, 3000);
-    url = loadValue<String>("url", settings, "/socket.io/?EIO=4");
-    key = loadValue<String>("key", settings, "");
-    component = loadValue<String>("component", settings, "NAME ME!");
-    useSSL = loadValue<bool>("useSSL", settings, false);
-
-    if (!debugging) return;
-
-    Serial.printf("ip: %s\n", ip.c_str());
-    Serial.printf("port: %i\n", port);
-    Serial.printf("url: %s\n", url.c_str());
-    Serial.printf("key: %s\n", key.c_str());
-    Serial.printf("componentId: %s\n", component.c_str());
-    Serial.printf("%s SSL\n", useSSL ? "" : "no");*/
     parameters.load(settings);
     if (debugging)
         parameters.print();
@@ -374,18 +351,6 @@ void SocketModule::loadSettings(JsonObject &settings)
 
 void SocketModule::setViaSerial()
 {
-    /*Serial.println("");
-    Serial.println(centerString("",39, '-'));
-    Serial.println(centerString(id,39, ' '));
-    Serial.println(centerString("",39, '-'));
-    Serial.println("");
-
-    ip = serialInput("IP: ");
-    port = serialInput("port: ").toInt();
-    url = serialInput("URL: ");
-    key = serialInput("key: ");
-    component = serialInput("componentId: ");
-    useSSL = (serialInput("use SSL (y/n): ") == "y");*/
     parameters.setViaSerial();
 }
 
@@ -412,7 +377,7 @@ void SocketModule::loop()
     // check if time is 2022 or later
     if (now > 1640991600)
     {
-        // time probably synced, stop checking and push state to modules
+        // time _probably_ synced, stop checking and push state to modules, starting socket client
         timeSynced = true;
         notify(time_synced);
         return;

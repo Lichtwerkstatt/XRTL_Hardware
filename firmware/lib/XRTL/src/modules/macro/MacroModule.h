@@ -17,6 +17,7 @@ private:
 
     void listStates();
     bool dialog();
+    bool stateDialog();
 
     String listeningId = "";
     String infoLED = "";

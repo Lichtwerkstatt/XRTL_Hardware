@@ -10,27 +10,25 @@ protected:
     bool notListed = false;
 
 public:
-    virtual void load(JsonObject &settings){};
-    virtual void save(JsonObject &settings){};
+    virtual void load(JsonObject &settings);
+    virtual void save(JsonObject &settings);
     // virtual void setViaSerial(JsonObject& settings);
-    virtual void print(){};
+    virtual void print();
 
     // base class only used for default (null) parameter, specialized classes return false
-    virtual bool isNull()
-    {
-        return true;
-    }
+    virtual bool isNull();
 
-    virtual void setViaSerial() {}
+    virtual void setViaSerial();
 
-    bool is(String &queryName)
-    {
-        return (queryName == name);
-    }
+    bool is(String &queryName);
 
     friend class ParameterPack;
 };
 
+/**
+ * @brief combine a parameter with a string that is used to identify, save and load the parameter
+ * @note no copy of the parameter is created -- operations on the returned reference will alter the parameter
+ */
 template <typename T>
 class XRTLparameter : public XRTLpar
 {
@@ -55,11 +53,20 @@ public:
         notListed = true;
     }
 
+    /**
+     * @brief creates a key value pair with the name and value of the parameter in the supplied JsonObject
+     * @param settings JsonObject that will receive the key value pair
+     */
     virtual void save(JsonObject &settings)
     {
         settings[name] = *parameter;
     }
 
+    /**
+     * @brief check if the parameter is contained within a JsonObject and whether it has the correct type, asign read value if so
+     * @param settings JsonObject to be checked for parameter
+     * @note if the parameter name is not contained within the Object or the type is incorrect, the parameter will remain unchanged
+     */
     virtual void load(JsonObject &settings)
     {
         auto candidate = settings[name];
@@ -71,6 +78,10 @@ public:
         *parameter = candidate.as<T>();
     }
 
+    /**
+     * @brief print the parameter name and value on the Serial interface
+     * @note will not print anything if the parameter is not listed
+     */
     virtual void print()
     {
         if (notListed)
@@ -82,6 +93,10 @@ public:
         Serial.println(*parameter);
     }
 
+    /**
+     * @brief set a new value for the parameter over the Serial interface
+     * @note does nothing if the parameter is not listed 
+     */
     virtual void setViaSerial()
     {
         if (notListed)
@@ -90,6 +105,10 @@ public:
         setViaSerialQuery();
     }
 
+    /**
+     * @brief actual query dialog for the Serial interface 
+     * @note query contains <name> (<unit>)
+     */
     void setViaSerialQuery()
     {
         String inputQuery = name;
@@ -108,16 +127,30 @@ public:
         *parameter = input[0].as<T>();
     }
 
+    /**
+     * @brief check if the parameter is initialized, i.e. a specialized class used
+     * @return true if base calss is used, false if initialized 
+     */
     bool isNull()
     {
         return false;
     }
 
+    /**
+     * @brief check if the parameter is equal to a supplied value
+     * @param testParam test for equality to this value
+     * @return true if equal, false if not
+     */
     bool isEqual(T &testParam)
     {
         return (*parameter == testParam);
     }
 
+    /**
+     * @brief get the linked parameter
+     * @return pointer to the linked parameter
+     * @note this is not a copy, operations on the target of this pointer will alter the parameter
+     */
     T &get()
     {
         return *parameter;
@@ -281,6 +314,9 @@ public:
     }
 };
 
+/**
+ * @brief Manage multiple parameters simultaneously. Provides methodes for saving, loading and setting parameters.
+ */
 class ParameterPack
 {
 protected:
@@ -302,37 +338,54 @@ public:
         }
     }
 
+    /**
+     * @brief set the key of the parameter pack as string reference, used for storing and loading the parameters
+     * @param key string to be used
+     * @note key must not be destroyed before the ParameterPack, no copy is created!
+     */
     void setKey(String &key)
     {
         linkedName = &key;
     }
 
+    /**
+     * @brief set the key of the parameter pack
+     * @param key string to be used
+     */
     void setKey(const char *key)
     {
         reserveName = key;
     }
 
+    /**
+     * @brief get the key of the parameter pack
+     * @return pointer to the name
+     */
     String &name()
     {
-        if (linkedName != NULL)
+        if (linkedName)
             return *linkedName;
         else
             return reserveName;
     }
 
-    // @brief save all parameters to the JsonObject provided
-    // @param settings store parameters in here
-    // @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
+    /**
+     * @brief save all parameters to the JsonObject provided
+     * @param settings store parameters in here
+     * @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
+    */
     void save(JsonObject &settings)
     {
         JsonObject subSettings;
         save(settings, subSettings);
     }
 
-    // @brief save all parameters to the JsonObject provided
-    // @param settings store parameters in here
-    // @param subSettings the address pointing to the used (possibly nested) JsonObject will be stored here
-    // @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
+    /**
+     * @brief save all parameters to the JsonObject provided
+     * @param settings store parameters in here
+     * @param subSettings the address pointing to the used (possibly nested) JsonObject will be stored here
+     * @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
+    */
     void save(JsonObject &settings, JsonObject &subSettings)
     {
         if (name() != "")
@@ -350,12 +403,22 @@ public:
         }
     }
 
+    /**
+     * @brief load all parameters from a JsonObject
+     * @param settings JsonObject that the settings will be loaded from
+     * @note if further access to the JsonObject the parameters were loaded form is needed, provide a second parameter to store the reference 
+     */
     void load(JsonObject &settings)
     {
         JsonObject subSettings;
         load(settings, subSettings);
     }
 
+    /**
+     * @brief load all the parameters from a JsonObject
+     * @param settings JsonObject that the settings will be loaded from
+     * @param subSettings JsonObject that will receive a pointer to the settings used 
+     */
     void load(JsonObject &settings, JsonObject &subSettings)
     {
         if (name() != "")
@@ -382,20 +445,20 @@ public:
     }
 
     // @brief add a parameter that automatically gets loaded from and saved to flash; setable via serial interface
-    // @param linkedParameter parameter that gets linked, must exist in all contexts of the parameter object and can be changed by it
+    // @param linkedParameter parameter to be managed, must exist in all contexts of the parameter pack and may be changed by it
     // @param paramName identifier string for the parameter
     // @param unit string representing the physical meaning of the parameter (visible in query procedure)
     template <typename T>
     void add(T &linkedParameter, String paramName, String unit)
     {
-        if (parameterCount == 16)
+        if (parameterCount >= 16)
             return;
 
         parameters[parameterCount++] = new XRTLparameter<T>(linkedParameter, paramName, unit);
     }
 
     // @brief add a parameter that automatically gets loaded from and saved to flash
-    // @param linkedParameter parameter that gets linked, must exist in all contexts of the parameter object and can be changed by it
+    // @param linkedParameter parameter to be managed, must exist in all contexts of the parameter pack and may be changed by it
     // @param paramName identifier string for the parameter
     // @param unit string representing the physical meaning of the parameter (visible in query procedure)
     // @note parameter does not get listed and is inaccessible via serial interface, good for internal parameters
@@ -408,6 +471,14 @@ public:
         parameters[parameterCount++] = new XRTLparameter<T>(linkedParameter, paramName);
     }
 
+    /**
+     * @brief add a parameter that only gets handled if another parameter meets certain conditions; setable via serial interface
+     * @param linkedParameter parameter to be managed, must exist in all contexts of the parameter pack and may be changed by it
+     * @param paramName identifier string for the parameter
+     * @param unit string representing the physical meaning of the parameter (visible in query procedure)
+     * @param dependee identifier of the parameter that this parameter depends on; must exist within this parameter pack
+     * @param condition if the dependee parameter is not equal to this value, handle the linked parameter as not listed
+     */
     template <typename T, typename U>
     void addDependent(T &linkedParameter, String paramName, String unit, String dependee, U condition)
     {
@@ -422,6 +493,14 @@ public:
         parameters[parameterCount++] = new XRTLdependentPar<T, U>(linkedParameter, paramName, unit, targetPtr, condition);
     }
 
+    /**
+     * @brief add a parameter that only gets handled if another parameter meets certain conditions
+     * @param linkedParameter parameter to be managed, must exist in all contexts of the parameter pack and may be changed by it
+     * @param paramName identifier string for the parameter
+     * @param dependee identifier of the parameter that this parameter depends on; must exist within this parameter pack
+     * @param condition if the dependee parameter is not equal to this value, handle the linked parameter as not listed
+     * @note this methode is probably not needed:\n any unlisted parameter does not need to be checked for dependencies
+     */
     template <typename T, typename U>
     void addDependent(T &linkedParameter, String paramName, String dependee, U condition)
     {
@@ -436,11 +515,15 @@ public:
         parameters[parameterCount++] = new XRTLdependentPar<T, U>(linkedParameter, paramName, targetPtr, condition);
     }
 
+    // TODO: is this needed?
     void setParent(ParameterPack *newParent)
     {
         parent = newParent;
     }
 
+    /**
+     * @brief print all listed parameters on the serial interface 
+     */
     void print()
     {
         if (name() != "")
@@ -458,6 +541,12 @@ public:
         Serial.println("");
     }
 
+    /**
+     * @brief search for a specific parameter by its identifying string
+     * @param queryParam ID string to be searched for
+     * @return pointer to the parameter if found, special null parameter if not
+     * @note check whether the search was successful by using isNull()
+     */
     XRTLpar &operator[](String queryParam)
     {
         for (int i = 0; i < parameterCount; i++)
@@ -469,6 +558,11 @@ public:
         return nullParameter;
     }
 
+    // TODO: add methode to access additional settings 
+    /**
+     * @brief dialog used by the parameter pack to manage settings via the serial interface
+     * @return false if the dialog has ended, true if it should be repeated
+     */
     bool dialog()
     {
         Serial.println("");
@@ -487,7 +581,7 @@ public:
 
         Serial.println("");
         Serial.println("a: set all");
-        if (linkedName != NULL)
+        if (linkedName)
             Serial.println("c: change controlId");
         Serial.println("r: return");
 

@@ -2,8 +2,10 @@
 #define XRTLCOMMAND_H
 
 #include "XRTLval.h"
-
-// @brief stores all information necessary to issue a baisc valid command
+/**
+ * @brief stores all information necessary to issue a baisc valid command
+ * @note this is a base class only used to provide a common interface, use one of the specialized classes XRTLsetableCommand or XRTLdisposableCommand instead
+ */
 class XRTLcommand
 {
 protected:
@@ -30,7 +32,7 @@ public:
     virtual void setViaSerial(){}
 };
 
-class XRTLcommand2 : public XRTLcommand
+class XRTLsetableCommand : public XRTLcommand
 {
 private:
     String *key = NULL;
@@ -38,14 +40,14 @@ private:
 
     void clear()
     {
-        if (key != NULL)
+        if (key)
             delete key;
-        if (val != NULL)
+        if (val)
             delete val;
     }
 
 public:
-    ~XRTLcommand2()
+    ~XRTLsetableCommand()
     {
         clear();
     }
