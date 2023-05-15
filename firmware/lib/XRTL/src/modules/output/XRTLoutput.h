@@ -3,8 +3,9 @@
 
 #include "common/XRTLfunctions.h"
 
-class XRTLoutput {
-    private:
+class XRTLoutput
+{
+private:
     bool state = false;
     uint8_t power = 0;
 
@@ -13,8 +14,7 @@ class XRTLoutput {
     uint8_t channel;
     uint16_t frequency;
 
-    public:
-
+public:
     XRTLoutput(bool isPWM);
 
     void attach(uint8_t controlPin);
@@ -25,7 +25,6 @@ class XRTLoutput {
     void write(uint8_t powerLvl);
     uint8_t read();
     bool getState();
-
 };
 
 #endif

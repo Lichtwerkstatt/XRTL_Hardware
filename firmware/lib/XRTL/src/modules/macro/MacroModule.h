@@ -3,36 +3,50 @@
 
 #include "MacroState.h"
 
-class MacroModule : public XRTLmodule {
-    private:
+class MacroModule : public XRTLmodule
+{
+private:
+    int64_t nextAction = 0;
     uint8_t stateCount = 0;
-    MacroState* states[16];
+    MacroState *states[16];
+    MacroState *activeState = NULL;
 
-    String controlKey;
-    String currentState;
-    String initState;
+    String controlKey = "key";
+    String currentStateName = "";
+    String initState = "";
 
     void listStates();
-    void dialog();
+    bool dialog();
+    bool stateDialog();
 
-    public:
-    MacroModule(String moduleName, XRTL* source);
-    moduleType getType();
+    String listeningId = "";
+    String infoLED = "";
 
-    void setup();
+    MacroState *findState(String &state);
+    void selectState(String &targetState);
 
-    void addState(String& stateName);
+    void addState(String &stateName);
     void delState(uint8_t number);
 
-    bool getStatus(JsonObject& status);
-    void saveSettings(JsonObject& settings);
-    void loadSettings(JsonObject& settings);
+public:
+    MacroModule(String moduleName);
+    ~MacroModule();
+
+    moduleType type = xrtl_macro;
+    ParameterPack stateParameters;
+
+    void setup();
+    void loop();
+    void stop();
+
+    bool getStatus(JsonObject &status);
+    void saveSettings(JsonObject &settings);
+    void loadSettings(JsonObject &settings);
     void setViaSerial();
 
-    MacroState* findState(String& state);
-    void selectState(String& targetState);
-
-    void handleCommand(String& controlId, JsonObject& command);
+    void handleCommand(String &controlId, JsonObject &command);
+    void handleInternal(internalEvent eventId, String &sourceId);
+    void handleStatus(String &controlId, JsonObject &status);
 };
 
 #endif
