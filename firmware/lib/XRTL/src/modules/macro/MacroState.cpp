@@ -78,7 +78,7 @@ bool MacroState::dialog()
     Serial.printf("r: return");
 
     Serial.println("");
-    String choice = serialInput("choice: ");
+    String choice = serialInput("send single letter or number to edit command: ");
     uint8_t choiceInt = choice.toInt();
 
     if (choice == "r")
@@ -91,9 +91,10 @@ bool MacroState::dialog()
     else if (choice == "d")
     {
         Serial.println("");
-        Serial.println("commands:");
+        Serial.println("current commands:");
         listCommands();
-        choice = serialInput("delete: ");
+        Serial.println("");
+        choice = serialInput("send number to delete command: ");
         choiceInt = choice.toInt();
 
         if (choiceInt < commandCount)
@@ -103,13 +104,15 @@ bool MacroState::dialog()
     }
     else if (choice == "s")
     {
+        Serial.println("");
+        Serial.println("send numbers of two commands to swap: ");
         uint8_t firstNumber = serialInput("first command: ").toInt();
         uint8_t secondNumber = serialInput("second command: ").toInt();
         swpCommand(firstNumber, secondNumber);
     }
     else if (choice == "c")
     {
-        stateName = serialInput("state name: ");
+        stateName = serialInput("new state name: ");
     }
     else if (choiceInt < commandCount)
     {

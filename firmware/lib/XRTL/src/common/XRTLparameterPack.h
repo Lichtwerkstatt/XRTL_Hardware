@@ -586,7 +586,7 @@ public:
         Serial.println("r: return");
 
         Serial.println("");
-        String rawInput = serialInput("choice: ");
+        String rawInput = serialInput("send single letter or number to edit parameter: ");
         uint8_t inputNumber = rawInput.toInt();
 
         if (rawInput == "r")

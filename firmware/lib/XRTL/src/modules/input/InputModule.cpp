@@ -174,7 +174,7 @@ void InputModule::setViaSerial()
 bool InputModule::conversionDialog()
 {
     Serial.println("");
-    Serial.println(centerString("current conversion", 39, ' '));
+    Serial.println(centerString("current conversions", 39, ' '));
     Serial.println("");
 
     for (int i = 0; i < conversionCount; i++)
@@ -189,7 +189,7 @@ bool InputModule::conversionDialog()
     Serial.println("r: return");
 
     Serial.println("");
-    String choice = serialInput("choice: ");
+    String choice = serialInput("send single letter or number to edit conversion: ");
     uint8_t choiceNum = choice.toInt();
 
     if (choice == "r")
@@ -205,7 +205,7 @@ bool InputModule::conversionDialog()
         }
         Serial.println("");
 
-        conversion_t type = (conversion_t)serialInput("conversion: ").toInt();
+        conversion_t type = (conversion_t)serialInput("send number to specify type: ").toInt();
         addConversion(type);
         Serial.printf("conversionCount: %d\n", conversionCount);
         conversion[conversionCount - 1]->setViaSerial();
@@ -213,7 +213,7 @@ bool InputModule::conversionDialog()
     else if (choice == "d")
     {
         Serial.println("");
-        uint8_t deleteChoice = serialInput("delete: ").toInt();
+        uint8_t deleteChoice = serialInput("send number to delete conversion: ").toInt();
 
         if (deleteChoice >= conversionCount - 1)
             return true;
@@ -229,7 +229,7 @@ bool InputModule::conversionDialog()
     else if (choice == "s")
     {
         Serial.println("");
-
+        Serial.println("send the numbers of two conversions to swap");
         String choiceOne = serialInput("first conversion: ");
         if (choiceOne == "r")
             return true;
@@ -270,7 +270,7 @@ bool InputModule::dialog()
     Serial.println("r: return");
     Serial.println("");
 
-    String choice = serialInput("choice: ");
+    String choice = serialInput("send single letter to edit settings: ");
     if (choice == "r")
         return false;
     else if (choice == "b")

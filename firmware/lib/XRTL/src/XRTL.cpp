@@ -358,7 +358,7 @@ void XRTL::loadSettings()
 
 bool XRTL::settingsDialog()
 {
-    highlightString("available settings", '-');
+    highlightString("modules:", '-');
     listModules();
     Serial.println("");
     Serial.println("a: add module");
@@ -367,10 +367,10 @@ bool XRTL::settingsDialog()
     Serial.println("i: internal events");
     Serial.println("r: save and restart");
     Serial.println("");
-    String choice = serialInput("choose setup routine: ");
+    String choice = serialInput("choose single letter or number from above: ");
     uint8_t choiceInt = choice.toInt();
     // Serial.println(centerString("", 39, '-'));
-
+    
     if (choice == "a")
     {
         highlightString("add module", '-');
@@ -385,7 +385,7 @@ bool XRTL::settingsDialog()
         Serial.println("");
 
         choice.clear();
-        choice = serialInput("new module type: ");
+        choice = serialInput("send number: ");
         choiceInt = choice.toInt();
 
         if (choice != "r" && choiceInt < 9)
@@ -411,7 +411,7 @@ bool XRTL::settingsDialog()
         Serial.println("");
 
         choice.clear();
-        choice = serialInput("delete: ");
+        choice = serialInput("choose number to delete: ");
 
         if (choice != "r")
         {
@@ -444,10 +444,6 @@ bool XRTL::settingsDialog()
     {
         // add internal event hooks
         manageInternal();
-    }
-    else if (choice == "e")
-    {
-        // add custom event hooks
     }
     else if (choice == "r")
     {
@@ -764,6 +760,9 @@ void XRTLmodule::sendError(componentError ernr, String msg)
 void XRTL::manageInternal()
 {
     highlightString("internal events", '-');
+    Serial.println("");
+    Serial.println("current internal event listeners:");
+    Serial.println("");
 
     for (int i = 0; i < internalCount; i++)
     {
@@ -776,12 +775,13 @@ void XRTL::manageInternal()
     }
 
     Serial.println("");
-    Serial.println("a: add internal listener");
+    Serial.println("a: add listener");
     Serial.println("s: swap listeners");
     Serial.println("d: delete listener");
     Serial.println("r: return");
+    Serial.println("");
 
-    String choice = serialInput("choice: ");
+    String choice = serialInput("send single letter or number to edit listeners: ");
     uint8_t choiceNum = choice.toInt();
 
     if (choice == "r") return;
@@ -803,7 +803,7 @@ void XRTL::addInternal()
     }
 
     Serial.println("");
-    Serial.println("available events:");
+    Serial.println("available event types:");
     Serial.println("");
     for (int i = 0; i < 12; i++)
     {
@@ -811,11 +811,11 @@ void XRTL::addInternal()
     }
 
     Serial.println("");
-    uint8_t choiceNum = serialInput("event type: ").toInt();
+    uint8_t choiceNum = serialInput("send number to choose event type for listener: ").toInt();
     if (choiceNum > 11) return;
     internalEvent eventType = (internalEvent) choiceNum;
     
-    String listeningId = serialInput("source ID: ");
+    String listeningId = serialInput("send string to specify controlId to listen for: ");
     if (listeningId == "core") return;
 
     customInternal[internalCount] = new InternalHook();
@@ -824,8 +824,9 @@ void XRTL::addInternal()
 }
 
 void XRTL::swpInternal() {
-    uint8_t choiceNum1 = serialInput("first event: ").toInt();
-    uint8_t choiceNum2 = serialInput("second event:").toInt();
+    Serial.println("send the number of two listeners to swap");
+    uint8_t choiceNum1 = serialInput("first listener: ").toInt();
+    uint8_t choiceNum2 = serialInput("second listener:").toInt();
 
     if (choiceNum1 > internalCount || choiceNum2 > internalCount || choiceNum1 == choiceNum2)
         return;
@@ -836,7 +837,20 @@ void XRTL::swpInternal() {
 }
 
 void XRTL::delInternal() {
-    uint8_t choiceNum = serialInput("delete: ").toInt();
+    Serial.println("current event listeners:");
+    Serial.println("");
+    for (int i = 0; i < internalCount; i++)
+    {
+        Serial.printf("%d: %s, %s -> %s \n",
+            i,
+            internalEventNames[customInternal[i]->getType()],
+            customInternal[i]->getId().c_str(),
+            customInternal[i]->getCommand().getId().c_str()
+        );
+    }
+    Serial.println("");
+    
+    uint8_t choiceNum = serialInput("send number to delete: ").toInt();
 
     if (choiceNum >= internalCount)
         return;

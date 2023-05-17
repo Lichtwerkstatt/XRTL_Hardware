@@ -121,7 +121,7 @@ bool MacroModule::stateDialog()
     Serial.println(centerString("",39,'-'));
     Serial.println("");
 
-    Serial.println("available states:");
+    Serial.println("current states:");
     listStates();
     Serial.println("");
     Serial.println("a: add state");
@@ -129,7 +129,7 @@ bool MacroModule::stateDialog()
     Serial.println("r: return");
 
     Serial.println("");
-    String choice = serialInput("choice: ");
+    String choice = serialInput("send single letter or number to edit state: ");
     uint8_t choiceInt = choice.toInt();
     Serial.println("");
 
@@ -137,7 +137,7 @@ bool MacroModule::stateDialog()
         return false;
     else if (choice == "a")
     {
-        String newState = serialInput("state name: ");
+        String newState = serialInput("new state name: ");
         if (newState == NULL || newState == "")
             return true;
         addState(newState);
@@ -148,7 +148,7 @@ bool MacroModule::stateDialog()
         listStates();
         Serial.println("");
 
-        choiceInt = serialInput("delete: ").toInt();
+        choiceInt = serialInput("send state number to delete: ").toInt();
         if (choiceInt < stateCount)
         {
             delState(choiceInt);
@@ -176,7 +176,7 @@ bool MacroModule::dialog()
     Serial.println("r: return");
     Serial.println("");
 
-    String choice = serialInput("choice: ");
+    String choice = serialInput("send single letter or number to edit settings: ");
     if (choice == "r")
         return false;
     else if (choice == "b")
