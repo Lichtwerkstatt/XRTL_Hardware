@@ -10,7 +10,7 @@ bool InternalHook::isTriggered(internalEvent &eventId, String &sourceId)
 {
     if (eventType != eventId)
         return false;
-    if (sourceId != listeningId && sourceId != "*")
+    if (sourceId != listeningId && listeningId != "*")
         return false;
     return true;
 }
