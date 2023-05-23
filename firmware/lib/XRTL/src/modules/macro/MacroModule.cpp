@@ -303,7 +303,7 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
         {
             case -1: // stop waiting
             {
-                nextAction = esp_timer_get_time();
+                nextAction = 0;
                 debug("stopped waiting");
                 break;
             }
@@ -327,7 +327,7 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
         nextAction = duration == 0 ? 9223372036854775807 : 1000 * duration + esp_timer_get_time();
         if (activeState)
         {
-            XRTLcommand *lastCommand = activeState->relCommand(-2); // get the last command; incremented twice: after execution of last command and call to 
+            XRTLcommand *lastCommand = activeState->relCommand(-2); // get the last command; incremented twice: after execution of last command and call to `complete`
             listeningId = lastCommand ? lastCommand->getId() : ""; // make sure relCommand() returned a valid command
         }
         debug("waiting for completion of <%s>", listeningId);
