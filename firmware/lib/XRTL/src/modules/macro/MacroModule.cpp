@@ -227,7 +227,7 @@ void MacroModule::delState(uint8_t number)
     {
         states[i] = states[i + 1];
     }
-    states[stateCount--] = NULL;
+    states[stateCount--] = NULL;    
 }
 
 bool MacroModule::getStatus(JsonObject &status)
@@ -296,23 +296,40 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
         sendCommand(ledCommand);
     }
 
-    if (getValue("hold", command, tmpBool))
+    int64_t duration;
+    if (getAndConstrainValue("wait", command, duration, (int64_t) -1, (int64_t) 9223372036854775))
     {
-        nextAction = tmpBool ? 9223372036854775807 : 0; // maximum int64_t value
-        debug("hold %s", tmpBool ? "on" : "off");
+        switch (duration)
+        {
+            case -1: // stop waiting
+            {
+                nextAction = esp_timer_get_time();
+                debug("stopped waiting");
+                break;
+            }
+            case 0: // wait indefinetly
+            {
+                nextAction = 9223372036854775807;
+                debug("waiting indefinetly");
+                break;
+            }
+            default: // time period is valid, interprete as ms
+            {
+                nextAction = esp_timer_get_time() + 1000 * duration;
+                debug("waiting for %d ms", duration);
+                break;
+            }
+        }
     }
 
-    uint32_t duration;
-    if (getValue("wait", command, duration))
-    {
-        nextAction = esp_timer_get_time() + 1000 * duration;
-        debug("waiting for %d ms", duration);
-    }
-
-    if (getValue("complete", command, duration))
+    if (getAndConstrainValue("complete", command, duration, (int64_t) 0, (int64_t) 9223372036854775))
     {
         nextAction = duration == 0 ? 9223372036854775807 : 1000 * duration + esp_timer_get_time();
-        listeningId = activeState ? activeState->relCommand(-2)->getId() : ""; // get controlId of the last command (currentCommand was incremented twice)
+        if (activeState)
+        {
+            XRTLcommand *lastCommand = activeState->relCommand(-2); // get the last command; incremented twice: after execution of last command and call to 
+            listeningId = lastCommand ? lastCommand->getId() : ""; // make sure relCommand() returned a valid command
+        }
         debug("waiting for completion of <%s>", listeningId);
     }
 
@@ -334,7 +351,7 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
 
 void MacroModule::handleInternal(internalEvent eventId, String &sourceId)
 {
-    if (!activeState || listeningId == "" || eventId != ready || sourceId != listeningId)
+    if (!activeState || listeningId == "" || eventId != ready || (sourceId != listeningId && listeningId != "*") )
         return;
     else
     {
