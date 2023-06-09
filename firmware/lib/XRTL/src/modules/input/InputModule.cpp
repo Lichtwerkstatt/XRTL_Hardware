@@ -341,7 +341,7 @@ bool InputModule::handleCommand(String &command)
 
 void InputModule::handleCommand(String &controlId, JsonObject &command)
 {
-    if (!isModule(controlId))
+    if (!isModule(controlId)  && controlId != "*")
         return;
 
     bool temp = false;

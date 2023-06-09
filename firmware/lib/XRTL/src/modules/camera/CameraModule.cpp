@@ -202,7 +202,7 @@ bool CameraModule::handleCommand(String &command)
 
 void CameraModule::handleCommand(String &controlId, JsonObject &command)
 {
-    if (!isModule(controlId))
+    if (!isModule(controlId) && controlId != "*")
         return;
 
     bool targetStreamState = false;

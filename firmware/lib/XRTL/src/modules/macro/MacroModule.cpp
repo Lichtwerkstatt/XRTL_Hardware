@@ -274,7 +274,7 @@ void MacroModule::selectState(String &targetState)
 
 void MacroModule::handleCommand(String &controlId, JsonObject &command)
 {
-    if (!isModule(controlId))
+    if (!isModule(controlId) && controlId != "*")
         return;
 
     bool tmpBool = false;

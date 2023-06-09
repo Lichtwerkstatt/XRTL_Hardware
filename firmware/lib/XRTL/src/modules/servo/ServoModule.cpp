@@ -196,7 +196,7 @@ bool ServoModule::handleCommand(String &command)
 
 void ServoModule::handleCommand(String &controlId, JsonObject &command)
 {
-    if (!isModule(controlId))
+    if (!isModule(controlId) && controlId != "*")
         return;
 
     bool temp = false;

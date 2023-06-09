@@ -125,7 +125,7 @@ void OutputModule::handleInternal(internalEvent eventId, String &sourceId)
 
 void OutputModule::handleCommand(String &controlId, JsonObject &command)
 {
-    if (!isModule(controlId))
+    if (!isModule(controlId) && controlId != "*")
         return;
 
     bool getStatus = false;
