@@ -233,7 +233,6 @@ void StepperModule::driveStepper(JsonObject &command)
 
     if (!stepper->isRunning()) // check whether position is reached already
     {
-        wasRunning = true;
         return;
     }
 
