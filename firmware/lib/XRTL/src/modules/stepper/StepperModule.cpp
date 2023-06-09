@@ -188,11 +188,13 @@ void StepperModule::driveStepper(JsonObject &command)
     if (getAndConstrainValue<int32_t>("move", command, moveValue, minimum - maximum, maximum - minimum))
     { // full range: maximum - minimum; negative range: minimum - maximum
         stepper->move(moveValue);
+        wasRunning = true; // check state in next loop (will issue status when movement done)
     }
 
     if (getAndConstrainValue<int32_t>("moveTo", command, moveValue, minimum, maximum))
     {
         stepper->moveTo(moveValue);
+        wasRunning = true; // check state in next loop (will issue status when movement done)
     }
 
     int32_t target = stepper->targetPosition();
@@ -224,11 +226,14 @@ void StepperModule::driveStepper(JsonObject &command)
         {
             stepper->moveTo(minimum);
         }
+
+        wasRunning = true; // check state in next loop (will issue status when movement done)
     }
 
     if (getValue<bool>("hold", command, holdOn))
     {
         debug("hold %sactive", holdOn ? "" : "in");
+        wasRunning = true; // check state in next loop (will issue status when movment done)
     }
 
     if (!stepper->isRunning()) // check whether position is reached already
@@ -239,14 +244,14 @@ void StepperModule::driveStepper(JsonObject &command)
     // estimate travelTime in ms
     uint32_t distance = abs(stepper->targetPosition() - stepper->currentPosition());
     uint32_t travelTime = 0;
-    if (distance > speed * speed / accel)
+    if (distance > speed * speed / accel) // distance after which the motor reaches max speed (including decelleration)
     {
         travelTime = 1000 * distance / speed;
         travelTime += 1000 * speed / accel;
     }
     else
     {
-        travelTime = round(2000 * sqrt(distance / accel));
+        travelTime = round(2000 * sqrt(distance / accel)); // time spend accellerating/decellerating
     }
 
     if (infoLED != "")
@@ -266,7 +271,6 @@ void StepperModule::driveStepper(JsonObject &command)
 
     stepper->enableOutputs();
     debug("moving from %d to %d", stepper->currentPosition(), stepper->targetPosition());
-    wasRunning = true;
     sendStatus();
     notify(busy);
     return;
