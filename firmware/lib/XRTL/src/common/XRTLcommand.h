@@ -44,6 +44,8 @@ private:
             delete key;
         if (val)
             delete val;
+        key = NULL;
+        val = NULL;
     }
 
 public:
@@ -93,7 +95,7 @@ public:
     void fillCommand(JsonObject& command)
     {
         command["controlId"] = id;
-        saveSettings(command);
+        val->passValue(*key, command);
     }
     
     void setViaSerial()

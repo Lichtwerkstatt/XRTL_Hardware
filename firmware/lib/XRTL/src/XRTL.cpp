@@ -621,13 +621,20 @@ void XRTL::sendCommand(XRTLcommand &command, const String &userId = "")
         event.add("command");
         JsonObject commandObj = event.createNestedObject();
 
-        if (userId == "" && socketIO != NULL) // only use default if no socket module is present
+        if (userId == "")
         {
-            commandObj["userId"] = socketIO->getComponent();
+            if (socketIO) // only use default if no socket module is present
+            {
+                commandObj["userId"] = socketIO->getComponent();
+            }
+            else
+            {
+                commandObj["userId"] = id;
+            }
         }
         else
         {
-            commandObj["userId"] = "core"; 
+            commandObj["userId"] = userId; 
         }
 
         command.fillCommand(commandObj);
