@@ -94,7 +94,7 @@ bool StepperModule::getStatus(JsonObject &status)
 
     status["busy"] = stepper->isRunning();
     status["absolute"] = position;
-    status["relative"] = mapFloat(stepper->currentPosition(), minimum, maximum, 0, 100);
+    status["relative"] = mapFloat(position, minimum, maximum, 0, 100);
     return true;
 }
 
@@ -142,7 +142,7 @@ bool StepperModule::handleCommand(String &command)
 
 void StepperModule::handleCommand(String &controlId, JsonObject &command)
 {
-    if (!isModule(controlId))
+    if (!isModule(controlId) && controlId != "*")
         return;
 
     bool getStatus = false;
