@@ -227,6 +227,22 @@ void ServoModule::handleCommand(String &controlId, JsonObject &command)
         debug("hold %sactive", holdOn ? "" : "in");
     }
 
+    uint32_t duration;
+    if (infoLED != "" && getValue("identify", command, duration))
+    {
+        XRTLdisposableCommand ledCommand(infoLED);
+
+        String color;
+        if (getValue("color", command, color))
+        {
+            ledCommand.add("color", color);
+        }
+
+        debug("identifying via LED <%s>", infoLED);
+        ledCommand.add("pulse", (int) duration);
+        sendCommand(ledCommand);
+    }
+
     driveServo(command); // only reached if not busy
 }
 

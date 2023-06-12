@@ -182,7 +182,7 @@ void InfoLED::fill(bool fillAll)
     }
 }
 
-void InfoLED::pulse(uint8_t minVal, uint8_t maxVal, uint16_t pulseTime, uint16_t pulseCount)
+void InfoLED::pulse(uint8_t minVal, uint8_t maxVal, uint16_t pulseTime, uint16_t pulsingDuration)
 {
     if (minVal == maxVal)
     {
@@ -209,7 +209,7 @@ void InfoLED::pulse(uint8_t minVal, uint8_t maxVal, uint16_t pulseTime, uint16_t
     operationInterval = 500 * pulseTime; // from ms to µs factor 1000, but 2 * (maxVal - minVal) intervals => 500
     operationInterval /= maxVal - minVal;
 
-    pulseTimer = pulseTime * pulseCount * 1000 + esp_timer_get_time();
+    pulseTimer = pulsingDuration * 1000 + esp_timer_get_time();
 
     updatesQueued = true;
     mode = pulsing;

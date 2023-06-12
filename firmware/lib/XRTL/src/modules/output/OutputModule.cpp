@@ -200,4 +200,19 @@ void OutputModule::handleCommand(String &controlId, JsonObject &command)
         sendStatus();
         notify(busy);
     }
+
+    if (infoLED != "" && getValue("identify", command, toggleTime))
+    {
+        XRTLdisposableCommand ledCommand(infoLED);
+
+        String color;
+        if (getValue("color", command, color))
+        {
+            ledCommand.add("color", color);
+        }
+
+        debug("identifying via LED <%s>", infoLED);
+        ledCommand.add("pulse", (int) toggleTime);
+        sendCommand(ledCommand);
+    }
 }

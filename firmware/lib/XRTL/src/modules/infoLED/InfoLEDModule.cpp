@@ -136,8 +136,7 @@ void InfoLEDModule::handleCommand(String &controlId, JsonObject &command)
     if (getValue("pulse", command, duration))
     {
         led->fill(true);
-        duration = ceil(duration / 500); // aprroximate number of pulses
-        led->pulse(40, 110, 500, duration);
+        led->pulse(40, 110, 1000, duration);
     }
 
     if (getValue("cycle", command, duration))
@@ -198,7 +197,7 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
         led->hsv(0, 255, 110);
         led->fill(true);
         led->hold(true);
-        led->pulse(40, 100, 1000, 600); // after 600 seconds the device restarts anyway
+        led->pulse(40, 100, 1000, 600); // after 600 seconds the device restarts -> pulsing until restart
         break;
     }
 

@@ -179,7 +179,22 @@ void StepperModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     driveStepper(command);
-    return;
+    
+    uint32_t duration;
+    if (infoLED != "" && getValue("identify", command, duration))
+    {
+        XRTLdisposableCommand ledCommand(infoLED);
+
+        String color;
+        if (getValue("color", command, color))
+        {
+            ledCommand.add("color", color);
+        }
+
+        debug("identifying via LED <%s>", infoLED);
+        ledCommand.add("pulse", (int) duration);
+        sendCommand(ledCommand);
+    }
 }
 
 void StepperModule::driveStepper(JsonObject &command)
@@ -233,7 +248,13 @@ void StepperModule::driveStepper(JsonObject &command)
     if (getValue<bool>("hold", command, holdOn))
     {
         debug("hold %sactive", holdOn ? "" : "in");
-        wasRunning = true; // check state in next loop (will issue status when movment done)
+
+        if (holdOn)
+        {
+            stepper->enableOutputs(); // ensure the motor coils are powered if hold gets called
+        }
+
+        wasRunning = true; // check state in next loop (will issue status)
     }
 
     if (!stepper->isRunning()) // check whether position is reached already
