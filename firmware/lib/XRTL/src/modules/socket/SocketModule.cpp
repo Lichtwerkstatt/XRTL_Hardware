@@ -67,6 +67,13 @@ static const char base64url_en[] = {
     '_',
 };
 
+/** 
+ * @brief encode a char array using base64 with URL compatability
+ * @param in pointer to the array to encode
+ * @param inlen length of the array to encode
+ * @param out pointer to the array in which the output is supposed to be stored
+ * @returns true if the converstion was successful
+*/
 bool base64url_encodeCharArray(const unsigned char *in, unsigned int inlen, char *out)
 {
     unsigned int i, j;
@@ -107,6 +114,12 @@ bool base64url_encodeCharArray(const unsigned char *in, unsigned int inlen, char
     return true;
 }
 
+/** 
+ * @brief encode a char array using base64 with URL compatability
+ * @param data pointer to the array to encode
+ * @param dataLength length of the array to encode
+ * @returns encoded data array as String
+*/
 String base64url_encode(const uint8_t *data, size_t dataLength)
 {
     size_t outputLength = ((((4 * dataLength) / 3) + 3) & ~3);
@@ -121,11 +134,21 @@ String base64url_encode(const uint8_t *data, size_t dataLength)
     return String("-FAIL-");
 }
 
-String base64url_encode(String &text)
+/** 
+ * @brief encode a char array using base64 with URL compatability
+ * @param text String to encode
+ * @returns encoded data array as String
+*/
+String base64url_encode(const String &text)
 {
     return base64url_encode((uint8_t *)text.c_str(), text.length());
 }
 
+/** 
+ * @brief create a JSON Web Token (JWT) based on the information stored in the module
+ * @returns JWT as String
+ * @note expiration time is set as 1 week by default
+*/
 String SocketModule::createJWT()
 {
     DynamicJsonDocument document(512);
@@ -143,8 +166,15 @@ String SocketModule::createJWT()
     time(&now);
     payload["sub"] = component;
     payload["component"] = "component";
-    payload["iat"] = now;
-    payload["exp"] = now + 605000; // ~ 1 week
+    if (expiration > 0) // fixed expiration date is set, contacting ntp servers can't be expected
+    {
+        payload["exp"] = expiration;
+    }
+    else
+    {
+        payload["iat"] = now;
+        payload["exp"] = now + 605000; // ~ 1 week
+    }
 
     encoding = "";
     serializeJson(payload, encoding);
@@ -173,6 +203,10 @@ String SocketModule::createJWT()
     return token;
 }
 
+/** 
+ * pointer to the last initiated socket module (why would you have more then one?)
+ * @note returns NULL if no module has been initialized
+*/
 SocketModule *SocketModule::lastModule = NULL;
 
 SocketModule::SocketModule(String moduleName)
@@ -186,15 +220,25 @@ SocketModule::SocketModule(String moduleName)
     parameters.add(port, "port", "int");
     parameters.add(url, "url", "String");
     parameters.add(key, "key", "String");
+    parameters.add(expiration,"expiration","unix time");
     parameters.add(component, "component", "String");
     parameters.add(useSSL, "useSSL", "");
 }
 
+/** 
+ * @brief get type of the module
+ * @note as this is a socket module, it will always return xrtl_socket
+*/
 moduleType SocketModule::getType()
 {
     return xrtl_socket;
 }
 
+/** 
+ * @brief send an event to the socket server if a connection has been established
+ * @param event reference to the event formated as JsonArray
+ * @note calls to this function before a connection is established will cause the event to be discarded. Events before authentication are sent, but likely ignored by the server.
+*/
 void SocketModule::sendEvent(JsonArray &event)
 {
     if (!socket->isConnected())
@@ -213,6 +257,12 @@ void SocketModule::sendEvent(JsonArray &event)
     debug("sent event: %s", output.c_str());
 }
 
+/** 
+ * @brief send an error event to the server if a connection has been established
+ * @param err error number that identifies the type of error encountered
+ * @param msg error message detailing what went wrong (if possible)
+ * @note calls to this function before a connection is established will cause the error to be discarded. Events before authentication are sent, but likely ignored by the server.
+*/
 void SocketModule::sendError(componentError err, String msg)
 {
     DynamicJsonDocument outgoingEvent(1024);
@@ -226,6 +276,13 @@ void SocketModule::sendError(componentError err, String msg)
     sendEvent(payload);
 }
 
+/** 
+ * @brief send a binary attachment to the server
+ * @param binaryLeadFrame text for the first leading websocket frame, may include additional info regarding the attachment
+ * @param payload pointer to the binary attachment to send
+ * @param length length of the binary attachment to send
+ * @note structure of the text frame: 451-<payload as JsonArray>
+*/
 void SocketModule::sendBinary(String &binaryLeadFrame, uint8_t *payload, size_t length)
 {
     socket->sendBIN(binaryLeadFrame, payload, length);
@@ -369,8 +426,16 @@ void SocketModule::loop()
     socket->loop();
 
     if (timeSynced)
-        return; // check if a restart might be needed
+        return;
 
+    if (expiration > 0) // running in local mode
+    {
+        timeSynced = true; // not really, but lets pretend
+        notify(time_synced);
+        return;
+    }
+
+    // check if a restart might be needed
     time_t now;
     time(&now);
 
@@ -425,8 +490,8 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
         {
             yield();
         }
-        sendAllStatus();
 
+        sendAllStatus();
         return;
     }
 
@@ -449,7 +514,16 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
             return; // only need to print time if debugging
         time_t now;
         time(&now);
-        Serial.printf("[%s] time synced: %d\n", id.c_str(), now);
+
+        if (expiration > 0)
+        {
+            Serial.printf("[%s] running in local mode\n", id.c_str());
+        }
+        else
+        {
+            Serial.printf("[%s] time synced: %d\n", id.c_str(), now);
+        }
+
         Serial.printf("[%s] socket client started\n", id.c_str());
         return;
     }

@@ -12,6 +12,7 @@ private:
     uint16_t port = 3000;
     String url = "/socket.io/?EIO=4";
     String key = "key";
+    time_t expiration = 0;
     String component = "XRTL_ESP32";
     bool useSSL = false;
 
