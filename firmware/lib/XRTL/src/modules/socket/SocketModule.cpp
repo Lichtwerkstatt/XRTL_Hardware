@@ -444,7 +444,9 @@ void SocketModule::loop()
     socket->loop();
 
     if (timeSynced)
+    {
         return;
+    }
 
     int64_t now = esp_timer_get_time();
     if (now > 300000000)
@@ -512,6 +514,7 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
     case time_synced:
     {
         timeSynced = true;
+
         if (!clientStarted)
         {
             debug("starting socket client");
