@@ -265,14 +265,18 @@ void StepperModule::driveStepper(JsonObject &command)
     // estimate travelTime in ms
     uint32_t distance = abs(stepper->targetPosition() - stepper->currentPosition());
     uint32_t travelTime = 0;
-    if (distance > speed * speed / accel) // distance after which the motor reaches max speed (including decelleration)
+    if (distance > speed * speed / accel)
     {
+        // distance after which the motor reaches max speed (including decelleration)
+        // t = s/v_max + v_max/a
         travelTime = 1000 * distance / speed;
         travelTime += 1000 * speed / accel;
     }
     else
     {
-        travelTime = round(2000 * sqrt(distance / accel)); // time spend accellerating/decellerating
+        // time spend accellerating/decellerating
+        // t = 2 * sqrt(s/a)
+        travelTime = round(2000 * sqrt(distance / accel));
     }
 
     if (infoLED != "")

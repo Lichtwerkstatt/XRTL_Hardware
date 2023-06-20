@@ -2,6 +2,7 @@
 #define SOCKETMODULE_H
 
 #include "SocketIOclientMod.h"
+#include "esp_sntp.h"
 #include "mbedtls/md.h"
 #include "modules/XRTLmodule.h"
 
@@ -12,12 +13,12 @@ private:
     uint16_t port = 3000;
     String url = "/socket.io/?EIO=4";
     String key = "key";
-    time_t expiration = 0;
     String component = "XRTL_ESP32";
     bool useSSL = false;
+    bool clientStarted = false;
+    bool timeSynced = false;
 
     uint8_t failedConnectionCount = 0;
-    bool timeSynced = false;
     bool isBusy = false;
     SocketIOclientMod *socket = new SocketIOclientMod;
     static SocketModule *lastModule;
@@ -29,6 +30,7 @@ public:
 
     String &getComponent();
 
+    friend void timeSyncCallback(struct timeval *tv);
     friend void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length);
     void handleEvent(DynamicJsonDocument &doc);
 
@@ -55,5 +57,7 @@ public:
 };
 
 void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length);
+
+void timeSyncCallback(struct timeval *tv);
 
 #endif

@@ -126,8 +126,10 @@ public:
 
     void setViaSerialBasic();
 
-    // @brief send a message over the serial monitor if in debug mode
-    // @param ... uses printf syntax
+    /** @brief send a message over the serial monitor if in debug mode
+      * @param ... uses printf syntax
+      * @note automatically adds [controlId] at the start and \\n at the end of the message
+     */ 
     template <typename... Args>
     void debug(Args... args)
     {
@@ -138,12 +140,13 @@ public:
         Serial.print('\n');
     }
 
-    // @brief fetch a key value pair from a JsonObject
-    // @param name search for this key
-    // @param file object that will be searched for name
-    // @param target store value here if key was found
-    // @param reportMissingField if True a report will be issued in case the key could not be found
-    // @returns True if the key was found
+    /** @brief fetch a key value pair from a JsonObject
+     * @param name search for this key
+     * @param file object that will be searched for name
+     * @param target store value here if key was found
+     * @param reportMissingField if True a report will be issued in case the key could not be found
+     * @returns True if the key was found
+     */
     template <typename T>
     bool getValue(String name, JsonObject &file, T &target, bool reportMissingField = false)
     {

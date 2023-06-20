@@ -166,11 +166,7 @@ String SocketModule::createJWT()
     time(&now);
     payload["sub"] = component;
     payload["component"] = "component";
-    if (expiration > 0) // fixed expiration date is set, contacting ntp servers can't be expected
-    {
-        payload["exp"] = expiration;
-    }
-    else
+    if (timeSynced)
     {
         payload["iat"] = now;
         payload["exp"] = now + 605000; // ~ 1 week
@@ -220,7 +216,6 @@ SocketModule::SocketModule(String moduleName)
     parameters.add(port, "port", "int");
     parameters.add(url, "url", "String");
     parameters.add(key, "key", "String");
-    parameters.add(expiration,"expiration","unix time");
     parameters.add(component, "component", "String");
     parameters.add(useSSL, "useSSL", "");
 }
@@ -288,9 +283,16 @@ void SocketModule::sendBinary(String &binaryLeadFrame, uint8_t *payload, size_t 
     socket->sendBIN(binaryLeadFrame, payload, length);
 }
 
+void timeSyncCallback(timeval *tv)
+{
+    SocketModule *socketInstance = SocketModule::lastModule;
+    socketInstance->notify(time_synced);
+}
+
 void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length)
 {
     SocketModule *socketInstance = SocketModule::lastModule;
+
     switch (type)
     {
     case sIOtype_DISCONNECT:
@@ -301,7 +303,6 @@ void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length)
     case sIOtype_CONNECT:
     {
         socketInstance->debug("connected to <%s>", payload);
-        socketInstance->failedConnectionCount = 0;
         socketInstance->notify(socket_connected);
 
         String token = "{\"token\":\"";
@@ -333,6 +334,7 @@ void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length)
     }
     case sIOtype_ERROR:
     {
+        socketInstance->debug("error received: %s", payload);
     }
     case sIOtype_BINARY_EVENT:
     {
@@ -364,6 +366,21 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc)
     }
 
     String eventName = doc[0].as<String>();
+
+    if (eventName == "time") // only use server time if time is still not synced
+    {
+        uint64_t receivedTime = doc[1];
+        debug("time received: %llu", receivedTime);
+
+        //uint32_t receivedSeconds = floor(receivedTime / 1000);
+        timeval receivedEpoch;
+        receivedEpoch.tv_sec = floor(receivedTime / 1000);
+        receivedEpoch.tv_usec = (receivedTime - receivedEpoch.tv_sec * 1000) * 1000;
+        sntp_set_system_time(receivedEpoch.tv_sec, receivedEpoch.tv_usec);
+        //settimeofday(&receivedEpoch, NULL);
+
+        return;
+    }
 
     if (eventName == "Auth")
     {
@@ -418,6 +435,7 @@ String &SocketModule::getComponent()
 
 void SocketModule::setup()
 {
+    sntp_set_time_sync_notification_cb(timeSyncCallback);
     configTime(0, 0, "pool.ntp.org");
 }
 
@@ -428,30 +446,29 @@ void SocketModule::loop()
     if (timeSynced)
         return;
 
-    if (expiration > 0) // running in local mode
-    {
-        timeSynced = true; // not really, but lets pretend
-        notify(time_synced);
-        return;
-    }
-
-    // check if a restart might be needed
-    time_t now;
-    time(&now);
-
-    // check if time is 2022 or later
-    if (now > 1640991600)
-    {
-        // time _probably_ synced, stop checking and push state to modules, starting socket client
-        timeSynced = true;
-        notify(time_synced);
-        return;
-    }
-
-    if (esp_timer_get_time() > 300000000)
+    int64_t now = esp_timer_get_time();
+    if (now > 300000000)
     { // 5 minutes after start -> WiFi not working?
         debug("unable to sync time -- restating device");
+        // TODO: stop all modules?
         ESP.restart();
+    }
+
+    if (!clientStarted && now > 30000000) // time not synced after 30 seconds, start client to receive time from server
+    {
+        debug("unable to sync time from NTP server");
+        debug("starting socket client");
+        if (useSSL)
+        {
+            socket->beginSSL(ip.c_str(), port, url.c_str());
+        }
+        else
+        {
+            socket->begin(ip.c_str(), port, url.c_str());
+        }
+
+        socket->onEvent(socketHandler);
+        clientStarted = true;
     }
 }
 
@@ -464,6 +481,10 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
 {
     switch (eventId)
     {
+    case wifi_connected:
+    {
+        return;
+    }
     case socket_disconnected:
     {
         failedConnectionCount++; // TODO: is there a way to avoid the 5s BLOCKING!!! timeout?
@@ -484,47 +505,39 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
     }
     case socket_authed:
     {
-        // wait randomly between 100 and 300 ms to decrease number of simultaneous request after power outage
-        int64_t waitTime = esp_timer_get_time() + random(100000, 300000);
-        while (esp_timer_get_time() < waitTime)
-        {
-            yield();
-        }
-
         sendAllStatus();
         return;
     }
 
     case time_synced:
     {
-        // collected all information needed for JWT, starting socket client and registering event handler
-
-        if (useSSL)
+        timeSynced = true;
+        if (!clientStarted)
         {
-            socket->beginSSL(ip.c_str(), port, url.c_str());
-        }
-        else
-        {
-            socket->begin(ip.c_str(), port, url.c_str());
-        }
+            debug("starting socket client");
+            if (useSSL)
+            {
+                socket->beginSSL(ip.c_str(), port, url.c_str());
+            }
+            else
+            {
+                socket->begin(ip.c_str(), port, url.c_str());
+            }
 
-        socket->onEvent(socketHandler);
+            socket->onEvent(socketHandler);
+            clientStarted = true;
+        }
 
         if (!debugging)
+        {
             return; // only need to print time if debugging
-        time_t now;
-        time(&now);
-
-        if (expiration > 0)
-        {
-            Serial.printf("[%s] running in local mode\n", id.c_str());
         }
-        else
-        {
-            Serial.printf("[%s] time synced: %d\n", id.c_str(), now);
-        }
+        
+        uint32_t sec;
+        uint32_t uSec;
+        sntp_get_system_time(&sec, &uSec);
 
-        Serial.printf("[%s] socket client started\n", id.c_str());
+        debug("time synced: %lu.%lu", sec, uSec / 1000);
         return;
     }
 
