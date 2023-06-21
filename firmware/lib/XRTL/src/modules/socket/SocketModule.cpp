@@ -535,10 +535,10 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
         sntp_get_system_time(&currentSec, &currentUSec);
 
         DynamicJsonDocument doc(1024);
-        JsonArray timeRequest = doc.to<JsonArray>();
-        timeRequest.add("time");
-        timeRequest.add(currentSec + currentUSec / 1000);
-        sendEvent(timeRequest);
+        JsonArray timeMessage = doc.to<JsonArray>();
+        timeMessage.add("time");
+        timeMessage.add((uint64_t)currentSec * 1000 + (uint64_t)currentUSec / 1000);
+        sendEvent(timeMessage);
 
         timeSynced = true;
         sendAllStatus();

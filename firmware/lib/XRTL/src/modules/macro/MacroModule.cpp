@@ -330,14 +330,14 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
             XRTLcommand *lastCommand = activeState->relCommand(-2); // get the last command; incremented twice: after execution of last command and call to `complete`
             listeningId = lastCommand ? lastCommand->getId() : ""; // make sure relCommand() returned a valid command
         }
-        debug("waiting for completion of <%s>", listeningId);
+        debug("waiting for completion of <%s>", listeningId.c_str());
     }
 
     String waitingId;
     if (activeState && getValue("listen", command, waitingId))
     {
         listeningId = waitingId;
-        debug("listening for <%s>", listeningId);
+        debug("listening for <%s>", listeningId.c_str());
     }
 
     String targetState;
