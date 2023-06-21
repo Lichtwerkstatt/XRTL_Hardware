@@ -290,7 +290,14 @@ void StepperModule::driveStepper(JsonObject &command)
         }
 
         ledCommand.add("hold", true);
-        ledCommand.add("cycle", (int) travelTime);
+        if (stepper->targetPosition() > stepper->currentPosition())
+        {
+            ledCommand.add("cycle", (int) travelTime);
+        }
+        else
+        {
+            ledCommand.add("cycle", -(int) travelTime);
+        }
         sendCommand(ledCommand);
     }
 

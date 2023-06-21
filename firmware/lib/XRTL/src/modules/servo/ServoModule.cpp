@@ -357,7 +357,14 @@ void ServoModule::driveServo(JsonObject &command)
         }
 
         ledCommand.add("hold", true);
-        ledCommand.add("cycle", (int) travelTime);
+        if (positiveDirection)
+        {
+            ledCommand.add("cycle", (int) travelTime);
+        }
+        else
+        {
+            ledCommand.add("cycle", -(int) travelTime);
+        }
         sendCommand(ledCommand);
     }
 
