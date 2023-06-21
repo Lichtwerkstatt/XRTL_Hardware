@@ -62,7 +62,8 @@ enum ledOperation_t
 {
     on,
     pulsing,
-    cycling
+    cyclingCW,
+    cyclingCCW
 };
 
 class InfoLED
@@ -97,12 +98,13 @@ public:
     void hold(bool newHold = true);
     void hsv(uint16_t newHue, uint8_t newSat, uint8_t newVal);
     void constant();
-    void constant(uint16_t duration);
+    void constant(uint32_t duration);
 
     void fill(bool fillAll = false);
 
-    void pulse(uint8_t minVal = 40, uint8_t maxVal = 110, uint16_t pulseTime = 1000, uint16_t pulsingDuration = 2000);
-    void cycle(uint64_t cycleDuration);
+    void pulse(uint8_t minVal = 40, uint8_t maxVal = 110, uint16_t pulseTime = 1000, uint32_t pulsingDuration = 2000);
+    //void cycle(uint64_t cycleDuration);
+    void cycle(int64_t cycleDuration);
 
     void loop();
 };

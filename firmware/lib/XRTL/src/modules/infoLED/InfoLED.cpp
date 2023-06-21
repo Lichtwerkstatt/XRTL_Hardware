@@ -1,124 +1,5 @@
 #include "InfoLED.h"
 
-/* void InfoLED::begin()
-{
-    led.begin();
-}
-
-void InfoLED::cycle(uint32_t t, bool b = false)
-{ // t: time before stepping to the next LED; b: true -> LEDs stay on after full cycle
-    interval = t;
-    continueCycle = b;
-    isCycling = true;
-    isPulsing = false;
-}
-
-void InfoLED::pulse(uint32_t t, uint8_t minimum, uint8_t maximum)
-{ // t: time before next intensity value; minimum: minimum intensity; maximum: maximum intensity
-    interval = t;
-    minVal = minimum;
-    maxVal = maximum;
-    isCycling = false;
-    isPulsing = true;
-}
-
-void InfoLED::rainbow(uint16_t h)
-{ // h: hue is incremented by this amount per step
-    hueIncrement = h;
-    isHueing = true;
-    if (isCycling)
-    {
-        isPulsing = false;
-    }
-    if (isPulsing)
-    {
-        isCycling = false;
-    }
-}
-
-void InfoLED::start()
-{
-    isOn = true;
-}
-
-void InfoLED::stop()
-{
-    isOn = false;
-    led.clear();
-    led.show();
-}
-
-void InfoLED::hsv(uint16_t h, uint8_t s, uint8_t v)
-{
-    isCycling = false;
-    isHueing = false;
-    isPulsing = false;
-    hue = h;
-    sat = s;
-    val = v;
-}
-
-void InfoLED::constant()
-{
-    isCycling = false;
-    isHueing = false;
-    isPulsing = false;
-}
-
-void InfoLED::loop()
-{
-    if (!isOn)
-    {
-        led.clear();
-        return;
-    }
-    
-    now = millis() - last;
-    if ((isCycling) && (now > interval))
-    {
-        if (currentLED == led.numPixels())
-        {
-            currentLED = 0;
-            if (!continueCycle)
-            {
-                led.clear();
-            }
-        }
-        led.setPixelColor(currentLED, led.gamma32(led.ColorHSV(hue, sat, val)));
-        currentLED++;
-        last = millis();
-    }
-
-    if (isHueing)
-    {
-        hue = hue + hueIncrement;
-    }
-
-    if ((isPulsing) && (now > interval))
-    {
-        if (val == minVal)
-        {
-            deltaVal = 1;
-        }
-        if (val == maxVal)
-        {
-            deltaVal = -1;
-        }
-        val += deltaVal;
-        last = millis();
-    }
-
-    if (!isCycling)
-    {
-        for (int i = 0; i < led.numPixels(); i++)
-        {
-            led.setPixelColor(i, led.gamma32(led.ColorHSV(hue, sat, val)));
-        }
-    }
-    
-    led.show();
-} */
-
 InfoLED::InfoLED(uint8_t pixelCount, uint8_t pin) : led(pixelCount, pin, NEO_GRB + NEO_KHZ800)
 {
     nextOperation = esp_timer_get_time();
@@ -163,7 +44,7 @@ void InfoLED::constant()
     mode = on;
 }
 
-void InfoLED::constant(uint16_t duration)
+void InfoLED::constant(uint32_t duration)
 {
     led.show();
     updatesQueued = true;
@@ -182,7 +63,7 @@ void InfoLED::fill(bool fillAll)
     }
 }
 
-void InfoLED::pulse(uint8_t minVal, uint8_t maxVal, uint16_t pulseTime, uint16_t pulsingDuration)
+void InfoLED::pulse(uint8_t minVal, uint8_t maxVal, uint16_t pulseTime, uint32_t pulsingDuration)
 {
     if (minVal == maxVal)
     {
@@ -215,22 +96,53 @@ void InfoLED::pulse(uint8_t minVal, uint8_t maxVal, uint16_t pulseTime, uint16_t
     mode = pulsing;
 }
 
-void InfoLED::cycle(uint64_t cycleDuration)
+// void InfoLED::cycle(uint64_t cycleDuration)
+// {
+//     cycleDuration *= 1000;
+//     cycleDuration /= led.numPixels();
+
+//     operationInterval = cycleDuration;
+
+//     led.clear();
+//     currentLED = 0;
+//     led.setPixelColor(currentLED++, currentColor());
+//     led.show();
+
+//     nextOperation = esp_timer_get_time() + operationInterval;
+    
+//     updatesQueued = true;
+//     mode = cyclingCW;
+// }
+
+void InfoLED::cycle(int64_t cycleDuration)
 {
+    if (cycleDuration == 0)
+    {
+        return;
+    }
+
     cycleDuration *= 1000;
     cycleDuration /= led.numPixels();
 
-    operationInterval = cycleDuration;
+    operationInterval = abs(cycleDuration);
 
     led.clear();
-    currentLED = 0;
-    led.setPixelColor(currentLED++, currentColor());
+    if (cycleDuration > 0)
+    {
+        currentLED = 0;
+        led.setPixelColor(currentLED++, currentColor());
+        mode = cyclingCW;
+    }
+    else
+    {
+        led.setPixelColor(0, currentColor());
+        currentLED = led.numPixels() - 1;
+        mode = cyclingCCW;
+    }
     led.show();
 
-    nextOperation = esp_timer_get_time() + operationInterval;
-    
+    nextOperation = esp_timer_get_time() + operationInterval;  
     updatesQueued = true;
-    mode = cycling;
 }
 
 void InfoLED::loop()
@@ -282,10 +194,19 @@ void InfoLED::loop()
             nextOperation = now + operationInterval;
             break;
         }
-        case cycling:
+        case cyclingCW:
         {
             led.setPixelColor(currentLED++, currentColor());
             if (currentLED >= led.numPixels())
+                mode = on;
+
+            nextOperation = now + operationInterval;
+            break;
+        }
+        case cyclingCCW:
+        {
+            led.setPixelColor(currentLED--, currentColor());
+            if (currentLED == 0)
                 mode = on;
 
             nextOperation = now + operationInterval;

@@ -39,37 +39,17 @@ void InfoLEDModule::loop()
 
 void InfoLEDModule::saveSettings(JsonObject &settings)
 {
-    /*settings["pin"] = pin;
-    settings["pixel"] = pixel;*/
     parameters.save(settings);
 }
 
 void InfoLEDModule::loadSettings(JsonObject &settings)
 {
-    /*pin = loadValue<uint8_t>("pin", settings, 32);
-    pixel = loadValue<uint8_t>("pixel", settings, 12);
-
-    if (!debugging) return;
-    Serial.printf("control pin: %i\n", pin);
-    Serial.printf("pixel number: %i\n", pixel);*/
     parameters.load(settings);
     if (debugging) parameters.print();
 }
 
 void InfoLEDModule::setViaSerial()
 {
-    /*Serial.println("");
-    Serial.println(centerString("",39,'-').c_str());
-    Serial.println(centerString(id,39,' ').c_str());
-    Serial.println(centerString("",39,'-').c_str());
-    Serial.println("");
-
-    id = serialInput("controlId: ");
-
-    if (serialInput("change pin binding (y/n): ") != "y") return;
-
-    pin = serialInput("control pin: ").toInt();
-    pixel = serialInput("pixel number: ").toInt(); */
     parameters.setViaSerial();
 }
 
@@ -77,7 +57,6 @@ void InfoLEDModule::stop()
 {
     led->hsv(8000, 255, 110);
     led->constant();
-    //led->loop(); // make sure the changes are applied immediately
 }
 
 bool InfoLEDModule::handleCommand(String &command)
@@ -87,7 +66,6 @@ bool InfoLEDModule::handleCommand(String &command)
 
     led->hsv(8000, 255, 110);
     led->constant();
-    //led->loop(); // no loop will be executed before reset
 
     return true;
 }
@@ -139,9 +117,10 @@ void InfoLEDModule::handleCommand(String &controlId, JsonObject &command)
         led->pulse(40, 110, 1000, duration);
     }
 
-    if (getValue("cycle", command, duration))
+    int64_t cycleDuration;
+    if (getValue("cycle", command, cycleDuration))
     {
-        led->cycle(duration);
+        led->cycle(cycleDuration);
     }
 
     // return false;
@@ -155,8 +134,6 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
     {
     case socket_disconnected:
     {
-        // led->hsv(0, 255, 110);
-        // led->pulse(0, 40, 110);
         led->hsv(0, 255, 110);
         led->hold(true);
         led->cycle(5000);
@@ -164,8 +141,6 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
     }
     case wifi_disconnected:
     {
-        // led->hsv(0, 255, 110);
-        // led->cycle(100, false);
         led->hsv(0, 255, 110);
         led->fill(true);
         led->hold(true);
@@ -174,7 +149,6 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
     }
     case socket_connected:
     {
-        // led->hsv(8000, 255, 110);
         led->hsv(8000, 255, 110);
         led->fill(true);
         led->hold(true);
@@ -183,8 +157,6 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
     }
     case socket_authed:
     {
-        // led->hsv(20000, 255, 110);
-        // led->constant();
         led->hsv(20000, 255, 110);
         led->fill(true);
         led->hold(false);
@@ -193,7 +165,6 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
     }
     case wifi_connected:
     {
-        // led->pulse(0, 40, 110);
         led->hsv(0, 255, 110);
         led->fill(true);
         led->hold(true);
@@ -203,12 +174,10 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
 
     case busy:
     {
-        // led->pulse(0, 40, 110);
         break;
     }
     case ready:
     {
-        // led->constant();
         break;
     }
 
