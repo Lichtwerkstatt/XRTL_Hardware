@@ -530,6 +530,17 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
     }
     case socket_authed:
     {
+        uint32_t currentSec;
+        uint32_t currentUSec;
+        sntp_get_system_time(&currentSec, &currentUSec);
+
+        DynamicJsonDocument doc(1024);
+        JsonArray timeRequest = doc.to<JsonArray>();
+        timeRequest.add("time");
+        timeRequest.add(currentSec + currentUSec / 1000);
+        sendEvent(timeRequest);
+
+        timeSynced = true;
         sendAllStatus();
         return;
     }
