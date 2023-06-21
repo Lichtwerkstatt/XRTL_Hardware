@@ -154,6 +154,7 @@ String SocketModule::createJWT()
     DynamicJsonDocument document(512);
 
     JsonObject header = document.to<JsonObject>();
+    header["kid"] = "component"; // key ID, use to identify key used
     header["alg"] = "HS256";
     header["typ"] = "JWT";
 
@@ -164,13 +165,14 @@ String SocketModule::createJWT()
     JsonObject payload = document.to<JsonObject>();
     time_t now;
     time(&now);
-    payload["sub"] = component;
+    payload["sub"] = component; // client identity
     payload["component"] = "component";
-    if (timeSynced)
-    {
-        payload["iat"] = now;
-        payload["exp"] = now + 605000; // ~ 1 week
-    }
+    // TODO: expiration handled by server
+    // if (timeSynced)
+    // {
+    //     payload["iat"] = now;
+    //     payload["exp"] = now + 605000; // ~ 1 week
+    // }
 
     encoding = "";
     serializeJson(payload, encoding);
@@ -369,15 +371,42 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc)
 
     if (eventName == "time") // only use server time if time is still not synced
     {
-        uint64_t receivedTime = doc[1];
+        auto receivedObject = doc[1];
+
+        if (receivedObject.isNull())
+        {
+            String errormsg = "[";
+            errormsg += id;
+            errormsg += "] event rejected: no payload for time event";
+            sendError(field_is_null, errormsg);
+            return;
+        }
+        if (!receivedObject.is<uint64_t>())
+        {
+            String errormsg = "[";
+            errormsg += id;
+            errormsg += "] time was expected to be an integer, but found to be something else";
+            sendError(wrong_type, errormsg);
+            return;
+        }
+
+        uint64_t receivedTime = doc[1].as<uint64_t>();
         debug("time received: %llu", receivedTime);
 
-        //uint32_t receivedSeconds = floor(receivedTime / 1000);
+        time_t now;
+        time(&now);
+
+        if ( abs((long long) receivedTime / 1000 - now) < 300 ) // less than 5 minutes difference
+        {
+            debug("approximate time match");
+            return;
+        }
+   
+        debug("time mismatch, syncing to server time");
         timeval receivedEpoch;
         receivedEpoch.tv_sec = floor(receivedTime / 1000);
-        receivedEpoch.tv_usec = (receivedTime - receivedEpoch.tv_sec * 1000) * 1000;
+        receivedEpoch.tv_usec = (receivedTime % 1000) * 1000;
         sntp_set_system_time(receivedEpoch.tv_sec, receivedEpoch.tv_usec);
-        //settimeofday(&receivedEpoch, NULL);
 
         return;
     }
@@ -437,6 +466,18 @@ void SocketModule::setup()
 {
     sntp_set_time_sync_notification_cb(timeSyncCallback);
     configTime(0, 0, "pool.ntp.org");
+
+    debug("starting socket client");
+    if (useSSL)
+    {
+        socket->beginSSL(ip.c_str(), port, url.c_str());
+    }
+    else
+    {
+        socket->begin(ip.c_str(), port, url.c_str());
+    }
+
+    socket->onEvent(socketHandler);
 }
 
 void SocketModule::loop()
@@ -448,29 +489,11 @@ void SocketModule::loop()
         return;
     }
 
-    int64_t now = esp_timer_get_time();
-    if (now > 300000000)
+    if (esp_timer_get_time() > 300000000)
     { // 5 minutes after start -> WiFi not working?
-        debug("unable to sync time -- restating device");
+        debug("unable to sync time -- restarting device");
         // TODO: stop all modules?
         ESP.restart();
-    }
-
-    if (!clientStarted && now > 30000000) // time not synced after 30 seconds, start client to receive time from server
-    {
-        debug("unable to sync time from NTP server");
-        debug("starting socket client");
-        if (useSSL)
-        {
-            socket->beginSSL(ip.c_str(), port, url.c_str());
-        }
-        else
-        {
-            socket->begin(ip.c_str(), port, url.c_str());
-        }
-
-        socket->onEvent(socketHandler);
-        clientStarted = true;
     }
 }
 
@@ -514,22 +537,6 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
     case time_synced:
     {
         timeSynced = true;
-
-        if (!clientStarted)
-        {
-            debug("starting socket client");
-            if (useSSL)
-            {
-                socket->beginSSL(ip.c_str(), port, url.c_str());
-            }
-            else
-            {
-                socket->begin(ip.c_str(), port, url.c_str());
-            }
-
-            socket->onEvent(socketHandler);
-            clientStarted = true;
-        }
 
         if (!debugging)
         {

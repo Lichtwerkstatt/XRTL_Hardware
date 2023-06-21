@@ -15,7 +15,6 @@ private:
     String key = "key";
     String component = "XRTL_ESP32";
     bool useSSL = false;
-    bool clientStarted = false;
     bool timeSynced = false;
 
     uint8_t failedConnectionCount = 0;
