@@ -22,7 +22,7 @@ void XRTLinput::loop() {
     }
     else {// average time over, store averaged value
         next = now + averageMicroSeconds;
-        if (sampleCount == 0) {// no measurment taken, fill buffer with single
+        if (sampleCount == 0) {// no measurment taken, fill buffer with single value
             buffer += analogReadMilliVolts(pin);
             sampleCount++;
         }
