@@ -1,65 +1,41 @@
 #include "XRTLval.h"
 
-void XRTLval::clear()
+XRTLvalBool::XRTLvalBool(bool newVal)
 {
-    currentType = xrtlval_bool;
-    valBool = false;
-    valInt = 0;
-    valFloat = 0.0;
-    valString = "";
+    val = newVal;
 }
 
-void XRTLval::passValue(const String &key, JsonObject &command)
+void XRTLvalBool::passValue(const String &key, JsonObject &command)
 {
-    switch (currentType)
-    {
-    case (xrtlval_bool):
-    {
-        command[key] = valBool;
-        return;
-    }
-    case (xrtlval_int):
-    {
-        command[key] = valInt;
-        return;
-    }
-    case (xrtlval_float):
-    {
-        command[key] = valFloat;
-        return;
-    }
-    case (xrtlval_string):
-    {
-        command[key] = valString;
-        return;
-    }
-    }
+    command[key] = val;
 }
 
-void XRTLval::set(JsonVariant &newVal)
+XRTLvalInt::XRTLvalInt(int newVal)
 {
-    if (newVal.is<bool>())
-    {
-        clear();
-        currentType = xrtlval_bool;
-        valBool = newVal.as<bool>();
-    }
-    else if (newVal.is<int>())
-    {
-        clear();
-        currentType = xrtlval_int;
-        valInt = newVal.as<int>();
-    }
-    else if (newVal.is<float>() || newVal.is<double>())
-    {
-        clear();
-        currentType = xrtlval_float;
-        valFloat = newVal.as<double>();
-    }
-    else if (newVal.is<String>())
-    {
-        clear();
-        currentType = xrtlval_string;
-        valString = newVal.as<String>();
-    }
+    val = newVal;
+}
+
+void XRTLvalInt::passValue(const String &key, JsonObject &command)
+{
+    command[key] = val;
+}
+
+XRTLvalFloat::XRTLvalFloat(double newVal)
+{
+    val = newVal;
+}
+
+void XRTLvalFloat::passValue(const String &key, JsonObject &command)
+{
+    command[key] = val;
+}
+
+XRTLvalString::XRTLvalString(String newVal)
+{
+    val = newVal;
+}
+
+void XRTLvalString::passValue(const String &key, JsonObject &command)
+{
+    command[key] = val;
 }

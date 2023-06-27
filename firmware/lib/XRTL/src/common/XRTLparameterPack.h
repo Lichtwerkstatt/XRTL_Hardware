@@ -244,6 +244,9 @@ public:
     }
 };
 
+/**
+ * @brief dependent version of XRTLparameter, will only query a parameter if a certain condition is met
+*/
 template <typename T, typename U>
 class XRTLdependentPar : public XRTLparameter<T>
 {
@@ -315,7 +318,7 @@ public:
 };
 
 /**
- * @brief Manage multiple parameters simultaneously. Provides methodes for saving, loading and setting parameters.
+ * @brief Manage multiple parameters simultaneously. Provides methodes for saving, loading and setting parameters via serial interface.
  */
 class ParameterPack
 {
@@ -330,119 +333,20 @@ protected:
 
 public:
     ParameterPack() {}
-    ~ParameterPack()
-    {
-        for (int i = 0; i < parameterCount; i++)
-        {
-            delete parameters[i];
-        }
-    }
+    ~ParameterPack();
 
-    /**
-     * @brief set the key of the parameter pack as string reference, used for storing and loading the parameters
-     * @param key string to be used
-     * @note key must not be destroyed before the ParameterPack, no copy is created!
-     */
-    void setKey(String &key)
-    {
-        linkedName = &key;
-    }
+    void setKey(String &key);
+    void setKey(const char *key);
 
-    /**
-     * @brief set the key of the parameter pack
-     * @param key string to be used
-     */
-    void setKey(const char *key)
-    {
-        reserveName = key;
-    }
 
-    /**
-     * @brief get the key of the parameter pack
-     * @return pointer to the name
-     */
-    String &name()
-    {
-        if (linkedName)
-            return *linkedName;
-        else
-            return reserveName;
-    }
+    String &name();
 
-    /**
-     * @brief save all parameters to the JsonObject provided
-     * @param settings store parameters in here
-     * @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
-    */
-    void save(JsonObject &settings)
-    {
-        JsonObject subSettings;
-        save(settings, subSettings);
-    }
 
-    /**
-     * @brief save all parameters to the JsonObject provided
-     * @param settings store parameters in here
-     * @param subSettings the address pointing to the used (possibly nested) JsonObject will be stored here
-     * @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
-    */
-    void save(JsonObject &settings, JsonObject &subSettings)
-    {
-        if (name() != "")
-        {
-            subSettings = settings.createNestedObject(name());
-        }
-        else
-        {
-            subSettings = settings;
-        }
+    void save(JsonObject &settings);
+    void save(JsonObject &settings, JsonObject &subSettings);
 
-        for (int i = 0; i < parameterCount; i++)
-        {
-            parameters[i]->save(subSettings);
-        }
-    }
-
-    /**
-     * @brief load all parameters from a JsonObject
-     * @param settings JsonObject that the settings will be loaded from
-     * @note if further access to the JsonObject the parameters were loaded form is needed, provide a second parameter to store the reference 
-     */
-    void load(JsonObject &settings)
-    {
-        JsonObject subSettings;
-        load(settings, subSettings);
-    }
-
-    /**
-     * @brief load all the parameters from a JsonObject
-     * @param settings JsonObject that the settings will be loaded from
-     * @param subSettings JsonObject that will receive a pointer to the settings used 
-     */
-    void load(JsonObject &settings, JsonObject &subSettings)
-    {
-        if (name() != "")
-        {
-            auto candidate = settings[name()];
-
-            if (candidate.isNull() || !candidate.is<JsonObject>())
-            {
-                subSettings = settings;
-                return;
-            }
-
-            subSettings = candidate.as<JsonObject>();
-        }
-        else
-        {
-            subSettings = settings;
-        }
-
-        for (int i = 0; i < parameterCount; i++)
-        {
-            parameters[i]->load(subSettings);
-        }
-    }
+    void load(JsonObject &settings);
+    void load(JsonObject &settings, JsonObject &subSettings);
 
     // @brief add a parameter that automatically gets loaded from and saved to flash; setable via serial interface
     // @param linkedParameter parameter to be managed, must exist in all contexts of the parameter pack and may be changed by it
@@ -516,114 +420,15 @@ public:
     }
 
     // TODO: is this needed?
-    void setParent(ParameterPack *newParent)
-    {
-        parent = newParent;
-    }
+    void setParent(ParameterPack *newParent);
 
-    /**
-     * @brief print all listed parameters on the serial interface 
-     */
-    void print()
-    {
-        if (name() != "")
-        {
-            Serial.println(centerString("", 39, '-'));
-            Serial.println(centerString(name().c_str(), 39, ' '));
-            Serial.println(centerString("", 39, '-'));
-        }
+    void print();
 
-        for (int i = 0; i < parameterCount; i++)
-        {
-            parameters[i]->print();
-        }
+    XRTLpar &operator[](String queryParam);
 
-        Serial.println("");
-    }
+    bool dialog();
 
-    /**
-     * @brief search for a specific parameter by its identifying string
-     * @param queryParam ID string to be searched for
-     * @return pointer to the parameter if found, special null parameter if not
-     * @note check whether the search was successful by using isNull()
-     */
-    XRTLpar &operator[](String queryParam)
-    {
-        for (int i = 0; i < parameterCount; i++)
-        {
-            if (parameters[i]->is(queryParam))
-                return *parameters[i];
-        }
-
-        return nullParameter;
-    }
-
-    // TODO: add methode to access additional settings 
-    /**
-     * @brief dialog used by the parameter pack to manage settings via the serial interface
-     * @return false if the dialog has ended, true if it should be repeated
-     */
-    bool dialog()
-    {
-        Serial.println("");
-        Serial.println(centerString("", 39, '-'));
-        Serial.println(centerString(name(), 39, ' '));
-        Serial.println(centerString("", 39, '-'));
-        Serial.println("");
-
-        for (int i = 0; i < parameterCount; i++)
-        {
-            if (!parameters[i]->notListed)
-            {
-                Serial.printf("%d: %s\n", i, parameters[i]->name.c_str());
-            }
-        }
-
-        Serial.println("");
-        Serial.println("a: set all");
-        if (linkedName)
-            Serial.println("c: change controlId");
-        Serial.println("r: return");
-
-        Serial.println("");
-        String rawInput = serialInput("send single letter or number to edit parameter: ");
-        uint8_t inputNumber = rawInput.toInt();
-
-        if (rawInput == "r")
-        {
-            return false;
-        }
-        else if (rawInput == "c")
-        {
-            *linkedName = serialInput("controlId (String) = ");
-        }
-        else if (rawInput == "a")
-        {
-            if (linkedName != NULL)
-            {
-                *linkedName = serialInput("controlId (String) = ");
-            }
-
-            for (int i = 0; i < parameterCount; i++)
-            {
-                if (!parameters[i]->notListed)
-                    parameters[i]->setViaSerial();
-            }
-        }
-        else if (inputNumber < parameterCount && !parameters[inputNumber]->notListed)
-        {
-            parameters[inputNumber]->setViaSerial();
-        }
-
-        return true;
-    }
-
-    void setViaSerial()
-    {
-        while (dialog())
-        {
-        }
-    }
+    void setViaSerial();
 };
 
 #endif
