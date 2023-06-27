@@ -47,18 +47,29 @@ void XRTLsetableCommand::set(const String &controlId, const String &controlKey, 
     val = new XRTLvalString(controlVal);
 }
 
+/**
+ * @brief save the currently stored settings to a JsonObject
+ * @param settings JsonObject the command will be stored in
+*/
 void XRTLsetableCommand::saveSettings(JsonObject& settings)
 {
     settings["id"] = id;
     val->passValue(*key, settings);
 }
 
+/**
+ * @brief fill a JsonObject with the stored command
+ * @param command JsonObject that will receive the command info
+*/
 void XRTLsetableCommand::fillCommand(JsonObject& command)
 {
     command["controlId"] = id;
     val->passValue(*key, command);
 }
 
+/**
+ * @brief dialog to query all information to set the command via the serial interface
+*/
 void XRTLsetableCommand::setViaSerial()
 {
     String newId = serialInput("controlId: ");
@@ -143,6 +154,10 @@ void XRTLdisposableCommand::add(const String &key, String val)
     vals[keyCount++] = new XRTLvalString(val);
 }
 
+/**
+ * @brief fill a JsonObject with all stored command info
+ * @param command JsonObject that will be filled with the command
+*/
 void XRTLdisposableCommand::fillCommand(JsonObject &command)
 {
     command["controlId"] = id;

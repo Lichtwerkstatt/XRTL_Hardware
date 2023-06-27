@@ -3,7 +3,7 @@
 
 #include "XRTLfunctions.h"
 
-// @brief container to store the value a command might hold, ensures type conversion to one of the four allowed types
+// @brief container to store the value a command might hold
 class XRTLval
 {
 public:

@@ -155,9 +155,7 @@ void ParameterPack::print()
 {
     if (name() != "")
     {
-        Serial.println(centerString("", 39, '-'));
-        Serial.println(centerString(name().c_str(), 39, ' '));
-        Serial.println(centerString("", 39, '-'));
+        highlightString(name().c_str(), '-');
     }
 
     for (int i = 0; i < parameterCount; i++)
@@ -193,9 +191,7 @@ XRTLpar &ParameterPack::operator[](String queryParam)
 bool ParameterPack::dialog()
 {
     Serial.println("");
-    Serial.println(centerString("", 39, '-'));
-    Serial.println(centerString(name(), 39, ' '));
-    Serial.println(centerString("", 39, '-'));
+    highlightString(name().c_str(), '-');
     Serial.println("");
 
     for (int i = 0; i < parameterCount; i++)
