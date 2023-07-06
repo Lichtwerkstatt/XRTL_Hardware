@@ -24,41 +24,11 @@ moduleType ServoModule::getType()
 
 void ServoModule::saveSettings(JsonObject &settings)
 {
-    /*settings["frequency"] = frequency;
-    settings["minDuty"] = minDuty;
-    settings["maxDuty"] = maxDuty;
-    settings["minAngle"] = minAngle;
-    settings["maxAngle"] = maxAngle;
-    settings["maxSpeed"] = maxSpeed;
-    settings["initial"] = initial;
-    settings["pin"] = pin;*/
     parameters.save(settings);
 }
 
 void ServoModule::loadSettings(JsonObject &settings)
 {
-    /*frequency = loadValue<uint16_t>("frequency", settings, 50);
-    minDuty = loadValue<uint16_t>("minDuty", settings, 1000);
-    maxDuty = loadValue<uint16_t>("maxDuty", settings, 2000);
-    minAngle = loadValue<int16_t>("minAngle", settings, 0);
-    maxAngle = loadValue<int16_t>("maxAngle", settings, 90);
-    maxSpeed = loadValue<float>("maxSpeed", settings, 0);
-    initial = loadValue<int16_t>("initial", settings, 0);
-    pin = loadValue<uint8_t>("pin", settings, 32);
-
-    if (!debugging) return;
-
-    Serial.printf("controlId: %s\n", id.c_str());
-    Serial.printf("frequency: %d Hz\n", frequency);
-    Serial.printf("minimum duty time: %d µs\n", minDuty);
-    Serial.printf("maximum duty time: %d µs\n", maxDuty);
-    Serial.printf("minimum angle: %d\n", minAngle);
-    Serial.printf("maximum angle: %d\n", maxAngle);
-    Serial.printf("maximum speed: %f\n", maxSpeed);
-    Serial.printf("initial position: %d\n", initial);
-
-    Serial.println("");
-    Serial.printf("control pin: %d\n", pin);*/
     parameters.load(settings);
     if (debugging)
         parameters.print();
@@ -66,32 +36,11 @@ void ServoModule::loadSettings(JsonObject &settings)
 
 void ServoModule::setViaSerial()
 {
-    /*Serial.println("");
-    Serial.println(centerString("",39, '-'));
-    Serial.println(centerString(id,39, ' '));
-    Serial.println(centerString("",39, '-'));
-    Serial.println("");
-
-    id = serialInput("controlId: ");
-    frequency = serialInput("Frequency (Hz): ").toInt();
-    minDuty = serialInput("minimum duty time (µs): ").toInt();
-    maxDuty = serialInput("maximum tuty time (µs): ").toInt();
-    minAngle = serialInput("minimum angle (deg): ").toInt();
-    maxAngle = serialInput("maximum angle (deg): ").toInt();
-    maxSpeed = serialInput("maximum speed (deg/s): ").toFloat();
-    initial = serialInput("initial angle (deg): ").toInt();
-    Serial.println("");
-
-    if ( serialInput("change pin binding (y/n): ") == "y" ) {
-      pin = serialInput("pin: ").toInt();
-    }*/
     parameters.setViaSerial();
 }
 
 bool ServoModule::getStatus(JsonObject &status)
 {
-    // JsonObject position = status.createNestedObject(id);
-
     status["busy"] = wasRunning;
     status["absolute"] = read();
     status["relative"] = mapFloat(currentDuty, minDuty, maxDuty, 0, 100);
@@ -280,10 +229,12 @@ void ServoModule::driveServo(JsonObject &command)
         if (binaryCtrl)
         {
             target = maxAngle;
+            positiveDirection = true;
         }
         else
         {
             target = minAngle;
+            positiveDirection = false;
         }
     }
     else
