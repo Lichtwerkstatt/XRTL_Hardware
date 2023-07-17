@@ -54,6 +54,11 @@ void CameraModule::setup()
     {
         //debug("camera init failed: %s", err); // TODO: investigate core panic if init failed after restart
         debug("camera init failed");
+        String errmsg = "[";
+        errmsg += id.c_str();
+        errmsg += "] unable to initialize camera hardware";
+        sendError(hardware_failure, errmsg);
+
         return;
     }
 
@@ -75,6 +80,18 @@ void CameraModule::loop()
         return;
 
     camera_fb_t *fb = esp_camera_fb_get();
+    if (!fb)
+    {
+        debug("buffer invalid");
+        String errmsg = "[";
+        errmsg += id.c_str();
+        errmsg += "] unable to obtain camera buffer, closing stream";
+        sendError(hardware_failure, errmsg);
+
+        stopStreaming();
+        return;
+    }
+
     sendBinary(binaryLeadFrame, fb->buf, fb->len);
     esp_camera_fb_return(fb);
     // debug("time needed to send image: %f ms", (double) (esp_timer_get_time() - now)/1000);

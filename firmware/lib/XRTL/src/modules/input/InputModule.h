@@ -4,6 +4,7 @@
 #include "XRTLinput.h"
 #include "conversions/InputConverter.h"
 #include "conversions/resdiv/ResistanceDivider.h"
+#include "conversions/voltdiv/VoltageDivider.h"
 #include "conversions/thermistor/Thermistor.h"
 #include "conversions/map/MapValue.h"
 #include "conversions/offset/Offset.h"

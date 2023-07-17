@@ -72,10 +72,13 @@ void XRTLsetableCommand::fillCommand(JsonObject& command)
 */
 void XRTLsetableCommand::setViaSerial()
 {
-    String newId = serialInput("controlId: ");
-    String newKey = serialInput("control key: ");
+    Serial.println("");
+    String newId = serialInput("command controlId: ");
+    String newKey = serialInput("command control key: ");
 
-    Serial.println("available types");
+    Serial.println("");
+    Serial.println("control value type needs to be determined");
+    Serial.println("available types:");
     Serial.println("0: bool");
     Serial.println("1: int");
     Serial.println("2: float");
@@ -85,7 +88,7 @@ void XRTLsetableCommand::setViaSerial()
     {
     case (0):
     {
-        String input = serialInput("value: ");
+        String input = serialInput("value (y/n): ");
         if (input == "true" || input == "TRUE" || input == "y" || input == "1")
         {
             set(newId, newKey, true);
@@ -98,19 +101,19 @@ void XRTLsetableCommand::setViaSerial()
     }
     case (1):
     {
-        long input = serialInput("value: ").toInt();
+        long input = serialInput("value (int): ").toInt();
         set(newId, newKey, input);
         break;
     }
     case (2):
     {
-        double input = serialInput("value: ").toDouble();
+        double input = serialInput("value (float): ").toDouble();
         set(newId, newKey, input);
         break;
     }
     case (3):
     {
-        String input = serialInput("value: ");
+        String input = serialInput("value (string): ");
         set(newId, newKey, input);
         break;
     }

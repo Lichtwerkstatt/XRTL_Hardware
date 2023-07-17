@@ -26,8 +26,6 @@ void InfoLEDModule::setup()
     led = new InfoLED(pixel, pin);
     led->begin();
     led->hsv(0, 255, 255);
-    // led->cycle(100, false);
-    // led->start();
     led->fill(true);
     led->constant();
 }
@@ -194,6 +192,14 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
     }
 }
 
+/**
+ * @brief convert a hexRGB string to HSV color space
+ * @param hexRGB String encoding the color, must lead with #
+ * @param hueTarget reference to an integer; hue will be stored here
+ * @param satTarget reference to an integer; saturation will be stored here
+ * @param valTarget reference to an integer; value (intensity) will be stored here
+ * @note saturation and value are 8 bit unsigned integers, hue is a 16 bit unsigned integer
+*/
 void hexRGBtoHSV(String &hexRGB, uint16_t &hueTarget, uint8_t &satTarget, uint8_t &valTarget)
 {
     float RGB[3] = {0, 0, 0};
@@ -209,12 +215,12 @@ void hexRGBtoHSV(String &hexRGB, uint16_t &hueTarget, uint8_t &satTarget, uint8_
     float minChannel = min(min(RGB[0], RGB[1]), RGB[2]);
     val = maxChannel;
 
-    if (minChannel == maxChannel)
+    if (minChannel == maxChannel) // gray => saturation to 0; hue defaults to 0 (but could be anything else)
     {
         hue = 0;
         sat = 0;
     }
-    else if (maxChannel == RGB[0])
+    else if (maxChannel == RGB[0]) 
     {
         hue = (RGB[1] - RGB[2]) / (maxChannel - minChannel);
         sat = (maxChannel - minChannel) / maxChannel * 255.0;
@@ -230,12 +236,12 @@ void hexRGBtoHSV(String &hexRGB, uint16_t &hueTarget, uint8_t &satTarget, uint8_
         sat = (maxChannel - minChannel) / maxChannel * 255.0;
     }
 
-    if (hue < 0)
+    if (hue < 0) // if negative use periodicity to return to positive integers
     {
-        hue += 6;
+        hue += 6; // scaling in next step
     }
 
-    hueTarget = round(hue * 10922.5);
+    hueTarget = round(hue * 10922.5); // bring to full uint16 range: 65535 = 6 * 10922.5
     satTarget = round(sat);
     valTarget = round(val);
 }

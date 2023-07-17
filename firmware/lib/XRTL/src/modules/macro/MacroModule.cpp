@@ -6,8 +6,10 @@ MacroModule::MacroModule(String moduleName)
 
     parameters.setKey(id);
     parameters.add(type, "type");
+
     parameters.add(initState, "initState", "String");
     parameters.add(controlKey, "controlKey", "String");
+
     parameters.add(infoLED, "infoLED", "String");
 }
 
@@ -40,6 +42,7 @@ void MacroModule::loop()
     }
 }
 
+// TODO: add function to signal unplanned stop
 void MacroModule::stop()
 {
     if (!activeState) // no active state: nothing to stop
@@ -55,16 +58,6 @@ void MacroModule::stop()
 
 void MacroModule::loadSettings(JsonObject &settings)
 {
-    // parameters.load(settings);
-
-    /*currentState = loadValue<String>("currentState", settings, "");
-    initState = loadValue<String>("initState", settings, "");
-    controlKey = loadValue<String>("controlKey", settings, "key");
-
-    Serial.printf("current state: %s\n", currentState);
-    Serial.printf("initial state: %s\n", initState);
-    Serial.printf("control key: %s\n", controlKey);
-    Serial.println("");*/
     JsonObject subSettings;
     parameters.load(settings, subSettings);
 
@@ -88,9 +81,6 @@ void MacroModule::loadSettings(JsonObject &settings)
 
 void MacroModule::saveSettings(JsonObject &settings)
 {
-    /*settings["currentState"] = currentState;
-    settings["initState"] = initState;
-    settings["controlKey"] = controlKey;*/
     JsonObject subSettings;
     parameters.save(settings, subSettings);
 
@@ -239,23 +229,6 @@ bool MacroModule::getStatus(JsonObject &status)
 
 void MacroModule::selectState(String &targetState)
 {
-    /* if (activeState) // already active
-    {
-        if (activeState->isCompleted()) // auto switching to new state is permitted only at the very end
-        {
-            stop();
-        }
-        else
-        {
-            //TODO: send error? will make switching impossible in certain cases
-            String errmsg = "currently activating <";
-            errmsg += activeState->getName();
-            errmsg += ">";
-            sendError(is_busy, errmsg);
-            return;
-        }
-    } */
-
     activeState = findState(targetState);
     if (!activeState)
     {

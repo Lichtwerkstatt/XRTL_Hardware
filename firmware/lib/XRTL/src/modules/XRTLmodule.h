@@ -77,7 +77,7 @@ enum componentError
     field_is_null,
     wrong_type,
     out_of_bounds,
-    unknown_key,
+    hardware_failure,
     disconnected,
     is_busy
 };

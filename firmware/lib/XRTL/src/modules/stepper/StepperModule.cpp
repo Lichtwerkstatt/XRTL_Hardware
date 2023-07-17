@@ -6,16 +6,21 @@ StepperModule::StepperModule(String moduleName)
 
     parameters.setKey(id);
     parameters.add(type, "type");
+
     parameters.add(pin[0], "pin1", "int");
     parameters.add(pin[1], "pin2", "int");
     parameters.add(pin[2], "pin3", "int");
     parameters.add(pin[3], "pin4", "int");
+
     parameters.add(accel, "accel", "steps/s²");
     parameters.add(speed, "speed", "steps/s");
+
     parameters.add(position, "position", "int");
     parameters.add(minimum, "minimum", "int");
     parameters.add(maximum, "maximum", "int");
+
     parameters.add(initial, "initial", "int");
+
     parameters.add(infoLED, "infoLED", "String");
 }
 
@@ -26,7 +31,7 @@ moduleType StepperModule::getType()
 
 void StepperModule::saveSettings(JsonObject &settings)
 {
-    position = stepper->currentPosition();
+    position = stepper->currentPosition(); // update position
 
     parameters.save(settings);
 }
@@ -47,9 +52,11 @@ void StepperModule::setViaSerial()
 void StepperModule::setup()
 {
     stepper = new AccelStepper(AccelStepper::HALF4WIRE, pin[0], pin[1], pin[2], pin[3]);
+
     stepper->setCurrentPosition(position);
     stepper->setMaxSpeed(speed);
     stepper->setAcceleration(accel);
+
     if (initial != 0)
     {
         stepper->move(initial);
@@ -101,7 +108,7 @@ bool StepperModule::getStatus(JsonObject &status)
 void StepperModule::stop()
 {
     stepper->stop();
-    while (stepper->isRunning())
+    while (stepper->isRunning()) // allow deceleration
     {
         stepper->run();
         yield();
@@ -280,7 +287,7 @@ void StepperModule::driveStepper(JsonObject &command)
     }
 
     if (infoLED != "")
-    {
+    { // instruct LED to show pattern 
         XRTLdisposableCommand ledCommand(infoLED);
 
         String color;

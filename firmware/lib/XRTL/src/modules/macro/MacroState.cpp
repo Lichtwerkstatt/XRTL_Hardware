@@ -14,6 +14,9 @@ MacroState::~MacroState()
     }
 }
 
+/**
+ * @brief print all currently registered commands on the serial interface
+*/
 void MacroState::listCommands()
 {
     for (int i = 0; i < commandCount; i++)
@@ -22,6 +25,10 @@ void MacroState::listCommands()
     }
 }
 
+/**
+ * @brief add a new empty command
+ * @note command must be filled manually after calling this function by using commands[commandCount - 1]->set()
+*/
 void MacroState::addCommand()
 {
     if (commandCount > 7)
@@ -32,6 +39,13 @@ void MacroState::addCommand()
     commands[commandCount++] = new XRTLsetableCommand();
 }
 
+/**
+ * @brief add a new command
+ * @param id controlId of the target module
+ * @param key controlKey to use
+ * @param val controlValue to accompany controlKey
+ * @note the availability of controlKey and controlValue depend on the type of the target module
+*/
 void MacroState::addCommand(String &id, String &key, JsonVariant &val)
 {
     addCommand();
@@ -46,6 +60,10 @@ void MacroState::addCommand(String &id, String &key, JsonVariant &val)
         commands[commandCount - 1]->set(id, key, val.as<String>());
 }
 
+/**
+ * @brief delete a specific command from the list
+ * @param number number of the command in the commands list
+*/
 void MacroState::delCommand(uint8_t number)
 {
     if (commands[number] == NULL)
@@ -57,6 +75,11 @@ void MacroState::delCommand(uint8_t number)
     commands[commandCount--] = NULL;
 }
 
+/**
+ * @brief swap two specific commands in the list
+ * @param firstNumber number of the first command
+ * @param secondNumber number of the second command
+*/
 void MacroState::swpCommand(uint8_t firstNumber, uint8_t secondNumber)
 {
     XRTLcommand *temp = commands[firstNumber];
@@ -64,6 +87,10 @@ void MacroState::swpCommand(uint8_t firstNumber, uint8_t secondNumber)
     commands[secondNumber] = temp;
 }
 
+/**
+ * @brief dialog for managing the settings of the state via serial interface, polls data from the user
+ * @returns true if the dialog should be called another time; false if the user asked to return to the previous menu
+*/
 bool MacroState::dialog()
 {
     Serial.println(centerString(stateName, 39, ' '));
@@ -121,17 +148,29 @@ bool MacroState::dialog()
     return true;
 }
 
+/**
+ * @brief start activating the state
+ * @note loop() needs to be called in order to actually execute the commands
+*/
 void MacroState::activate()
 {
     macro->debug("activated <%s>", stateName);
     currentCommand = 0;
 }
 
+/**
+ * @brief checks whether or not the state has been executed completely
+ * @returns true if completed
+*/
 bool MacroState::isCompleted()
 {
     return (currentCommand >= commandCount);
 }
 
+/**
+ * @brief execute the next command
+ * @note will automatically stop if the end is reached
+*/
 void MacroState::loop()
 {
     if (isCompleted())
@@ -143,11 +182,20 @@ void MacroState::loop()
     macro->sendCommand(*commands[currentCommand++]);
 }
 
+/**
+ * @brief get the stored name of the state
+ * @returns name of the state as String
+*/
 String MacroState::getName()
 {
     return stateName;
 }
 
+/**
+ * @brief returns a command relative to the one currently to be executed
+ * @param distance number of steps to take relative to the current command; may be negative
+ * @returns pointer to the queried command; NULL if distance leads to invalid command number
+*/
 XRTLcommand *MacroState::relCommand(int8_t distance)
 {
     int8_t query = currentCommand + distance;
@@ -157,6 +205,10 @@ XRTLcommand *MacroState::relCommand(int8_t distance)
     return commands[query];
 }
 
+/**
+ * @brief save all commands in the provided JsonArray
+ * @param settings JsonArray to store all necessary information in
+*/
 void MacroState::saveSettings(JsonArray &settings)
 {
     for (int i = 0; i < commandCount; i++)
@@ -166,6 +218,10 @@ void MacroState::saveSettings(JsonArray &settings)
     }
 }
 
+/**
+ * @brief load commands from the provided settings file
+ * @param settings JsonArray containing commands to load
+*/
 void MacroState::loadSettings(JsonArray &settings)
 {
     for (JsonObject commandSettings : settings)
@@ -187,6 +243,9 @@ void MacroState::loadSettings(JsonArray &settings)
     }
 }
 
+/**
+ * @brief manage the state settings using the serial interface
+*/
 void MacroState::setViaSerial()
 {
     while (dialog())

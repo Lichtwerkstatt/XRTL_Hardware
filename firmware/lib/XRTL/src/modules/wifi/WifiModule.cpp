@@ -20,41 +20,11 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info)
 
 void WifiModule::saveSettings(JsonObject &settings)
 {
-    // JsonObject saving = settings.createNestedObject(id);
-
-    /*settings["enterprise"] = enterprise;
-    settings["ssid"] = ssid;
-    settings["password"] = password;
-
-    if (enterprise) {
-      settings["username"] = username;
-      settings["anonymous"] = anonymous;
-    }*/
     parameters.save(settings);
 }
 
 void WifiModule::loadSettings(JsonObject &settings)
 {
-    /*enterprise = loadValue<bool>("enterprise", settings, false);
-    ssid = loadValue<String>("ssid", settings, "");
-    password = loadValue<String>("password", settings, "");
-
-    if (debugging) {
-      Serial.printf("WiFi: %s\n", enterprise ? "enterprise" : "regular");
-
-      Serial.printf("SSID: %s\n",ssid.c_str());
-      Serial.printf("password: %s\n", password.c_str());
-    }
-
-    if (!enterprise) return;
-
-    username = loadValue<String>("username", settings, "");
-    anonymous = loadValue<String>("anonymous", settings, "");
-
-    if (!debugging) return;
-    Serial.printf("username: %s\n", username.c_str());
-    Serial.printf("anonymous: %s\n", anonymous.c_str());*/
-
     parameters.load(settings);
     if (debugging)
         parameters.print();
@@ -62,20 +32,6 @@ void WifiModule::loadSettings(JsonObject &settings)
 
 void WifiModule::setViaSerial()
 {
-    /*Serial.println("");
-    Serial.println(centerString("",39, '-'));
-    Serial.println(centerString(id,39, ' '));
-    Serial.println(centerString("",39, '-'));
-    Serial.println("");
-
-    enterprise = ( serialInput("enterprise WiFi (y/n): ") == "y");
-    ssid = serialInput("SSID: ");
-    password = serialInput("password: ");
-
-    if (enterprise) {
-      username = serialInput("username: ");
-      anonymous = serialInput("anonymous identity: ");
-    }*/
     parameters.setViaSerial();
 }
 
@@ -124,22 +80,25 @@ void WifiModule::setup()
 
 void WifiModule::loop()
 {
-    if (checkConnection)
+    if (!checkConnection)
     {
-        if (WiFi.isConnected())
-        {
-            uint8_t nullAddress[4] = {0, 0, 0, 0};
-            if (WiFi.localIP() == nullAddress)
-                return; // no IP yet, can't use online resources
-            debug("connected to WiFi with local IP: %s", WiFi.localIP().toString().c_str());
-            notify(wifi_connected);
-            checkConnection = false; // only stop checking once connection is made
-        }
-        else
-        {
-            notify(wifi_disconnected);
-        }
+        return;
     }
+    
+    if (WiFi.isConnected())
+    {
+        uint8_t nullAddress[4] = {0, 0, 0, 0};
+        if (WiFi.localIP() == nullAddress)
+            return; // no IP yet, can't use online resources
+        debug("connected to WiFi with local IP: %s", WiFi.localIP().toString().c_str());
+        notify(wifi_connected);
+        checkConnection = false; // only stop checking once connection is made
+    }
+    else
+    {
+        notify(wifi_disconnected);
+    }
+
 }
 
 void WifiModule::stop()

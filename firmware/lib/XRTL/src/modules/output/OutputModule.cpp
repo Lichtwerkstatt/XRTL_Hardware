@@ -6,10 +6,13 @@ OutputModule::OutputModule(String moduleName)
 
     parameters.setKey(id);
     parameters.add(type, "type");
+
     parameters.add(pin, "pin", "int");
+
     parameters.add(pwm, "pwm", "");
     parameters.addDependent(channel, "channel", "int", "pwm", true);
     parameters.addDependent(frequency, "frequency", "Hz", "pwm", true);
+    
     parameters.add(infoLED, "infoLED", "String");
 }
 

@@ -50,7 +50,6 @@ public:
     void fill(bool fillAll = false);
 
     void pulse(uint8_t minVal = 40, uint8_t maxVal = 110, uint16_t pulseTime = 1000, uint32_t pulsingDuration = 2000);
-    //void cycle(uint64_t cycleDuration);
     void cycle(int64_t cycleDuration);
 
     void loop();

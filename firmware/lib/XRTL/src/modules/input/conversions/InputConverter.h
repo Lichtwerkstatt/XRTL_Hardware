@@ -7,17 +7,21 @@ enum conversion_t
 {
     thermistor,
     resistance_voltage_divider,
+    voltage_voltage_divider,
     map_value,
     offset,
     multiplication
 };
 
-static const char *conversionName[5] = {
+static const char *conversionName[6] =
+{
     "Thermistor",
     "Resistance",
+    "Voltage Divider",
     "Map",
     "Offset",
-    "Multiplication"};
+    "Multiplication"
+};
 
 // base class of conversions used to transform the input voltage
 // class must contain convert function from double to double

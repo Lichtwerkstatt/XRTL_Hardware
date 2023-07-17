@@ -6,14 +6,19 @@ ServoModule::ServoModule(String moduleName)
 
     parameters.setKey(id);
     parameters.add(type, "type");
+
     parameters.add(frequency, "frequency", "Hz");
     parameters.add(minDuty, "minDuty", "µs");
     parameters.add(maxDuty, "maxDuty", "µs");
+
     parameters.add(minAngle, "minAngle", "int");
     parameters.add(maxAngle, "maxAngle", "int");
     parameters.add(maxSpeed, "maxSpeed", "float");
+
     parameters.add(initial, "initial", "int");
+
     parameters.add(pin, "pin", "int");
+    
     parameters.add(infoLED, "infoLED", "String");
 }
 

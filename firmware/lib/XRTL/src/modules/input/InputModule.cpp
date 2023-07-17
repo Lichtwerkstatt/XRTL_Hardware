@@ -199,7 +199,7 @@ bool InputModule::conversionDialog()
     else if (choice == "a")
     {
         Serial.println(centerString("conversions available", 39, ' ').c_str());
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 6; i++)
         {
             Serial.printf("%d: %s\n", i, conversionName[i]);
         }
@@ -423,40 +423,42 @@ void InputModule::addConversion(conversion_t type)
     {
     case thermistor:
     {
-        conversion[conversionCount] = new Thermistor();
-        conversionCount++;
+        conversion[conversionCount++] = new Thermistor();
         debug("thermistor conversion added");
         return;
     }
 
     case resistance_voltage_divider:
     {
-        conversion[conversionCount] = new ResistanceDivider();
-        conversionCount++;
+        conversion[conversionCount++] = new ResistanceDivider();
         debug("resistance conversion added");
+        return;
+    }
+
+    case voltage_voltage_divider:
+    {
+        conversion[conversionCount++] = new VoltageDivider();
+        debug("voltage divider conversion added");
         return;
     }
 
     case map_value:
     {
-        conversion[conversionCount] = new MapValue();
-        conversionCount++;
+        conversion[conversionCount++] = new MapValue();
         debug("mapping conversion added");
         return;
     }
 
     case offset:
     {
-        conversion[conversionCount] = new Offset();
-        conversionCount++;
+        conversion[conversionCount++] = new Offset();
         debug("offset conversion added");
         return;
     }
 
     case multiplication:
     {
-        conversion[conversionCount] = new Multiplication();
-        conversionCount++;
+        conversion[conversionCount++] = new Multiplication();
         debug("multiplication conversion added");
         return;
     }

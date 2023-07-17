@@ -5,6 +5,11 @@ XRTLoutput::XRTLoutput(bool isPWM)
     pwm = isPWM;
 }
 
+/**
+ * @brief initialize pin as digital output pin
+ * @param controlPin pin number of output
+ * @note for PWM control use different attach() methode
+*/
 void XRTLoutput::attach(uint8_t controlPin)
 {
     pin = controlPin;
@@ -12,6 +17,13 @@ void XRTLoutput::attach(uint8_t controlPin)
     digitalWrite(pin, LOW);
 }
 
+/**
+ * @brief initialize pin as PWM output pin
+ * @param controlPin pin number of output
+ * @param pwmChannel channel of the PWM controler to use
+ * @param pwmFrequency frequency of the PWM signal in Hz
+ * @note not all pins support PWM; for digital output use different attach() methode
+*/
 void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency)
 {
     pin = controlPin;
@@ -22,6 +34,11 @@ void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFreq
     ledcAttachPin(pin, channel);
 }
 
+/**
+ * @brief turn the output completely on or off
+ * @param targetState boolean; turn output on if true and off if false
+ * @note output might still be effectively off after setting to true if powerLvl == 0
+*/
 void XRTLoutput::toggle(bool targetState)
 {
     // if (targetState == state) return; // prevents update of powerlevel only
@@ -52,6 +69,11 @@ void XRTLoutput::toggle(bool targetState)
     }
 }
 
+/**
+ * @brief set the powerlevel of the pwm output
+ * @param powerLvl new power level
+ * @note output might still be off after setting a nonzero powerlevel if toggle() is set to false
+*/
 void XRTLoutput::write(uint8_t powerLvl)
 {
     if (!pwm)
@@ -60,6 +82,10 @@ void XRTLoutput::write(uint8_t powerLvl)
     toggle(state); // update powerlevel
 }
 
+/**
+ * @brief get the current pwm powerlevel 
+ * @returns powerlevel as 8-bit integer
+*/
 uint8_t XRTLoutput::read()
 {
     if (!pwm)
@@ -72,6 +98,10 @@ uint8_t XRTLoutput::read()
     return power;
 }
 
+/**
+ * @brief get the current output state as boolean
+ * @returns true if output is on; false if output is off
+*/
 bool XRTLoutput::getState()
 {
     return state;
