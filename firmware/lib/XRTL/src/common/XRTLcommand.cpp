@@ -5,6 +5,9 @@ XRTLsetableCommand::~XRTLsetableCommand()
     clear();
 }
 
+/**
+ * @brief clear all variables and return to empty settings
+*/
 void XRTLsetableCommand::clear()
 {
     if (key)
@@ -72,6 +75,8 @@ void XRTLsetableCommand::fillCommand(JsonObject& command)
 */
 void XRTLsetableCommand::setViaSerial()
 {
+    Serial.println("");
+    highlightString("command settings",'-');
     Serial.println("");
     String newId = serialInput("command controlId: ");
     String newKey = serialInput("command control key: ");

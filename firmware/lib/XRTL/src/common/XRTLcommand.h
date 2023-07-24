@@ -21,6 +21,7 @@ public:
     {
         return id;
     }
+
     // @brief fill a JsonObject with the command
     // @note the JsonDocument must be called externally or it would not the survive the context of the function call
     virtual void fillCommand(JsonObject &command){}

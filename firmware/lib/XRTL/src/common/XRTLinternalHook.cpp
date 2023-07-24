@@ -31,7 +31,9 @@ XRTLcommand &InternalHook::getCommand()
 
 void InternalHook::setViaSerial()
 {
+    parameters.setKey("internal event setup");
     parameters.setViaSerial();
+    parameters.setKey("");
     command.setViaSerial();
 }
 
@@ -81,7 +83,8 @@ void InternalHook::load(JsonObject &settings, bool &debugging)
         Serial.printf("%s(%s) -> %s:{%s:%s}\n",
             listeningId.c_str(),
             internalEventNames[eventType],
-            commandId.c_str(), commandKey.c_str(),
+            commandId.c_str(),
+            commandKey.c_str(),
             commandVal.as<String>().c_str()
         );
     }

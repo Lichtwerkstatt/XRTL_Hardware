@@ -62,8 +62,11 @@ public:
     void delInternal();
     void swpInternal();
 
-    // send string over Serial if debugging is activated
-    // (uses printf syntax)
+    /**
+      * @brief send a message over the serial monitor if in debug mode
+      * @param ... uses printf syntax
+      * @note automatically adds [controlId] at the start and \\n at the end of the message
+     */ 
     template <typename... Args>
     void debug(Args... args)
     {

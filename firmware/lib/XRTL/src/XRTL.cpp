@@ -40,6 +40,7 @@ void XRTL::loop()
 
     if (!Serial.available())
         return;
+
     // allow to switch into debug mode
     String input = Serial.readStringUntil('\n');
     if (input == "debug")

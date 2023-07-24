@@ -94,7 +94,7 @@ void CameraModule::loop()
 
     sendBinary(binaryLeadFrame, fb->buf, fb->len);
     esp_camera_fb_return(fb);
-    // debug("time needed to send image: %f ms", (double) (esp_timer_get_time() - now)/1000);
+    debug("time needed to send image: %f ms", (double) (esp_timer_get_time() - now)/1000);
 
     nextFrame = now + frameTimeMicroSeconds;
 }
