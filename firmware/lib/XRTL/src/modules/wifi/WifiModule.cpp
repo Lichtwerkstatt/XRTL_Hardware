@@ -91,6 +91,7 @@ void WifiModule::loop()
         if (WiFi.localIP() == nullAddress)
             return; // no IP yet, can't use online resources
         debug("connected to WiFi with local IP: %s", WiFi.localIP().toString().c_str());
+        debug("signal strength: %d dBm", WiFi.RSSI());
         notify(wifi_connected);
         checkConnection = false; // only stop checking once connection is made
     }
@@ -113,18 +114,21 @@ void WifiModule::handleInternal(internalEvent eventId, String &sourceId)
 {
     switch (eventId)
     {
-    case socket_disconnected:
-    {
-        checkConnection = true; // check if WiFi is down in next loop
-    }
+        case socket_disconnected:
+        {
+            checkConnection = true; // check if WiFi is down in next loop
+            return;
+        }
 
-    case debug_on:
-    {
-        debugging = true;
-    }
-    case debug_off:
-    {
-        debugging = false;
-    }
+        case debug_off:
+        {
+            debugging = false;
+            return;
+        }
+        case debug_on:
+        {
+            debugging = true;
+            return;
+        }
     }
 }
