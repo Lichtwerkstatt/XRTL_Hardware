@@ -369,50 +369,35 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc)
 
     String eventName = doc[0].as<String>();
 
-    if (eventName == "time") // only use server time if time is still not synced
-    {
-        auto receivedObject = doc[1];
-
-        if (receivedObject.isNull())
-        {
-            String errormsg = "[";
-            errormsg += id;
-            errormsg += "] event rejected: no payload for time event";
-            sendError(field_is_null, errormsg);
-            return;
-        }
-        if (!receivedObject.is<uint64_t>())
-        {
-            String errormsg = "[";
-            errormsg += id;
-            errormsg += "] time was expected to be an integer, but found to be something else";
-            sendError(wrong_type, errormsg);
-            return;
-        }
-
-        uint64_t receivedTime = doc[1].as<uint64_t>();
-        debug("time received: %llu", receivedTime);
-
-        time_t now;
-        time(&now);
-
-        if ( abs((long long) receivedTime / 1000 - now) < 300 ) // less than 5 minutes difference
-        {
-            debug("approximate time match");
-            return;
-        }
-   
-        debug("time mismatch, syncing to server time");
-        timeval receivedEpoch;
-        receivedEpoch.tv_sec = floor(receivedTime / 1000);
-        receivedEpoch.tv_usec = (receivedTime % 1000) * 1000;
-        sntp_set_system_time(receivedEpoch.tv_sec, receivedEpoch.tv_usec);
-
-        return;
-    }
-
     if (eventName == "Auth")
     {
+        auto payloadCandidate = doc[1];
+        if (!payloadCandidate.isNull() && payloadCandidate.is<JsonObject>())
+        {
+            JsonObject payload = doc[1];
+            uint64_t receivedTime = 0;
+            if (getValue("time", payload, receivedTime, true) && receivedTime != 0)
+            {
+                uint64_t receivedTime = doc[1].as<uint64_t>();
+                debug("time received: %llu", receivedTime);
+
+                time_t now;
+                time(&now);
+
+                if (abs((long long) receivedTime / 1000 - now) < 300 ) // less than 5 minutes difference
+                {
+                    debug("approximate time match");
+                    return;
+                }
+        
+                debug("time mismatch, syncing to server time");
+                timeval receivedEpoch;
+                receivedEpoch.tv_sec = floor(receivedTime / 1000);
+                receivedEpoch.tv_usec = (receivedTime % 1000) * 1000;
+                sntp_set_system_time(receivedEpoch.tv_sec, receivedEpoch.tv_usec);
+            }
+        }
+
         debug("authenticated by server");
         notify(socket_authed);
         return;
@@ -420,6 +405,16 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc)
 
     if (eventName == "command")
     {
+        auto payloadCandidate = doc[1];
+        if (payloadCandidate.isNull() || !payloadCandidate.is<JsonObject>())
+        {
+            String errmsg = "[";
+            errmsg += id;
+            errmsg += "] command event is missing a payload";
+            sendError(field_is_null, errmsg);
+            return;
+        }
+
         JsonObject payload = doc[1];
         String controlId;
         if (!getValue<String>("controlId", payload, controlId, true))
@@ -429,6 +424,16 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc)
 
     if (eventName == "status") // TODO: complete status pipeline
     {
+        auto payloadCandidate = doc[1];
+        if (payloadCandidate.isNull() || !payloadCandidate.is<JsonObject>())
+        {
+            String errmsg = "[";
+            errmsg += id;
+            errmsg += "] status event is missing a payload";
+            sendError(field_is_null, errmsg);
+            return;
+        }
+
         JsonObject payload = doc[1];
         String controlId;
         if (!getValue("controlId", payload, controlId, true))
@@ -530,17 +535,6 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId)
     }
     case socket_authed:
     {
-        uint32_t currentSec;
-        uint32_t currentUSec;
-        sntp_get_system_time(&currentSec, &currentUSec);
-
-        DynamicJsonDocument doc(1024);
-        JsonArray timeMessage = doc.to<JsonArray>();
-        timeMessage.add("time");
-        timeMessage.add((uint64_t)currentSec * 1000 + (uint64_t)currentUSec / 1000);
-        sendEvent(timeMessage);
-
-        timeSynced = true;
         sendAllStatus();
         return;
     }
