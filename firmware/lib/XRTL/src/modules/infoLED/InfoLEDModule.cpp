@@ -1,7 +1,6 @@
 #include "InfoLEDModule.h"
 
-InfoLEDModule::InfoLEDModule(String modulName)
-{
+InfoLEDModule::InfoLEDModule(String modulName) {
     id = modulName;
 
     parameters.setKey(id);
@@ -10,19 +9,16 @@ InfoLEDModule::InfoLEDModule(String modulName)
     parameters.add(pixel, "pixel", "pixel: ");
 }
 
-InfoLEDModule::~InfoLEDModule()
-{
+InfoLEDModule::~InfoLEDModule() {
     if (led == NULL) return;
     delete led;
 }
 
-moduleType InfoLEDModule::getType()
-{
+moduleType InfoLEDModule::getType() {
     return xrtl_infoLED;
 }
 
-void InfoLEDModule::setup()
-{
+void InfoLEDModule::setup() {
     led = new InfoLED(pixel, pin);
     led->begin();
     led->hsv(0, 255, 255);
@@ -30,35 +26,29 @@ void InfoLEDModule::setup()
     led->constant();
 }
 
-void InfoLEDModule::loop()
-{
+void InfoLEDModule::loop() {
     led->loop();
 }
 
-void InfoLEDModule::saveSettings(JsonObject &settings)
-{
+void InfoLEDModule::saveSettings(JsonObject &settings) {
     parameters.save(settings);
 }
 
-void InfoLEDModule::loadSettings(JsonObject &settings)
-{
+void InfoLEDModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
     if (debugging) parameters.print();
 }
 
-void InfoLEDModule::setViaSerial()
-{
+void InfoLEDModule::setViaSerial() {
     parameters.setViaSerial();
 }
 
-void InfoLEDModule::stop()
-{
+void InfoLEDModule::stop() {
     led->hsv(8000, 255, 110);
     led->constant();
 }
 
-bool InfoLEDModule::handleCommand(String &command)
-{
+bool InfoLEDModule::handleCommand(String &command) {
     if (command != "reset")
         return false;
 
@@ -68,33 +58,28 @@ bool InfoLEDModule::handleCommand(String &command)
     return true;
 }
 
-void InfoLEDModule::handleCommand(String &controlId, JsonObject &command)
-{
+void InfoLEDModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId))
         return;
 
     bool tempBool = false;
-    if (getValue("hold", command, tempBool))
-    {
+    if (getValue("hold", command, tempBool)) {
         led->hold(tempBool);
     }
 
-    if (getValue("stop", command, tempBool))
-    {
+    if (getValue("stop", command, tempBool)) {
         if (tempBool)
             stop();
     }
 
-    if (getValue<uint16_t>("hue", command, userHue))
-    {
+    if (getValue<uint16_t>("hue", command, userHue)) {
         led->hsv(userHue, 255, 110);
         led->constant();
         led->loop();
     }
 
     String hexRGB;
-    if (getValue<String>("color", command, hexRGB))
-    {
+    if (getValue<String>("color", command, hexRGB)) {
         uint8_t userVal;
         uint8_t userSat;
         hexRGBtoHSV(hexRGB, userHue, userSat, userVal);
@@ -103,66 +88,56 @@ void InfoLEDModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     uint64_t duration;
-    if (getValue("const", command, duration))
-    {
+    if (getValue("const", command, duration)) {
         led->fill(true);
         led->constant(duration);
     }
 
-    if (getValue("pulse", command, duration))
-    {
+    if (getValue("pulse", command, duration)) {
         led->fill(true);
         led->pulse(40, 110, 1000, duration);
     }
 
     int64_t cycleDuration;
-    if (getValue("cycle", command, cycleDuration))
-    {
+    if (getValue("cycle", command, cycleDuration)) {
         led->cycle(cycleDuration);
     }
 
     // return false;
 }
 
-void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
-{
+void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId) {
     if (led == NULL)
         return;
-    switch (eventId)
-    {
-    case socket_disconnected:
-    {
+    switch (eventId) {
+    case socket_disconnected: {
         led->hsv(0, 255, 110);
         led->hold(true);
         led->cycle(5000);
         break;
     }
-    case wifi_disconnected:
-    {
+    case wifi_disconnected: {
         led->hsv(0, 255, 110);
         led->fill(true);
         led->hold(true);
         led->constant();
         break;
     }
-    case socket_connected:
-    {
+    case socket_connected: {
         led->hsv(8000, 255, 110);
         led->fill(true);
         led->hold(true);
         led->constant();
         break;
     }
-    case socket_authed:
-    {
+    case socket_authed: {
         led->hsv(20000, 255, 110);
         led->fill(true);
         led->hold(false);
         led->constant(2500);
         break;
     }
-    case wifi_connected:
-    {
+    case wifi_connected: {
         led->hsv(0, 255, 110);
         led->fill(true);
         led->hold(true);
@@ -170,22 +145,18 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
         break;
     }
 
-    case busy:
-    {
+    case busy: {
         break;
     }
-    case ready:
-    {
+    case ready: {
         break;
     }
 
-    case debug_off:
-    {
+    case debug_off: {
         debugging = false;
         break;
     }
-    case debug_on:
-    {
+    case debug_on: {
         debugging = true;
         break;
     }
@@ -199,9 +170,8 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId)
  * @param satTarget reference to an integer; saturation will be stored here
  * @param valTarget reference to an integer; value (intensity) will be stored here
  * @note saturation and value are 8 bit unsigned integers, hue is a 16 bit unsigned integer
-*/
-void hexRGBtoHSV(String &hexRGB, uint16_t &hueTarget, uint8_t &satTarget, uint8_t &valTarget)
-{
+ */
+void hexRGBtoHSV(String &hexRGB, uint16_t &hueTarget, uint8_t &satTarget, uint8_t &valTarget) {
     float RGB[3] = {0, 0, 0};
     long combinedRGB = strtol(&hexRGB[1], NULL, 16);
     RGB[0] = (combinedRGB >> 16);
@@ -219,19 +189,13 @@ void hexRGBtoHSV(String &hexRGB, uint16_t &hueTarget, uint8_t &satTarget, uint8_
     {
         hue = 0;
         sat = 0;
-    }
-    else if (maxChannel == RGB[0]) 
-    {
+    } else if (maxChannel == RGB[0]) {
         hue = (RGB[1] - RGB[2]) / (maxChannel - minChannel);
         sat = (maxChannel - minChannel) / maxChannel * 255.0;
-    }
-    else if (maxChannel == RGB[1])
-    {
+    } else if (maxChannel == RGB[1]) {
         hue = 2.0 + (RGB[2] - RGB[0]) / (maxChannel - minChannel);
         sat = (maxChannel - minChannel) / maxChannel * 255.0;
-    }
-    else if (maxChannel == RGB[2])
-    {
+    } else if (maxChannel == RGB[2]) {
         hue = 4.0 + (RGB[0] - RGB[1]) / (maxChannel - minChannel);
         sat = (maxChannel - minChannel) / maxChannel * 255.0;
     }

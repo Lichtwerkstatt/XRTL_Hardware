@@ -3,8 +3,7 @@
 
 #include "MacroState.h"
 
-class MacroModule : public XRTLmodule
-{
+class MacroModule : public XRTLmodule {
 private:
     int64_t nextAction = 0;
     uint8_t stateCount = 0;

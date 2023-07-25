@@ -1,7 +1,6 @@
 #include "Multiplication.h"
 
-Multiplication::Multiplication()
-{
+Multiplication::Multiplication() {
     type = multiplication;
 
     parameters.setKey("");
@@ -9,24 +8,20 @@ Multiplication::Multiplication()
     parameters.add(multiplicator, "multiplicator", "float");
 }
 
-void Multiplication::loadSettings(JsonObject &settings, bool debugMode)
-{
+void Multiplication::loadSettings(JsonObject &settings, bool debugMode) {
     parameters.load(settings);
     if (debugMode)
         parameters.print();
 }
 
-void Multiplication::saveSettings(JsonObject &settings)
-{
+void Multiplication::saveSettings(JsonObject &settings) {
     parameters.save(settings);
 }
 
-void Multiplication::setViaSerial()
-{
+void Multiplication::setViaSerial() {
     parameters.setViaSerial();
 }
 
-void Multiplication::convert(double &value)
-{
+void Multiplication::convert(double &value) {
     value = value * multiplicator;
 }

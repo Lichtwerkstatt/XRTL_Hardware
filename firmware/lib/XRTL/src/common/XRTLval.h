@@ -4,14 +4,12 @@
 #include "XRTLfunctions.h"
 
 // @brief container to store the value a command might hold
-class XRTLval
-{
+class XRTLval {
 public:
-    virtual void passValue(const String &key, JsonObject &command){}
+    virtual void passValue(const String &key, JsonObject &command) {}
 };
 
-class XRTLvalBool : public XRTLval
-{
+class XRTLvalBool : public XRTLval {
 private:
     bool val;
 
@@ -20,8 +18,7 @@ public:
     void passValue(const String &key, JsonObject &command);
 };
 
-class XRTLvalInt : public XRTLval
-{
+class XRTLvalInt : public XRTLval {
 private:
     int val;
 
@@ -30,8 +27,7 @@ public:
     void passValue(const String &key, JsonObject &command);
 };
 
-class XRTLvalFloat : public XRTLval
-{
+class XRTLvalFloat : public XRTLval {
 private:
     double val;
 
@@ -40,8 +36,7 @@ public:
     void passValue(const String &key, JsonObject &command);
 };
 
-class XRTLvalString : public XRTLval
-{
+class XRTLvalString : public XRTLval {
 private:
     String val;
 

@@ -14,8 +14,7 @@
 // |
 // └---o    Ground
 // measured voltage
-class ResistanceDivider : public InputConverter
-{
+class ResistanceDivider : public InputConverter {
 private:
     // Reference voltage of the voltage divider,
     // unit of measurement must be identical to the input.

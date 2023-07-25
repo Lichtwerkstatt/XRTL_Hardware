@@ -5,8 +5,7 @@
 #include "esp_wpa2.h"
 #include "modules/XRTLmodule.h"
 
-class WifiModule : public XRTLmodule
-{
+class WifiModule : public XRTLmodule {
 private:
     bool checkConnection = true;
 

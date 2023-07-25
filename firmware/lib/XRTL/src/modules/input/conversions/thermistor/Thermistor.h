@@ -4,8 +4,7 @@
 #include "modules/input/conversions/InputConverter.h"
 
 // convert a resistance into temperature by use of an NTC
-class Thermistor : public InputConverter
-{
+class Thermistor : public InputConverter {
 private:
     // Temperature at which the normal resistance was measured.
     // Unit of measurement must be identical with beta and relative to absolute zero, output unit of measurement is determined by this.

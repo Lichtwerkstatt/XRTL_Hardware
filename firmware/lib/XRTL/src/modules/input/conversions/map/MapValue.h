@@ -4,8 +4,7 @@
 #include "modules/input/conversions/InputConverter.h"
 
 // @brief linearly convert a value from a specified input range to a specified output range
-class MapValue : public InputConverter
-{
+class MapValue : public InputConverter {
 private:
     // @brief minimal value of the input range.
     // @note input value must never subceed this value.

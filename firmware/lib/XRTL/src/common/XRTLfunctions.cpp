@@ -4,12 +4,10 @@
  * @brief poll user input via serial monitor
  * @param query user will be presented with this string before the program waits for input
  * @returns user input until the first return character is received
-*/
-String serialInput(String query)
-{
+ */
+String serialInput(String query) {
     Serial.print(query);
-    while (!Serial.available())
-    {
+    while (!Serial.available()) {
         yield();
     }
     String answer = Serial.readStringUntil('\n');
@@ -23,9 +21,8 @@ String serialInput(String query)
  * @param targetLength total length of the line
  * @param filler remaining space is filled with this char, defaults to space
  * @note example: filler + =>  ++++str++++
-*/
-String centerString(String str, uint8_t targetLength, char filler = ' ')
-{
+ */
+String centerString(String str, uint8_t targetLength, char filler = ' ') {
     char output[targetLength];
 
     uint8_t startPoint = (targetLength - str.length()) / 2 - 1;
@@ -40,9 +37,8 @@ String centerString(String str, uint8_t targetLength, char filler = ' ')
  * @brief hightlight a string in the serial monitor by centering it and framing it with a filler
  * @param str String to highlight
  * @param filler character to use as filler
-*/
-void highlightString(String str, char filler = '-')
-{
+ */
+void highlightString(String str, char filler = '-') {
     Serial.println("");
     Serial.println(centerString("", 39, filler));
     Serial.println(centerString(str, 39));
@@ -58,8 +54,7 @@ void highlightString(String str, char filler = '-')
  * @param out_min minimum value of output range
  * @param out_max maximum value of output range
  * @returns value linearly mapped to output range
-*/
-float mapFloat(float x, float in_min, float in_max, float out_min, float out_max)
-{
+ */
+float mapFloat(float x, float in_min, float in_max, float out_min, float out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }

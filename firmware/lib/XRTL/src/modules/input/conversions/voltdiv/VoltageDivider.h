@@ -13,8 +13,7 @@
 // █        R2
 // |
 // └---o    Ground
-class VoltageDivider : public InputConverter
-{
+class VoltageDivider : public InputConverter {
 private:
     // first reference voltage of the voltage divider,
     // unit of measurement must match refTwo.

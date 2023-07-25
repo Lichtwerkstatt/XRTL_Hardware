@@ -4,8 +4,7 @@
 #include "AccelStepper.h"
 #include "modules/XRTLmodule.h"
 
-class StepperModule : public XRTLmodule
-{
+class StepperModule : public XRTLmodule {
 private:
     uint16_t accel = 500;
     uint16_t speed = 500;

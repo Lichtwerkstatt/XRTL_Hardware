@@ -1,13 +1,12 @@
 #ifndef SOCKETIOCLIENTMOD_H
 #define SOCKETIOCLIENTMOD_H
 
-#include "WebSocketsClient.h" //Websockets by Markus Sattler
 #include "SocketIOclient.h"
+#include "WebSocketsClient.h" //Websockets by Markus Sattler
 
 class SocketModule;
 
-class SocketIOclientMod : public SocketIOclient
-{
+class SocketIOclientMod : public SocketIOclient {
 private:
     SocketModule *parent;
 

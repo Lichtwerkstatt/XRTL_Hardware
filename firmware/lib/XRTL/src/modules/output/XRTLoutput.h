@@ -3,8 +3,7 @@
 
 #include "common/XRTLfunctions.h"
 
-class XRTLoutput
-{
+class XRTLoutput {
 private:
     bool state = false;
     uint8_t power = 0;

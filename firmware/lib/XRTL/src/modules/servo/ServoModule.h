@@ -4,8 +4,7 @@
 #include "ESP32Servo.h"
 #include "modules/XRTLmodule.h"
 
-class ServoModule : public XRTLmodule
-{
+class ServoModule : public XRTLmodule {
 private:
     uint16_t frequency = 50; // servo frequency in Hz
     uint16_t minDuty = 1000; // minimum duty time in µs

@@ -1,7 +1,6 @@
 #include "StepperModule.h"
 
-StepperModule::StepperModule(String moduleName)
-{
+StepperModule::StepperModule(String moduleName) {
     id = moduleName;
 
     parameters.setKey(id);
@@ -24,41 +23,35 @@ StepperModule::StepperModule(String moduleName)
     parameters.add(infoLED, "infoLED", "String");
 }
 
-moduleType StepperModule::getType()
-{
+moduleType StepperModule::getType() {
     return xrtl_stepper;
 }
 
-void StepperModule::saveSettings(JsonObject &settings)
-{
+void StepperModule::saveSettings(JsonObject &settings) {
     position = stepper->currentPosition(); // update position
 
     parameters.save(settings);
 }
 
-void StepperModule::loadSettings(JsonObject &settings)
-{
+void StepperModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
 
     if (debugging)
         parameters.print();
 }
 
-void StepperModule::setViaSerial()
-{
+void StepperModule::setViaSerial() {
     parameters.setViaSerial();
 }
 
-void StepperModule::setup()
-{
+void StepperModule::setup() {
     stepper = new AccelStepper(AccelStepper::HALF4WIRE, pin[0], pin[1], pin[2], pin[3]);
 
     stepper->setCurrentPosition(position);
     stepper->setMaxSpeed(speed);
     stepper->setAcceleration(accel);
 
-    if (initial != 0)
-    {
+    if (initial != 0) {
         stepper->move(initial);
         wasRunning = true;
         isInitialized = false;
@@ -66,19 +59,14 @@ void StepperModule::setup()
     }
 }
 
-void StepperModule::loop()
-{
-    if (stepper->isRunning())
-    {
+void StepperModule::loop() {
+    if (stepper->isRunning()) {
         stepper->run();
-    }
-    else if (wasRunning)
-    {
+    } else if (wasRunning) {
         if (!holdOn)
             stepper->disableOutputs();
 
-        if (infoLED != "")
-        {
+        if (infoLED != "") {
             XRTLdisposableCommand command(infoLED);
             command.add("hold", false);
             sendCommand(command);
@@ -92,11 +80,10 @@ void StepperModule::loop()
     }
 }
 
-bool StepperModule::getStatus(JsonObject &status)
-{
+bool StepperModule::getStatus(JsonObject &status) {
     if (stepper == NULL)
         return true; // avoid errors: status might be called during setup
-    
+
     position = stepper->currentPosition(); // update position
 
     status["busy"] = stepper->isRunning();
@@ -105,8 +92,7 @@ bool StepperModule::getStatus(JsonObject &status)
     return true;
 }
 
-void StepperModule::stop()
-{
+void StepperModule::stop() {
     stepper->stop();
     while (stepper->isRunning()) // allow deceleration
     {
@@ -116,27 +102,22 @@ void StepperModule::stop()
     stepper->disableOutputs();
 }
 
-bool StepperModule::handleCommand(String &command)
-{
-    if (command == "stop")
-    {
+bool StepperModule::handleCommand(String &command) {
+    if (command == "stop") {
         stop();
         return true;
     }
 
-    else if (command == "init")
-    {
+    else if (command == "init") {
         stepper->setCurrentPosition(0);
         return true;
     }
 
-    else if (command == "reset")
-    {
+    else if (command == "reset") {
         debug("reset: moving from %d to 0", stepper->currentPosition());
         stepper->moveTo(0);
         stepper->enableOutputs();
-        while (stepper->isRunning())
-        {
+        while (stepper->isRunning()) {
             stepper->run();
         }
         stepper->disableOutputs();
@@ -147,37 +128,31 @@ bool StepperModule::handleCommand(String &command)
     return false;
 }
 
-void StepperModule::handleCommand(String &controlId, JsonObject &command)
-{
+void StepperModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;
 
     bool getStatus = false;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus)
-    {
+    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
         sendStatus();
     }
 
-    if (getValue<bool>("stop", command, getStatus) && getStatus)
-    {
+    if (getValue<bool>("stop", command, getStatus) && getStatus) {
         stop();
     }
 
-    if (getValue<bool>("reset", command, getStatus) && getStatus)
-    {
+    if (getValue<bool>("reset", command, getStatus) && getStatus) {
         debug("reset: moving from %d to 0", stepper->currentPosition());
         stepper->moveTo(0);
         stepper->enableOutputs();
-        while (stepper->isRunning())
-        {
+        while (stepper->isRunning()) {
             stepper->run();
         }
         stepper->disableOutputs();
         debug("reset: done");
     }
 
-    if (stepper->isRunning())
-    {
+    if (stepper->isRunning()) {
         String error = "[";
         error += id;
         error += "] command rejected: stepper already moving";
@@ -186,43 +161,37 @@ void StepperModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     driveStepper(command);
-    
+
     uint32_t duration;
-    if (infoLED != "" && getValue("identify", command, duration))
-    {
+    if (infoLED != "" && getValue("identify", command, duration)) {
         XRTLdisposableCommand ledCommand(infoLED);
 
         String color;
-        if (getValue("color", command, color))
-        {
+        if (getValue("color", command, color)) {
             ledCommand.add("color", color);
         }
 
         debug("identifying via LED <%s>", infoLED);
-        ledCommand.add("pulse", (int) duration);
+        ledCommand.add("pulse", (int)duration);
         sendCommand(ledCommand);
     }
 }
 
-void StepperModule::driveStepper(JsonObject &command)
-{
+void StepperModule::driveStepper(JsonObject &command) {
     int32_t moveValue = 0;
-    if (getAndConstrainValue<int32_t>("move", command, moveValue, minimum - maximum, maximum - minimum))
-    { // full range: maximum - minimum; negative range: minimum - maximum
+    if (getAndConstrainValue<int32_t>("move", command, moveValue, minimum - maximum, maximum - minimum)) { // full range: maximum - minimum; negative range: minimum - maximum
         stepper->move(moveValue);
         wasRunning = true; // check state in next loop (will issue status when movement done)
     }
 
-    if (getAndConstrainValue<int32_t>("moveTo", command, moveValue, minimum, maximum))
-    {
+    if (getAndConstrainValue<int32_t>("moveTo", command, moveValue, minimum, maximum)) {
         stepper->moveTo(moveValue);
         wasRunning = true; // check state in next loop (will issue status when movement done)
     }
 
     int32_t target = stepper->targetPosition();
 
-    if ((target > maximum) or (target < minimum))
-    {
+    if ((target > maximum) or (target < minimum)) {
         target = constrain(target, minimum, maximum);
         stepper->moveTo(target);
 
@@ -238,26 +207,20 @@ void StepperModule::driveStepper(JsonObject &command)
     }
 
     bool binaryCtrl;
-    if (getValue<bool>("binaryCtrl", command, binaryCtrl))
-    {
-        if (binaryCtrl)
-        {
+    if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
+        if (binaryCtrl) {
             stepper->moveTo(maximum);
-        }
-        else
-        {
+        } else {
             stepper->moveTo(minimum);
         }
 
         wasRunning = true; // check state in next loop (will issue status when movement done)
     }
 
-    if (getValue<bool>("hold", command, holdOn))
-    {
+    if (getValue<bool>("hold", command, holdOn)) {
         debug("hold %sactive", holdOn ? "" : "in");
 
-        if (holdOn)
-        {
+        if (holdOn) {
             stepper->enableOutputs(); // ensure the motor coils are powered if hold gets called
         }
 
@@ -272,38 +235,30 @@ void StepperModule::driveStepper(JsonObject &command)
     // estimate travelTime in ms
     uint32_t distance = abs(stepper->targetPosition() - stepper->currentPosition());
     uint32_t travelTime = 0;
-    if (distance > speed * speed / accel)
-    {
+    if (distance > speed * speed / accel) {
         // distance after which the motor reaches max speed (including decelleration)
         // t = s/v_max + v_max/a
         travelTime = 1000 * distance / speed;
         travelTime += 1000 * speed / accel;
-    }
-    else
-    {
+    } else {
         // time spend accellerating/decellerating
         // t = 2 * sqrt(s/a)
         travelTime = round(2000 * sqrt(distance / accel));
     }
 
-    if (infoLED != "")
-    { // instruct LED to show pattern 
+    if (infoLED != "") { // instruct LED to show pattern
         XRTLdisposableCommand ledCommand(infoLED);
 
         String color;
-        if (getValue("color", command, color))
-        {
+        if (getValue("color", command, color)) {
             ledCommand.add("color", color);
         }
 
         ledCommand.add("hold", true);
-        if (stepper->targetPosition() > stepper->currentPosition())
-        {
-            ledCommand.add("cycle", (int) travelTime);
-        }
-        else
-        {
-            ledCommand.add("cycle", -(int) travelTime);
+        if (stepper->targetPosition() > stepper->currentPosition()) {
+            ledCommand.add("cycle", (int)travelTime);
+        } else {
+            ledCommand.add("cycle", -(int)travelTime);
         }
         sendCommand(ledCommand);
     }

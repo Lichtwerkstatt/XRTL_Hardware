@@ -1,7 +1,6 @@
 #include "Thermistor.h"
 
-Thermistor::Thermistor()
-{
+Thermistor::Thermistor() {
     type = thermistor;
 
     parameters.setKey("");
@@ -11,24 +10,20 @@ Thermistor::Thermistor()
     parameters.add(beta, "beta", "K");
 }
 
-void Thermistor::saveSettings(JsonObject &settings)
-{
+void Thermistor::saveSettings(JsonObject &settings) {
     parameters.save(settings);
 }
 
-void Thermistor::loadSettings(JsonObject &settings, bool debugMode)
-{
+void Thermistor::loadSettings(JsonObject &settings, bool debugMode) {
     parameters.load(settings);
     if (debugMode)
         parameters.print();
 }
 
-void Thermistor::setViaSerial()
-{
+void Thermistor::setViaSerial() {
     parameters.setViaSerial();
 }
 
-void Thermistor::convert(double &value)
-{
+void Thermistor::convert(double &value) {
     value = 1 / (log(value / resNormal) / beta + (1 / tempNormal));
 }

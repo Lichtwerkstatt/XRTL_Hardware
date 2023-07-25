@@ -1,7 +1,6 @@
 #include "ServoModule.h"
 
-ServoModule::ServoModule(String moduleName)
-{
+ServoModule::ServoModule(String moduleName) {
     id = moduleName;
 
     parameters.setKey(id);
@@ -18,34 +17,29 @@ ServoModule::ServoModule(String moduleName)
     parameters.add(initial, "initial", "int");
 
     parameters.add(pin, "pin", "int");
-    
+
     parameters.add(infoLED, "infoLED", "String");
 }
 
-moduleType ServoModule::getType()
-{
+moduleType ServoModule::getType() {
     return xrtl_servo;
 }
 
-void ServoModule::saveSettings(JsonObject &settings)
-{
+void ServoModule::saveSettings(JsonObject &settings) {
     parameters.save(settings);
 }
 
-void ServoModule::loadSettings(JsonObject &settings)
-{
+void ServoModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
     if (debugging)
         parameters.print();
 }
 
-void ServoModule::setViaSerial()
-{
+void ServoModule::setViaSerial() {
     parameters.setViaSerial();
 }
 
-bool ServoModule::getStatus(JsonObject &status)
-{
+bool ServoModule::getStatus(JsonObject &status) {
     status["busy"] = wasRunning;
     status["absolute"] = read();
     status["relative"] = mapFloat(currentDuty, minDuty, maxDuty, 0, 100);
@@ -53,18 +47,14 @@ bool ServoModule::getStatus(JsonObject &status)
     return true;
 }
 
-void ServoModule::setup()
-{
+void ServoModule::setup() {
     servo = new Servo;
     servo->setPeriodHertz(frequency);
     servo->attach(pin, minDuty, maxDuty);
 
-    if (maxSpeed <= 0)
-    {
+    if (maxSpeed <= 0) {
         timeStep = 0;
-    }
-    else
-    {
+    } else {
         timeStep = round(float(maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
     }
 
@@ -77,35 +67,28 @@ void ServoModule::setup()
     // debug("stepping: %d µs", timeStep);
 }
 
-void ServoModule::loop()
-{
+void ServoModule::loop() {
     if (!wasRunning)
         return;
     int64_t now = esp_timer_get_time();
     if (now < nextStep)
         return;
 
-    if (currentDuty != targetDuty)
-    {
-        if (positiveDirection)
-        {
+    if (currentDuty != targetDuty) {
+        if (positiveDirection) {
             servo->writeMicroseconds(currentDuty++);
-        }
-        else
-        {
+        } else {
             servo->writeMicroseconds(currentDuty--);
         }
     }
 
-    if (currentDuty == targetDuty)
-    {
+    if (currentDuty == targetDuty) {
         if (!holdOn) // note: when detaching pin do so as close as possible to last write command to avoid unwanted movements
         {
             servo->detach(); // if hold is activated: keep motor powered
         }
 
-        if (infoLED != "")
-        {
+        if (infoLED != "") {
             XRTLdisposableCommand ledCommand(infoLED);
             ledCommand.add("hold", false); // TODO: prevent this from canceling patterns during connection phase
             sendCommand(ledCommand);
@@ -121,8 +104,7 @@ void ServoModule::loop()
     nextStep = now + timeStep;
 }
 
-void ServoModule::stop()
-{
+void ServoModule::stop() {
     if (!wasRunning)
         return;
     wasRunning = false;
@@ -131,16 +113,13 @@ void ServoModule::stop()
     notify(ready);
 }
 
-bool ServoModule::handleCommand(String &command)
-{
-    if (strcmp(command.c_str(), "init") == 0)
-    {
+bool ServoModule::handleCommand(String &command) {
+    if (strcmp(command.c_str(), "init") == 0) {
         initial = read();
         return true;
     }
 
-    if (strcmp(command.c_str(), "reset") == 0)
-    {
+    if (strcmp(command.c_str(), "reset") == 0) {
         write(initial);
         return true;
     }
@@ -148,25 +127,21 @@ bool ServoModule::handleCommand(String &command)
     return false;
 }
 
-void ServoModule::handleCommand(String &controlId, JsonObject &command)
-{
+void ServoModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;
 
     bool temp = false;
-    if (getValue<bool>("getStatus", command, temp) && temp)
-    {
+    if (getValue<bool>("getStatus", command, temp) && temp) {
         sendStatus();
     }
 
-    if (getValue<bool>("stop", command, temp) && temp)
-    {
+    if (getValue<bool>("stop", command, temp) && temp) {
         stop();
         sendStatus();
     }
 
-    if (getValue<bool>("reset", command, temp) && temp)
-    {
+    if (getValue<bool>("reset", command, temp) && temp) {
         DynamicJsonDocument doc(128);
         JsonObject driveCommand = doc.to<JsonObject>();
         driveCommand["controlId"] = id;
@@ -176,77 +151,61 @@ void ServoModule::handleCommand(String &controlId, JsonObject &command)
             loop();
     }
 
-    if (getValue<bool>("hold", command, holdOn))
-    {
+    if (getValue<bool>("hold", command, holdOn)) {
         debug("hold %sactive", holdOn ? "" : "in");
     }
 
     uint32_t duration;
-    if (infoLED != "" && getValue("identify", command, duration))
-    {
+    if (infoLED != "" && getValue("identify", command, duration)) {
         XRTLdisposableCommand ledCommand(infoLED);
 
         String color;
-        if (getValue("color", command, color))
-        {
+        if (getValue("color", command, color)) {
             ledCommand.add("color", color);
         }
 
         debug("identifying via LED <%s>", infoLED);
-        ledCommand.add("pulse", (int) duration);
+        ledCommand.add("pulse", (int)duration);
         sendCommand(ledCommand);
     }
 
     driveServo(command); // only reached if not busy
 }
 
-int16_t ServoModule::read()
-{
+int16_t ServoModule::read() {
     if (servo == NULL)
         return 0;
     return round(mapFloat(currentDuty, minDuty, maxDuty, minAngle, maxAngle));
 }
 
-void ServoModule::write(int16_t target)
-{
+void ServoModule::write(int16_t target) {
     if (servo == NULL)
         return;
     currentDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
     servo->writeMicroseconds(currentDuty);
 }
 
-void ServoModule::driveServo(JsonObject &command)
-{
+void ServoModule::driveServo(JsonObject &command) {
 
     int16_t target;
     bool binaryCtrl;
 
-    if (getAndConstrainValue<int16_t>("move", command, target, minAngle - maxAngle, maxAngle - minAngle))
-    { // complete range: maxAngle - minAngle; negative range: minAngle - maxAngle
+    if (getAndConstrainValue<int16_t>("move", command, target, minAngle - maxAngle, maxAngle - minAngle)) { // complete range: maxAngle - minAngle; negative range: minAngle - maxAngle
         target += read();
-    }
-    else if (getAndConstrainValue<int16_t>("moveTo", command, target, minAngle, maxAngle))
-    {
+    } else if (getAndConstrainValue<int16_t>("moveTo", command, target, minAngle, maxAngle)) {
         // nothing to do here
-    }
-    else if (getValue<bool>("binaryCtrl", command, binaryCtrl))
-    {
-        if (binaryCtrl)
-        {
+    } else if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
+        if (binaryCtrl) {
             target = maxAngle;
             positiveDirection = true;
-        }
-        else
-        {
+        } else {
             target = minAngle;
             positiveDirection = false;
         }
-    }
-    else
+    } else
         return; // command is accepted after this point; check bounds and drive servo
 
-    if (wasRunning)
-    { // ignore move commands if already moving
+    if (wasRunning) { // ignore move commands if already moving
         String error = "[";
         error += id;
         error += "] already moving";
@@ -254,8 +213,7 @@ void ServoModule::driveServo(JsonObject &command)
         return;
     }
 
-    if ((target < minAngle) or (target > maxAngle))
-    { // check if bounds are violated after relative movement
+    if ((target < minAngle) or (target > maxAngle)) { // check if bounds are violated after relative movement
         target = constrain(target, minAngle, maxAngle);
 
         String error = "[";
@@ -278,23 +236,16 @@ void ServoModule::driveServo(JsonObject &command)
         targetDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
         travelTime = abs(targetDuty - currentDuty) * timeStep / 1000; // travelTime in ms
 
-        if (targetDuty > currentDuty)
-        {
+        if (targetDuty > currentDuty) {
             positiveDirection = true;
             nextStep = esp_timer_get_time() + timeStep;
-        }
-        else if (targetDuty < currentDuty)
-        {
+        } else if (targetDuty < currentDuty) {
             positiveDirection = false;
             nextStep = esp_timer_get_time() + timeStep;
-        }
-        else if (targetDuty == currentDuty)
-        {
+        } else if (targetDuty == currentDuty) {
             nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
         }
-    }
-    else
-    {
+    } else {
         servo->attach(pin, minDuty, maxDuty);
         write(target);
         targetDuty = currentDuty;
@@ -302,24 +253,19 @@ void ServoModule::driveServo(JsonObject &command)
         travelTime = 750;
         nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
     }
-    
-    if (infoLED != "")
-    {
+
+    if (infoLED != "") {
         XRTLdisposableCommand ledCommand(infoLED);
         String color;
-        if (getValue("color", command, color))
-        {
+        if (getValue("color", command, color)) {
             ledCommand.add("color", color);
         }
 
         ledCommand.add("hold", true);
-        if (positiveDirection)
-        {
-            ledCommand.add("cycle", (int) travelTime);
-        }
-        else
-        {
-            ledCommand.add("cycle", -(int) travelTime);
+        if (positiveDirection) {
+            ledCommand.add("cycle", (int)travelTime);
+        } else {
+            ledCommand.add("cycle", -(int)travelTime);
         }
         sendCommand(ledCommand);
     }

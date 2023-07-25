@@ -11,8 +11,7 @@ void XRTLpar::print(){};
  * @returns true if parameter is uninitialized
  * @note base class only used for default parameter, specialized (= initialized) classes return false
  */
-bool XRTLpar::isNull()
-{
+bool XRTLpar::isNull() {
     return true;
 }
 
@@ -21,17 +20,14 @@ void XRTLpar::setViaSerial() {}
 /**
  * @brief check if parameter name matches query
  * @param queryName string to be checked for match
- * @returns true if queryName matches internally used name 
+ * @returns true if queryName matches internally used name
  */
-bool XRTLpar::is(String &queryName)
-{
+bool XRTLpar::is(String &queryName) {
     return (queryName == name);
 }
 
-ParameterPack::~ParameterPack()
-{
-    for (int i = 0; i < parameterCount; i++)
-    {
+ParameterPack::~ParameterPack() {
+    for (int i = 0; i < parameterCount; i++) {
         delete parameters[i];
     }
 }
@@ -41,8 +37,7 @@ ParameterPack::~ParameterPack()
  * @param key string to be used
  * @note key must not be destroyed before the ParameterPack, no copy is created!
  */
-void ParameterPack::setKey(String &key)
-{
+void ParameterPack::setKey(String &key) {
     linkedName = &key;
 }
 
@@ -50,8 +45,7 @@ void ParameterPack::setKey(String &key)
  * @brief set the key of the parameter pack
  * @param key string to be used
  */
-void ParameterPack::setKey(const char *key)
-{
+void ParameterPack::setKey(const char *key) {
     reserveName = key;
 }
 
@@ -59,8 +53,7 @@ void ParameterPack::setKey(const char *key)
  * @brief get the key of the parameter pack
  * @return pointer to the name
  */
-String &ParameterPack::name()
-{
+String &ParameterPack::name() {
     if (linkedName)
         return *linkedName;
     else
@@ -71,9 +64,8 @@ String &ParameterPack::name()
  * @brief save all parameters to the JsonObject provided
  * @param settings store parameters in here
  * @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
-*/
-void ParameterPack::save(JsonObject &settings)
-{
+ */
+void ParameterPack::save(JsonObject &settings) {
     JsonObject subSettings;
     save(settings, subSettings);
 }
@@ -83,20 +75,15 @@ void ParameterPack::save(JsonObject &settings)
  * @param settings store parameters in here
  * @param subSettings the address pointing to the used (possibly nested) JsonObject will be stored here
  * @note if a key for the parameter object exists, a nested JsonObject with that name will be created and used
-*/
-void ParameterPack::save(JsonObject &settings, JsonObject &subSettings)
-{
-    if (name() != "")
-    {
+ */
+void ParameterPack::save(JsonObject &settings, JsonObject &subSettings) {
+    if (name() != "") {
         subSettings = settings.createNestedObject(name());
-    }
-    else
-    {
+    } else {
         subSettings = settings;
     }
 
-    for (int i = 0; i < parameterCount; i++)
-    {
+    for (int i = 0; i < parameterCount; i++) {
         parameters[i]->save(subSettings);
     }
 }
@@ -104,10 +91,9 @@ void ParameterPack::save(JsonObject &settings, JsonObject &subSettings)
 /**
  * @brief load all parameters from a JsonObject
  * @param settings JsonObject that the settings will be loaded from
- * @note if further access to the JsonObject the parameters were loaded form is needed, provide a second parameter to store the reference 
+ * @note if further access to the JsonObject the parameters were loaded form is needed, provide a second parameter to store the reference
  */
-void ParameterPack::load(JsonObject &settings)
-{
+void ParameterPack::load(JsonObject &settings) {
     JsonObject subSettings;
     load(settings, subSettings);
 }
@@ -115,51 +101,41 @@ void ParameterPack::load(JsonObject &settings)
 /**
  * @brief load all the parameters from a JsonObject
  * @param settings JsonObject that the settings will be loaded from
- * @param subSettings JsonObject that will receive a pointer to the settings used 
+ * @param subSettings JsonObject that will receive a pointer to the settings used
  */
-void ParameterPack::load(JsonObject &settings, JsonObject &subSettings)
-{
-    if (name() != "")
-    {
+void ParameterPack::load(JsonObject &settings, JsonObject &subSettings) {
+    if (name() != "") {
         auto candidate = settings[name()];
 
-        if (candidate.isNull() || !candidate.is<JsonObject>())
-        {
+        if (candidate.isNull() || !candidate.is<JsonObject>()) {
             subSettings = settings;
             return;
         }
 
         subSettings = candidate.as<JsonObject>();
-    }
-    else
-    {
+    } else {
         subSettings = settings;
     }
 
-    for (int i = 0; i < parameterCount; i++)
-    {
+    for (int i = 0; i < parameterCount; i++) {
         parameters[i]->load(subSettings);
     }
 }
 
 // TODO: is this needed?
-void ParameterPack::setParent(ParameterPack *newParent)
-{
+void ParameterPack::setParent(ParameterPack *newParent) {
     parent = newParent;
 }
 
 /**
- * @brief print all listed parameters on the serial interface 
+ * @brief print all listed parameters on the serial interface
  */
-void ParameterPack::print()
-{
-    if (name() != "")
-    {
+void ParameterPack::print() {
+    if (name() != "") {
         highlightString(name().c_str(), '-');
     }
 
-    for (int i = 0; i < parameterCount; i++)
-    {
+    for (int i = 0; i < parameterCount; i++) {
         parameters[i]->print();
     }
 
@@ -172,10 +148,8 @@ void ParameterPack::print()
  * @return pointer to the parameter if found, special null parameter if not
  * @note check whether the search was successful by using isNull()
  */
-XRTLpar &ParameterPack::operator[](String queryParam)
-{
-    for (int i = 0; i < parameterCount; i++)
-    {
+XRTLpar &ParameterPack::operator[](String queryParam) {
+    for (int i = 0; i < parameterCount; i++) {
         if (parameters[i]->is(queryParam))
             return *parameters[i];
     }
@@ -183,21 +157,18 @@ XRTLpar &ParameterPack::operator[](String queryParam)
     return nullParameter;
 }
 
-// TODO: add methode to access additional settings 
+// TODO: add methode to access additional settings
 /**
  * @brief dialog used by the parameter pack to manage settings via the serial interface
  * @return false if the dialog has ended, true if it should be repeated
  */
-bool ParameterPack::dialog()
-{
+bool ParameterPack::dialog() {
     Serial.println("");
     highlightString(name().c_str(), '-');
     Serial.println("");
 
-    for (int i = 0; i < parameterCount; i++)
-    {
-        if (!parameters[i]->notListed)
-        {
+    for (int i = 0; i < parameterCount; i++) {
+        if (!parameters[i]->notListed) {
             Serial.printf("%d: %s\n", i, parameters[i]->name.c_str());
         }
     }
@@ -212,38 +183,27 @@ bool ParameterPack::dialog()
     String rawInput = serialInput("send single letter or number to edit parameter: ");
     uint8_t inputNumber = rawInput.toInt();
 
-    if (rawInput == "r")
-    {
+    if (rawInput == "r") {
         return false;
-    }
-    else if (rawInput == "c")
-    {
+    } else if (rawInput == "c") {
         *linkedName = serialInput("controlId (String) = ");
-    }
-    else if (rawInput == "a")
-    {
-        if (linkedName != NULL)
-        {
+    } else if (rawInput == "a") {
+        if (linkedName != NULL) {
             *linkedName = serialInput("controlId (String) = ");
         }
 
-        for (int i = 0; i < parameterCount; i++)
-        {
+        for (int i = 0; i < parameterCount; i++) {
             if (!parameters[i]->notListed)
                 parameters[i]->setViaSerial();
         }
-    }
-    else if (inputNumber < parameterCount && !parameters[inputNumber]->notListed)
-    {
+    } else if (inputNumber < parameterCount && !parameters[inputNumber]->notListed) {
         parameters[inputNumber]->setViaSerial();
     }
 
     return true;
 }
 
-void ParameterPack::setViaSerial()
-{
-    while (dialog())
-    {
+void ParameterPack::setViaSerial() {
+    while (dialog()) {
     }
 }

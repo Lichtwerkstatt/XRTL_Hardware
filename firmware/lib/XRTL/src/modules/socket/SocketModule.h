@@ -6,8 +6,7 @@
 #include "mbedtls/md.h"
 #include "modules/XRTLmodule.h"
 
-class SocketModule : public XRTLmodule
-{
+class SocketModule : public XRTLmodule {
 private:
     String ip = "192.168.178.1";
     uint16_t port = 3000;

@@ -4,8 +4,7 @@
 #include "modules/XRTLmodule.h"
 #include <esp_camera.h>
 
-class CameraModule : public XRTLmodule
-{
+class CameraModule : public XRTLmodule {
 private:
     bool isStreaming = false;
     int64_t nextFrame = 0;                   // stores when the next frame should be send; µs

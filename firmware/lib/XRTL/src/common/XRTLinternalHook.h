@@ -3,8 +3,7 @@
 
 #include "modules/XRTLmodule.h"
 
-class InternalHook
-{
+class InternalHook {
 private:
     internalEvent eventType = busy;
     String listeningId = "";

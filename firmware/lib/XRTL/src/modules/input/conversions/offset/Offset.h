@@ -4,8 +4,7 @@
 #include "modules/input/conversions/InputConverter.h"
 
 // @brief add a specified (positive or negative) offset to the input
-class Offset : public InputConverter
-{
+class Offset : public InputConverter {
 private:
     // @brief value that is added to the input.
     // @note positive and negative values possible.

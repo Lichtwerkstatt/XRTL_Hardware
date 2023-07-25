@@ -5,8 +5,7 @@
 #include "modules/XRTLmodule.h"
 
 // XRTLmodule for controling output signals, either relays or MOSFETs operated via PWM
-class OutputModule : public XRTLmodule
-{
+class OutputModule : public XRTLmodule {
 private:
     uint8_t pin = 27;
 

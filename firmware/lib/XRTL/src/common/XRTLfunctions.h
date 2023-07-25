@@ -12,13 +12,11 @@
  * @param defaultValue return this value if key is missing
  * @returns value read from file or defaultValue if key is missing
  * @note This function makes sure a value is always provided but gives no feedback whether the default was used. For a version with feedback use XRTLmodule::getValue()
-*/
+ */
 template <typename T>
-T loadValue(String key, JsonObject &file, T defaultValue)
-{
+T loadValue(String key, JsonObject &file, T defaultValue) {
     auto field = file[key];
-    if (field.isNull())
-    {
+    if (field.isNull()) {
         Serial.printf("WARNING: %s not set, using default value\n", key.c_str());
         return defaultValue;
     }

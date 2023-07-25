@@ -5,8 +5,7 @@
 #include "common/XRTLparameterPack.h"
 
 // internal reference for module type
-enum moduleType
-{
+enum moduleType {
     xrtl_socket,
     xrtl_wifi,
     xrtl_infoLED,
@@ -20,21 +19,19 @@ enum moduleType
 
 // display names for modules
 static const char *moduleNames[9] =
-{
-    "socket",
-    "wifi",
-    "info LED",
-    "stepper motor",
-    "servo motor",
-    "camera",
-    "input",
-    "output",
-    "macro"
-};
+    {
+        "socket",
+        "wifi",
+        "info LED",
+        "stepper motor",
+        "servo motor",
+        "camera",
+        "input",
+        "output",
+        "macro"};
 
 // used to push state changes to other modules
-enum internalEvent
-{
+enum internalEvent {
     socket_disconnected,
     socket_connected,
     socket_authed,
@@ -55,24 +52,23 @@ enum internalEvent
 };
 
 static const char *internalEventNames[12] =
-{
-    "socket disconnected",
-    "socket connected",
-    "socket authed",
-    "wifi disconnected",
-    "wifi connected",
-    "busy",
-    "ready",
-    "time synced",
-    "debug on",
-    "debug off",
-    "low input trigger",
-    "high input trigger",
+    {
+        "socket disconnected",
+        "socket connected",
+        "socket authed",
+        "wifi disconnected",
+        "wifi connected",
+        "busy",
+        "ready",
+        "time synced",
+        "debug on",
+        "debug off",
+        "low input trigger",
+        "high input trigger",
 };
 
 // identify error category
-enum componentError
-{
+enum componentError {
     deserialize_failed,
     field_is_null,
     wrong_type,
@@ -86,8 +82,7 @@ enum componentError
 class XRTL;
 
 // template class for all modules
-class XRTLmodule
-{
+class XRTLmodule {
 protected:
     // @brief (supposedly) unique identifier the module listens to
     // @note if two modules share the same ID, both will react to commands issued under that ID
@@ -127,12 +122,11 @@ public:
     void setViaSerialBasic();
 
     /** @brief send a message over the serial monitor if in debug mode
-      * @param ... uses printf syntax
-      * @note automatically adds [controlId] at the start and \\n at the end of the message
-     */ 
+     * @param ... uses printf syntax
+     * @note automatically adds [controlId] at the start and \\n at the end of the message
+     */
     template <typename... Args>
-    void debug(Args... args)
-    {
+    void debug(Args... args) {
         if (!debugging)
             return;
         Serial.printf("[%s] ", id.c_str());
@@ -148,11 +142,9 @@ public:
      * @returns True if the key was found
      */
     template <typename T>
-    bool getValue(String name, JsonObject &file, T &target, bool reportMissingField = false)
-    {
+    bool getValue(String name, JsonObject &file, T &target, bool reportMissingField = false) {
         auto field = file[name];
-        if (field.isNull())
-        {
+        if (field.isNull()) {
             if (!reportMissingField)
                 return false;
 
@@ -165,8 +157,7 @@ public:
             return false;
         }
 
-        if (!field.is<T>())
-        {
+        if (!field.is<T>()) {
             String errormsg = "[";
             errormsg += id;
             errormsg += "] command rejected: <";
@@ -189,13 +180,11 @@ public:
     // @param reportMissingField if True a report will be issued in case the key could not be found, use only for mandatory keys
     // @returns True if the key was found
     template <typename T>
-    bool getAndConstrainValue(String name, JsonObject &file, T &target, T minValue, T maxValue, bool reportMissingField = false)
-    {
+    bool getAndConstrainValue(String name, JsonObject &file, T &target, T minValue, T maxValue, bool reportMissingField = false) {
         if (!getValue<T>(name, file, target, reportMissingField))
             return false;
 
-        if ((target < minValue) or (target > maxValue))
-        {
+        if ((target < minValue) or (target > maxValue)) {
             target = constrain(target, minValue, maxValue);
 
             String errormsg = "[";

@@ -1,7 +1,6 @@
 #include "VoltageDivider.h"
 
-VoltageDivider::VoltageDivider()
-{
+VoltageDivider::VoltageDivider() {
     type = resistance_voltage_divider;
 
     parameters.setKey("");
@@ -10,24 +9,20 @@ VoltageDivider::VoltageDivider()
     parameters.add(refTwo, "refTwo", "k|Ohm");
 }
 
-void VoltageDivider::saveSettings(JsonObject &settings)
-{
+void VoltageDivider::saveSettings(JsonObject &settings) {
     parameters.save(settings);
 }
 
-void VoltageDivider::loadSettings(JsonObject &settings, bool debugMode)
-{
+void VoltageDivider::loadSettings(JsonObject &settings, bool debugMode) {
     parameters.load(settings);
     if (debugMode)
         parameters.print();
 }
 
-void VoltageDivider::setViaSerial()
-{
+void VoltageDivider::setViaSerial() {
     parameters.setViaSerial();
 }
 
-void VoltageDivider::convert(double &value)
-{
+void VoltageDivider::convert(double &value) {
     value = (refOne + refTwo) / refTwo * value;
 }

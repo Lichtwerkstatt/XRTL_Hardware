@@ -3,8 +3,7 @@
 
 #include "modules/XRTLmodule.h"
 
-enum conversion_t
-{
+enum conversion_t {
     thermistor,
     resistance_voltage_divider,
     voltage_voltage_divider,
@@ -14,21 +13,19 @@ enum conversion_t
 };
 
 static const char *conversionName[6] =
-{
-    "Thermistor",
-    "Resistance",
-    "Voltage Divider",
-    "Map",
-    "Offset",
-    "Multiplication"
-};
+    {
+        "Thermistor",
+        "Resistance",
+        "Voltage Divider",
+        "Map",
+        "Offset",
+        "Multiplication"};
 
 // base class of conversions used to transform the input voltage
 // class must contain convert function from double to double
 // class must contain methods for handling the conversion settings
 // multiple variables might be needed for a single conversion
-class InputConverter
-{
+class InputConverter {
 protected:
     conversion_t type;
 

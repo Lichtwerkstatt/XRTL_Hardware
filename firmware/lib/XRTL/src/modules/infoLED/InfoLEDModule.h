@@ -4,8 +4,7 @@
 #include "modules/XRTLmodule.h"
 #include "modules/infoLED/InfoLED.h"
 
-class InfoLEDModule : public XRTLmodule
-{
+class InfoLEDModule : public XRTLmodule {
 private:
     uint8_t pin = 32;
     uint8_t pixel = 12;

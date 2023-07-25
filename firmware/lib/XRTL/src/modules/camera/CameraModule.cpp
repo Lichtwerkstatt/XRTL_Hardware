@@ -1,15 +1,13 @@
 #include "CameraModule.h"
 
-CameraModule::CameraModule(String moduleName)
-{
+CameraModule::CameraModule(String moduleName) {
     id = moduleName;
 
     parameters.setKey(id);
     parameters.add(type, "type");
 }
 
-moduleType CameraModule::getType()
-{
+moduleType CameraModule::getType() {
     return xrtl_camera;
 }
 
@@ -39,20 +37,18 @@ camera_config_t CameraModule::camera_config = {
     .pixel_format = PIXFORMAT_JPEG, // YUV422,GRAYSCALE,RGB565,JPEG
     // IMPORTANT: frame size must be initialized with a high value
     // frame buffer might otherwise be initialized too small and _WILL_ fail silently if the size is increased later
-    .frame_size = FRAMESIZE_UXGA,   // UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
+    .frame_size = FRAMESIZE_UXGA, // UXGA,//QQVGA-QXGA Do not use sizes above QVGA when not JPEG
 
     .jpeg_quality = 10,             // 0-63 lower number means higher quality
     .fb_count = 2,                  // if more than one, i2s runs in continuous mode. Use only with JPEG
     .grab_mode = CAMERA_GRAB_LATEST // CAMERA_GRAB_WHEN_EMPTY. Sets when buffers should be filled
 };
 
-void CameraModule::setup()
-{
+void CameraModule::setup() {
     // initialize the camera
     esp_err_t err = esp_camera_init(&camera_config);
-    if (err != ESP_OK)
-    {
-        //debug("camera init failed: %s", err); // TODO: investigate core panic if init failed after restart
+    if (err != ESP_OK) {
+        // debug("camera init failed: %s", err); // TODO: investigate core panic if init failed after restart
         debug("camera init failed");
         String errmsg = "[";
         errmsg += id.c_str();
@@ -70,8 +66,7 @@ void CameraModule::setup()
     debug("camera initialized");
 }
 
-void CameraModule::loop()
-{
+void CameraModule::loop() {
     if (!isStreaming)
         return;
 
@@ -80,8 +75,7 @@ void CameraModule::loop()
         return;
 
     camera_fb_t *fb = esp_camera_fb_get();
-    if (!fb)
-    {
+    if (!fb) {
         debug("buffer invalid");
         String errmsg = "[";
         errmsg += id.c_str();
@@ -94,13 +88,12 @@ void CameraModule::loop()
 
     sendBinary(binaryLeadFrame, fb->buf, fb->len);
     esp_camera_fb_return(fb);
-    debug("time needed to send image: %f ms", (double) (esp_timer_get_time() - now)/1000);
+    // debug("time needed to send image: %f ms", (double) (esp_timer_get_time() - now)/1000);
 
     nextFrame = now + frameTimeMicroSeconds;
 }
 
-bool CameraModule::getStatus(JsonObject &status)
-{
+bool CameraModule::getStatus(JsonObject &status) {
 
     status["stream"] = isStreaming;
     status["frameSize"] = frameSize;
@@ -112,18 +105,15 @@ bool CameraModule::getStatus(JsonObject &status)
     return true;
 }
 
-void CameraModule::saveSettings(JsonObject &settings)
-{
+void CameraModule::saveSettings(JsonObject &settings) {
     parameters.save(settings);
 }
 
-void CameraModule::loadSettings(JsonObject &settings)
-{
+void CameraModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
 }
 
-void CameraModule::setViaSerial()
-{
+void CameraModule::setViaSerial() {
     Serial.println("");
     Serial.println(centerString("", 39, '-').c_str());
     Serial.println(centerString(id, 39, ' ').c_str());
@@ -133,10 +123,8 @@ void CameraModule::setViaSerial()
     id = serialInput("controlId: ");
 }
 
-void CameraModule::startStreaming()
-{
-    if (isStreaming)
-    {
+void CameraModule::startStreaming() {
+    if (isStreaming) {
         debug("stream already active");
         sendStatus();
         return;
@@ -167,10 +155,8 @@ void CameraModule::startStreaming()
     nextFrame = esp_timer_get_time();
 }
 
-void CameraModule::stopStreaming()
-{
-    if (!isStreaming)
-    {
+void CameraModule::stopStreaming() {
+    if (!isStreaming) {
         debug("stream already inactive");
         return;
     }
@@ -180,8 +166,7 @@ void CameraModule::stopStreaming()
     sendStatus();
 }
 
-void CameraModule::virtualPTZ()
-{
+void CameraModule::virtualPTZ() {
     // equations
     // xOffset = panStage * [ width/(N-1) * (1- 1/zoomFactor) ]
     // yOffset = tiltStage * [ height/(N-1) * (1 - 1/zoomFactor) ]
@@ -201,15 +186,12 @@ void CameraModule::virtualPTZ()
     cameraSettings->set_res_raw(cameraSettings, 0, 0, 0, 0, xOffset, yOffset, xLength, yLength, xLength, yLength, true, true);
 }
 
-bool CameraModule::handleCommand(String &command)
-{
-    if (command == "startStreaming")
-    {
+bool CameraModule::handleCommand(String &command) {
+    if (command == "startStreaming") {
         startStreaming();
         return true;
     }
-    if (command == "stopStreaming")
-    {
+    if (command == "stopStreaming") {
         stopStreaming();
         return true;
     }
@@ -217,29 +199,23 @@ bool CameraModule::handleCommand(String &command)
     return false;
 }
 
-void CameraModule::handleCommand(String &controlId, JsonObject &command)
-{
+void CameraModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;
 
     bool targetStreamState = false;
-    if (getValue<bool>("stream", command, targetStreamState))
-    {
+    if (getValue<bool>("stream", command, targetStreamState)) {
         if (targetStreamState)
             startStreaming();
         else
             stopStreaming();
     }
 
-    if (getValue<bool>("gray", command, isGray))
-    {
-        if (isGray)
-        {
+    if (getValue<bool>("gray", command, isGray)) {
+        if (isGray) {
             cameraSettings->set_special_effect(cameraSettings, 2);
             debug("gray filter enabled");
-        }
-        else
-        {
+        } else {
             cameraSettings->set_special_effect(cameraSettings, 0);
             debug("gray filter disabled");
         }
@@ -247,15 +223,13 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     int gain;
-    if (getAndConstrainValue<int>("gain", command, gain, 0, 30))
-    {
+    if (getAndConstrainValue<int>("gain", command, gain, 0, 30)) {
         cameraSettings->set_gain_ctrl(cameraSettings, 0);
         cameraSettings->set_agc_gain(cameraSettings, gain);
         debug("gain changed to %d", gain);
     }
 
-    if (getAndConstrainValue<int>("exposure", command, exposure, 0, 1200))
-    {
+    if (getAndConstrainValue<int>("exposure", command, exposure, 0, 1200)) {
         cameraSettings->set_gain_ctrl(cameraSettings, 0);
         cameraSettings->set_exposure_ctrl(cameraSettings, 0);
         cameraSettings->set_aec_value(cameraSettings, exposure);
@@ -263,29 +237,23 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command)
         sendStatus();
     }
 
-    if (getAndConstrainValue<int>("brightness", command, brightness, -2, 2))
-    {
+    if (getAndConstrainValue<int>("brightness", command, brightness, -2, 2)) {
         cameraSettings->set_brightness(cameraSettings, brightness);
         debug("brightness set to %d", brightness);
         sendStatus();
     }
 
-    if (getAndConstrainValue<int>("contrast", command, contrast, -2, 2))
-    {
+    if (getAndConstrainValue<int>("contrast", command, contrast, -2, 2)) {
         cameraSettings->set_contrast(cameraSettings, contrast);
         debug("contrast set to %d", contrast);
         sendStatus();
     }
 
     int8_t virtualPTZtarget;
-    if (getValue<int8_t>("virtualPan", command, virtualPTZtarget))
-    {
-        if (virtualPTZtarget > 0)
-        {
+    if (getValue<int8_t>("virtualPan", command, virtualPTZtarget)) {
+        if (virtualPTZtarget > 0) {
             panStage++;
-        }
-        else if (virtualPTZtarget < 0)
-        {
+        } else if (virtualPTZtarget < 0) {
             panStage--;
         }
         panStage = constrain(panStage, 0, 8);
@@ -294,14 +262,10 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command)
         sendStatus();
     }
 
-    if (getValue<int8_t>("virtualTilt", command, virtualPTZtarget))
-    {
-        if (virtualPTZtarget > 0)
-        {
+    if (getValue<int8_t>("virtualTilt", command, virtualPTZtarget)) {
+        if (virtualPTZtarget > 0) {
             tiltStage++;
-        }
-        else if (virtualPTZtarget < 0)
-        {
+        } else if (virtualPTZtarget < 0) {
             tiltStage--;
         }
         tiltStage = constrain(tiltStage, 0, 8);
@@ -310,14 +274,10 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command)
         sendStatus();
     }
 
-    if (getValue<int8_t>("virtualZoom", command, virtualPTZtarget))
-    {
-        if (virtualPTZtarget > 0)
-        {
+    if (getValue<int8_t>("virtualZoom", command, virtualPTZtarget)) {
+        if (virtualPTZtarget > 0) {
             zoomStage++;
-        }
-        else if (virtualPTZtarget < 0)
-        {
+        } else if (virtualPTZtarget < 0) {
             zoomStage--;
         }
         zoomStage = constrain(zoomStage, 0, 4);
@@ -327,20 +287,16 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     double targetFrameRate = 15;
-    if (getAndConstrainValue<double>("frame rate", command, targetFrameRate, 0, 30))
-    {
+    if (getAndConstrainValue<double>("frame rate", command, targetFrameRate, 0, 30)) {
         frameTimeMicroSeconds = round((double)1000000 / targetFrameRate);
-        if (isStreaming)
-        {
+        if (isStreaming) {
             nextFrame = esp_timer_get_time() + frameTimeMicroSeconds;
         }
     }
 
     uint8_t targetFrameSize = 0;
-    if (getAndConstrainValue<uint8_t>("frameSize", command, targetFrameSize, 5, 13))
-    {
-        if (targetFrameSize == 7 || targetFrameSize == 11)
-        {
+    if (getAndConstrainValue<uint8_t>("frameSize", command, targetFrameSize, 5, 13)) {
+        if (targetFrameSize == 7 || targetFrameSize == 11) {
             String errormsg = "[";
             errormsg += id;
             errormsg += "] <frameSize> 7 and 11 are not permitted";
@@ -355,18 +311,14 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     bool getStatus = false;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus)
-    {
+    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
         sendStatus();
     }
 }
 
-void CameraModule::handleInternal(internalEvent eventId, String &sourceId)
-{
-    switch (eventId)
-    {
-    case socket_disconnected:
-    {
+void CameraModule::handleInternal(internalEvent eventId, String &sourceId) {
+    switch (eventId) {
+    case socket_disconnected: {
         // TODO: suspend stream instead of stopping?
         if (!isStreaming)
             return;
@@ -375,14 +327,12 @@ void CameraModule::handleInternal(internalEvent eventId, String &sourceId)
         return;
     }
 
-    case debug_on:
-    {
+    case debug_on: {
         debugging = true;
         return;
     }
 
-    case debug_off:
-    {
+    case debug_off: {
         debugging = false;
         return;
     }

@@ -3,8 +3,7 @@
 
 #include "common/XRTLfunctions.h"
 
-class XRTLpar
-{
+class XRTLpar {
 protected:
     String name;
     bool notListed = false;
@@ -30,8 +29,7 @@ public:
  * @note no copy of the parameter is created -- operations on the returned reference will alter the parameter
  */
 template <typename T>
-class XRTLparameter : public XRTLpar
-{
+class XRTLparameter : public XRTLpar {
 protected:
     T *parameter;
     String unit;
@@ -39,15 +37,13 @@ protected:
 public:
     XRTLparameter() {}
 
-    XRTLparameter(T &linkedParameter, String &paramName, String &unitStr)
-    {
+    XRTLparameter(T &linkedParameter, String &paramName, String &unitStr) {
         parameter = &linkedParameter;
         name = paramName;
         unit = unitStr;
     }
 
-    XRTLparameter(T &linkedParameter, String &paramName)
-    {
+    XRTLparameter(T &linkedParameter, String &paramName) {
         parameter = &linkedParameter;
         name = paramName;
         notListed = true;
@@ -57,8 +53,7 @@ public:
      * @brief creates a key value pair with the name and value of the parameter in the supplied JsonObject
      * @param settings JsonObject that will receive the key value pair
      */
-    virtual void save(JsonObject &settings)
-    {
+    virtual void save(JsonObject &settings) {
         settings[name] = *parameter;
     }
 
@@ -67,8 +62,7 @@ public:
      * @param settings JsonObject to be checked for parameter
      * @note if the parameter name is not contained within the Object or the type is incorrect, the parameter will remain unchanged
      */
-    virtual void load(JsonObject &settings)
-    {
+    virtual void load(JsonObject &settings) {
         auto candidate = settings[name];
         if (candidate.isNull())
             return;
@@ -82,8 +76,7 @@ public:
      * @brief print the parameter name and value on the Serial interface
      * @note will not print anything if the parameter is not listed
      */
-    virtual void print()
-    {
+    virtual void print() {
         if (notListed)
             return;
         Serial.print(name.c_str());
@@ -95,10 +88,9 @@ public:
 
     /**
      * @brief set a new value for the parameter over the Serial interface
-     * @note does nothing if the parameter is not listed 
+     * @note does nothing if the parameter is not listed
      */
-    virtual void setViaSerial()
-    {
+    virtual void setViaSerial() {
         if (notListed)
             return;
 
@@ -106,11 +98,10 @@ public:
     }
 
     /**
-     * @brief actual query dialog for the Serial interface 
+     * @brief actual query dialog for the Serial interface
      * @note query contains <name> (<unit>)
      */
-    void setViaSerialQuery()
-    {
+    void setViaSerialQuery() {
         String inputQuery = name;
         inputQuery += " (";
         inputQuery += unit;
@@ -129,10 +120,9 @@ public:
 
     /**
      * @brief check if the parameter is initialized, i.e. a specialized class used
-     * @return true if base calss is used, false if initialized 
+     * @return true if base calss is used, false if initialized
      */
-    bool isNull()
-    {
+    bool isNull() {
         return false;
     }
 
@@ -141,8 +131,7 @@ public:
      * @param testParam test for equality to this value
      * @return true if equal, false if not
      */
-    bool isEqual(T &testParam)
-    {
+    bool isEqual(T &testParam) {
         return (*parameter == testParam);
     }
 
@@ -151,15 +140,13 @@ public:
      * @return pointer to the linked parameter
      * @note this is not a copy, operations on the target of this pointer will alter the parameter
      */
-    T &get()
-    {
+    T &get() {
         return *parameter;
     }
 };
 
 template <>
-class XRTLparameter<bool> : public XRTLpar
-{
+class XRTLparameter<bool> : public XRTLpar {
 protected:
     bool *parameter;
     String unit = "y/n";
@@ -167,26 +154,22 @@ protected:
 public:
     XRTLparameter() {}
 
-    XRTLparameter(bool &linkedParameter, String &paramName, String &unitStr)
-    {
+    XRTLparameter(bool &linkedParameter, String &paramName, String &unitStr) {
         parameter = &linkedParameter;
         name = paramName;
     }
 
-    XRTLparameter(bool &linkedParameter, String &paramName)
-    {
+    XRTLparameter(bool &linkedParameter, String &paramName) {
         parameter = &linkedParameter;
         name = paramName;
         notListed = true;
     }
 
-    virtual void save(JsonObject &settings)
-    {
+    virtual void save(JsonObject &settings) {
         settings[name] = *parameter;
     }
 
-    virtual void load(JsonObject &settings)
-    {
+    virtual void load(JsonObject &settings) {
         auto candidate = settings[name];
         if (candidate.isNull())
             return;
@@ -196,16 +179,14 @@ public:
         *parameter = candidate.as<bool>();
     }
 
-    virtual void setViaSerial()
-    {
+    virtual void setViaSerial() {
         if (notListed)
             return;
 
         setViaSerialQuery();
     }
 
-    void setViaSerialQuery()
-    {
+    void setViaSerialQuery() {
         String inputQuery = name;
         inputQuery += " (";
         inputQuery += unit;
@@ -213,50 +194,41 @@ public:
 
         String input = serialInput(inputQuery);
 
-        if (input == "true" || input == "y" || input == "1" || input == "TRUE" || input == "Y")
-        {
+        if (input == "true" || input == "y" || input == "1" || input == "TRUE" || input == "Y") {
             *parameter = true;
-        }
-        else if (input == "false" || input == "n" || input == "0" || input == "FALSE" || input == "N")
-        {
+        } else if (input == "false" || input == "n" || input == "0" || input == "FALSE" || input == "N") {
             *parameter = false;
         }
     }
 
-    virtual void print()
-    {
+    virtual void print() {
         Serial.printf("%s (%s): %s\n", name.c_str(), unit.c_str(), *parameter ? "true" : "false");
     }
 
-    bool isNull()
-    {
+    bool isNull() {
         return false;
     }
 
-    bool isEqual(bool &testParam)
-    {
+    bool isEqual(bool &testParam) {
         return (*parameter == testParam);
     }
 
-    bool &get()
-    {
+    bool &get() {
         return *parameter;
     }
 };
 
 /**
  * @brief dependent version of XRTLparameter, will only query a parameter if a certain condition is met
-*/
+ */
 template <typename T, typename U>
-class XRTLdependentPar : public XRTLparameter<T>
-{
+class XRTLdependentPar : public XRTLparameter<T> {
 private:
     XRTLparameter<U> *dependency;
     U condition;
 
 public:
-    XRTLdependentPar(T &linkedParameter, String &paramName, String &unitStr, XRTLparameter<U> *dependencyPar, U &dependencyCond)
-    {
+    XRTLdependentPar(T &linkedParameter, String &paramName, String &unitStr, XRTLparameter<U> *dependencyPar, U &dependencyCond) {
         this->parameter = &linkedParameter;
         this->name = paramName;
         this->unit = unitStr;
@@ -264,8 +236,7 @@ public:
         condition = dependencyCond;
     }
 
-    XRTLdependentPar(T &linkedParameter, String &paramName, XRTLparameter<U> *dependencyPar, U &dependencyCond)
-    {
+    XRTLdependentPar(T &linkedParameter, String &paramName, XRTLparameter<U> *dependencyPar, U &dependencyCond) {
         this->parameter = &linkedParameter;
         this->name = paramName;
         this->notListed = true;
@@ -273,15 +244,13 @@ public:
         condition = dependencyCond;
     }
 
-    virtual void save(JsonObject &settings)
-    {
+    virtual void save(JsonObject &settings) {
         if (!dependency->isEqual(condition))
             return;
         settings[this->name] = *this->parameter;
     }
 
-    virtual void load(JsonObject &settings)
-    {
+    virtual void load(JsonObject &settings) {
         if (!dependency->isEqual(condition))
             return;
         auto candidate = settings[this->name];
@@ -293,8 +262,7 @@ public:
         *this->parameter = candidate.template as<T>();
     }
 
-    virtual void print()
-    {
+    virtual void print() {
         if (!dependency->isEqual(condition))
             return;
         if (this->notListed)
@@ -306,8 +274,7 @@ public:
         Serial.println(*this->parameter);
     }
 
-    void setViaSerial()
-    {
+    void setViaSerial() {
         if (!dependency->isEqual(condition))
             return;
         if (this->notListed)
@@ -320,8 +287,7 @@ public:
 /**
  * @brief Manage multiple parameters simultaneously. Provides methodes for saving, loading and setting parameters via serial interface.
  */
-class ParameterPack
-{
+class ParameterPack {
 protected:
     uint8_t parameterCount = 0;
     XRTLpar *parameters[16];
@@ -338,9 +304,7 @@ public:
     void setKey(String &key);
     void setKey(const char *key);
 
-
     String &name();
-
 
     void save(JsonObject &settings);
     void save(JsonObject &settings, JsonObject &subSettings);
@@ -353,8 +317,7 @@ public:
     // @param paramName identifier string for the parameter
     // @param unit string representing the physical meaning of the parameter (visible in query procedure)
     template <typename T>
-    void add(T &linkedParameter, String paramName, String unit)
-    {
+    void add(T &linkedParameter, String paramName, String unit) {
         if (parameterCount >= 16)
             return;
 
@@ -367,8 +330,7 @@ public:
     // @param unit string representing the physical meaning of the parameter (visible in query procedure)
     // @note parameter does not get listed and is inaccessible via serial interface, good for internal parameters
     template <typename T>
-    void add(T &linkedParameter, String paramName)
-    {
+    void add(T &linkedParameter, String paramName) {
         if (parameterCount == 16)
             return;
 
@@ -384,8 +346,7 @@ public:
      * @param condition if the dependee parameter is not equal to this value, handle the linked parameter as not listed
      */
     template <typename T, typename U>
-    void addDependent(T &linkedParameter, String paramName, String unit, String dependee, U condition)
-    {
+    void addDependent(T &linkedParameter, String paramName, String unit, String dependee, U condition) {
         if (parameterCount == 16)
             return;
 
@@ -406,8 +367,7 @@ public:
      * @note this methode is probably not needed:\n any unlisted parameter does not need to be checked for dependencies
      */
     template <typename T, typename U>
-    void addDependent(T &linkedParameter, String paramName, String dependee, U condition)
-    {
+    void addDependent(T &linkedParameter, String paramName, String dependee, U condition) {
         if (parameterCount == 16)
             return;
 

@@ -1,13 +1,12 @@
 #ifndef MACROSTATE_H
 #define MACROSTATE_H
 
-#include "modules/XRTLmodule.h"
 #include "common/XRTLcommand.h"
+#include "modules/XRTLmodule.h"
 
 // @brief container for several commands that are called in succession once the macro is activated
 // @note if a the controlId featured in the macro cannot be found on this ESP, an attempt to send the command via the socket server will be made
-class MacroState
-{
+class MacroState {
 private:
     XRTLmodule *macro;
     uint8_t commandCount = 0;
