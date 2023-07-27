@@ -16,8 +16,7 @@ OutputModule::OutputModule(String moduleName) {
 }
 
 OutputModule::~OutputModule() {
-    if (out != NULL)
-        delete out;
+    if (out != NULL) delete out;
 }
 
 moduleType OutputModule::getType() {
@@ -35,18 +34,22 @@ void OutputModule::saveSettings(JsonObject &settings) {
 
 void OutputModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
-    if (debugging)
-        parameters.print();
+    if (debugging) parameters.print();
 }
 
 bool OutputModule::getStatus(JsonObject &status) {
-    if (out == NULL)
-        return true; // avoid errors: status might be called in setup before init occured
+    if (!out) {
+        String errmsg = "[";
+        errmsg += id;
+        errmsg += "] output not initialized";
+        sendError(hardware_failure, errmsg);
+        return false;
+    }
 
     status["busy"] = switchTime == 0 ? false : true;
     status["isOn"] = out->getState();
-    if (!pwm)
-        return true;
+    if (!pwm) return true;
+    
     status["pwm"] = out->read();
     return true;
 }
@@ -56,20 +59,31 @@ void OutputModule::setViaSerial() {
 }
 
 void OutputModule::setup() {
-    out = new XRTLoutput(pwm);
-
-    if (!pwm) {
+    if (!GPIO_IS_VALID_GPIO(pin)) debug("invalid pin");
+    else if (!pwm) {
+        out = new XRTLoutput(pwm);
         out->attach(pin);
+    } else if (channel >= SOC_LEDC_CHANNEL_NUM) {
+        debug("channel not available");
     } else {
-        out->attach(pin, channel, frequency);
+        out = new XRTLoutput(pwm);
+        if (!out->attach(pin, channel, frequency)) {
+            debug("unable to set frequency");
+            delete out;
+            out = NULL;
+        }
+    }
+
+    if (!out) {
+        debug("output deactivated");
+        return;
     }
 
     out->toggle(false);
 }
 
 void OutputModule::loop() {
-    if (switchTime == 0)
-        return;
+    if (switchTime == 0 || !out) return;
     if (esp_timer_get_time() > switchTime) { // time is up -> switch off
         out->toggle(false);
         sendStatus();
@@ -79,17 +93,15 @@ void OutputModule::loop() {
 }
 
 void OutputModule::stop() {
+    if (!out) return;
     out->toggle(false);
     debug("module stopped, power off");
 }
 
 void OutputModule::handleInternal(internalEvent eventId, String &sourceId) {
-    if (out == NULL)
-        return;
     switch (eventId) {
     case socket_disconnected: {
-        if (!out->getState())
-            return;
+        if (!out || !out->getState()) return;
         out->toggle(false);
         debug("output powered down for safety reasons");
         return;
@@ -107,13 +119,14 @@ void OutputModule::handleInternal(internalEvent eventId, String &sourceId) {
 }
 
 void OutputModule::handleCommand(String &controlId, JsonObject &command) {
-    if (!isModule(controlId) && controlId != "*")
-        return;
+    if (!isModule(controlId) && controlId != "*") return;
 
     bool getStatus = false;
     if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
         sendStatus();
     }
+
+    if (!out) return; // only available if initialized successfully
 
     if (pwm) // prevent pwm if a relay is used
     {

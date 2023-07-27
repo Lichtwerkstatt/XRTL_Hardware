@@ -20,15 +20,18 @@ void XRTLoutput::attach(uint8_t controlPin) {
  * @param controlPin pin number of output
  * @param pwmChannel channel of the PWM controler to use
  * @param pwmFrequency frequency of the PWM signal in Hz
+ * @returns true if the 
  * @note not all pins support PWM; for digital output use different attach() methode
  */
-void XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency) {
+bool XRTLoutput::attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency) {
     pin = controlPin;
     channel = pwmChannel;
     frequency = pwmFrequency;
-    ledcSetup(channel, frequency, 8); // 8 bit resolution -> steps in percentage: 1/255 = 0.39%
+    uint32_t readFrequency = ledcSetup(channel, frequency, 8); // 8 bit resolution -> steps in percentage: 1/255 = 0.39%
     pinMode(pin, OUTPUT);
     ledcAttachPin(pin, channel);
+
+    return (readFrequency != 0);
 }
 
 /**

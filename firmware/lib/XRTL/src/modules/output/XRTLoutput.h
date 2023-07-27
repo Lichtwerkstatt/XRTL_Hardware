@@ -17,7 +17,7 @@ public:
     XRTLoutput(bool isPWM);
 
     void attach(uint8_t controlPin);
-    void attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency);
+    bool attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency);
 
     void toggle(bool targetState);
     void write(uint8_t powerLvl);

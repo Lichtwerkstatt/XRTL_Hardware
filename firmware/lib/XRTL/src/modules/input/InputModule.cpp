@@ -25,17 +25,11 @@ InputModule::~InputModule() {
 }
 
 void InputModule::setup() {
-    input = new XRTLinput;
-    input->attach(pin);
-    input->averageTime(averageTime);          // in ms
-
-    // TODO: check if this works during initialization. Avoid taking measurements when invalid pins are used.
-    // remember to uncomment include when using this code
     int8_t channel = digitalPinToAnalogChannel(pin);
-    bool deinitPin = false;
+    bool abortInit = false;
     if (channel < 0) {
         debug("WARNING: pin is no ADC pin");
-        deinitPin = true;
+        abortInit = true;
     }
     if (channel > (SOC_ADC_MAX_CHANNEL_NUM - 1)) {
         channel -= SOC_ADC_MAX_CHANNEL_NUM;
@@ -47,21 +41,23 @@ void InputModule::setup() {
             debug("no conflicts found");
         } else if ( r == ESP_ERR_INVALID_STATE ) {
             debug("unable to initialize pin");
-            deinitPin = true;
+            abortInit = true;
         } else if ( r == ESP_ERR_TIMEOUT ) {
             debug("ADC2 is in use by Wi-Fi, select a different pin");
-            deinitPin = true;
+            abortInit = true;
         } else {
             debug("an unknown error occured");
-            deinitPin = true;
+            abortInit = true;
         }
     }
-    if (deinitPin) {
+    if (abortInit) {
         debug("input deactivated");
-        delete input;
-        input = NULL;
         return;
     }
+
+    input = new XRTLinput; 
+    input->attach(pin);
+    input->averageTime(averageTime);          // in ms
 
     if (input->readMilliVolts() >= hiBound) { // initialize lastState
         lastState = true;
@@ -75,11 +71,13 @@ void InputModule::setup() {
 }
 
 void InputModule::loop() {
-    if (input == NULL) return;
+    if (!input) return;
+    
     input->loop();
 
     int64_t now = esp_timer_get_time();
     value = input->readMilliVolts();
+
     // apply conversion if defined
     for (int i = 0; i < conversionCount; i++) {
         conversion[i]->convert(value);
@@ -87,8 +85,7 @@ void InputModule::loop() {
 
     if (rangeChecking && now >= nextCheck) {
         if (value >= hiBound) {
-            if (isBinary && lastState) // no trigger if state = lastState
-            {
+            if (isBinary && lastState) { // no trigger if state = lastState
             } else {
                 debug("high input");
                 notify(input_trigger_high);
@@ -97,8 +94,7 @@ void InputModule::loop() {
             }
         }
         if (value < loBound) {
-            if (isBinary && !lastState) // no trigger if state = lastState
-            {
+            if (isBinary && !lastState) {// no trigger if state = lastState
             } else {
                 debug("low input");
                 notify(input_trigger_low);
@@ -108,11 +104,8 @@ void InputModule::loop() {
         }
     }
 
-    if (!isStreaming)
-        return;
+    if (!isStreaming || now < next) return;
 
-    if (now < next)
-        return;
     // debug("reporting voltage: %f mV", value);
     next = now + intervalMicroSeconds;
 
@@ -297,9 +290,6 @@ bool InputModule::getStatus(JsonObject &status) {
     }
 
     return true;
-    // TODO: what about this?
-    // moduleState["value"] = value; <-- make this variable accessible outside loop?
-    // moduleState["triggerState"] = lastState;
 }
 
 void InputModule::startStreaming() {

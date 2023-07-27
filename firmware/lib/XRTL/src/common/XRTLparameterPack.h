@@ -12,6 +12,8 @@ public:
     virtual void load(JsonObject &settings);
     virtual void save(JsonObject &settings);
     // virtual void setViaSerial(JsonObject& settings);
+
+    virtual String *getName();
     virtual void print();
 
     // base class only used for default (null) parameter, specialized classes return false
@@ -64,12 +66,18 @@ public:
      */
     virtual void load(JsonObject &settings) {
         auto candidate = settings[name];
-        if (candidate.isNull())
-            return;
-        if (!candidate.is<T>())
-            return;
+        if (candidate.isNull() || !candidate.is<T>()) return;
 
         *parameter = candidate.as<T>();
+    }
+
+    /**
+     * @returns pointer to the parameter name or NULL
+     * @note returns NULL if the parameter is not listed
+    */
+    String *getName() {
+        if (notListed) return NULL;
+        return &name;
     }
 
     /**
@@ -77,12 +85,9 @@ public:
      * @note will not print anything if the parameter is not listed
      */
     virtual void print() {
-        if (notListed)
-            return;
-        Serial.print(name.c_str());
-        Serial.print(" (");
-        Serial.print(unit.c_str());
-        Serial.print("): ");
+        if (notListed) return;
+
+        Serial.printf("%s (%s): ", name.c_str(), unit.c_str());
         Serial.println(*parameter);
     }
 
@@ -91,8 +96,7 @@ public:
      * @note does nothing if the parameter is not listed
      */
     virtual void setViaSerial() {
-        if (notListed)
-            return;
+        if (notListed) return;
 
         setViaSerialQuery();
     }
@@ -112,8 +116,7 @@ public:
 
         input.add(serialInput(inputQuery));
 
-        if (input[0].isNull())
-            return;
+        if (input[0].isNull()) return;
 
         *parameter = input[0].as<T>();
     }
@@ -171,17 +174,13 @@ public:
 
     virtual void load(JsonObject &settings) {
         auto candidate = settings[name];
-        if (candidate.isNull())
-            return;
-        if (!candidate.is<bool>())
-            return;
+        if (candidate.isNull() || !candidate.is<bool>()) return;
 
         *parameter = candidate.as<bool>();
     }
 
     virtual void setViaSerial() {
-        if (notListed)
-            return;
+        if (notListed) return;
 
         setViaSerialQuery();
     }
@@ -201,7 +200,13 @@ public:
         }
     }
 
+    virtual String *getName() {
+        if (notListed) return NULL;
+        return &name;
+    }
+
     virtual void print() {
+        if (notListed) return;
         Serial.printf("%s (%s): %s\n", name.c_str(), unit.c_str(), *parameter ? "true" : "false");
     }
 
@@ -245,28 +250,27 @@ public:
     }
 
     virtual void save(JsonObject &settings) {
-        if (!dependency->isEqual(condition))
-            return;
+        if (!dependency->isEqual(condition)) return;
         settings[this->name] = *this->parameter;
     }
 
     virtual void load(JsonObject &settings) {
-        if (!dependency->isEqual(condition))
-            return;
+        if (!dependency->isEqual(condition)) return;
+
         auto candidate = settings[this->name];
-        if (candidate.isNull())
-            return;
-        if (!candidate.template is<T>())
-            return;
+        if (candidate.isNull() || !candidate.template is<T>()) return;
 
         *this->parameter = candidate.template as<T>();
     }
 
+    virtual String *getName() {
+        if (!dependency->isEqual(condition) || this->notListed) return NULL;
+        return &this->name;
+    }
+
     virtual void print() {
-        if (!dependency->isEqual(condition))
-            return;
-        if (this->notListed)
-            return;
+        if (!dependency->isEqual(condition) || this->notListed) return;
+
         Serial.print(this->name.c_str());
         Serial.print(" (");
         Serial.print(this->unit.c_str());
@@ -275,10 +279,8 @@ public:
     }
 
     void setViaSerial() {
-        if (!dependency->isEqual(condition))
-            return;
-        if (this->notListed)
-            return;
+        if (!dependency->isEqual(condition)) return;
+        if (this->notListed) return;
 
         this->setViaSerialQuery();
     }
@@ -318,8 +320,7 @@ public:
     // @param unit string representing the physical meaning of the parameter (visible in query procedure)
     template <typename T>
     void add(T &linkedParameter, String paramName, String unit) {
-        if (parameterCount >= 16)
-            return;
+        if (parameterCount >= 16) return;
 
         parameters[parameterCount++] = new XRTLparameter<T>(linkedParameter, paramName, unit);
     }
@@ -331,8 +332,7 @@ public:
     // @note parameter does not get listed and is inaccessible via serial interface, good for internal parameters
     template <typename T>
     void add(T &linkedParameter, String paramName) {
-        if (parameterCount == 16)
-            return;
+        if (parameterCount == 16) return;
 
         parameters[parameterCount++] = new XRTLparameter<T>(linkedParameter, paramName);
     }
@@ -347,12 +347,10 @@ public:
      */
     template <typename T, typename U>
     void addDependent(T &linkedParameter, String paramName, String unit, String dependee, U condition) {
-        if (parameterCount == 16)
-            return;
+        if (parameterCount == 16) return;
 
         XRTLpar *dependency = &operator[](dependee);
-        if (dependency->isNull())
-            return;                                                                // check if parameter exists
+        if (dependency->isNull()) return;                                          // check if parameter exists
         XRTLparameter<U> *targetPtr = static_cast<XRTLparameter<U> *>(dependency); // convert pointer
 
         parameters[parameterCount++] = new XRTLdependentPar<T, U>(linkedParameter, paramName, unit, targetPtr, condition);
@@ -368,12 +366,10 @@ public:
      */
     template <typename T, typename U>
     void addDependent(T &linkedParameter, String paramName, String dependee, U condition) {
-        if (parameterCount == 16)
-            return;
+        if (parameterCount == 16) return;
 
         XRTLpar *dependency = &operator[](dependee);
-        if (dependency->isNull())
-            return;
+        if (dependency->isNull()) return;
         XRTLparameter<U> *targetPtr = static_cast<XRTLparameter<U> *>(dependency);
 
         parameters[parameterCount++] = new XRTLdependentPar<T, U>(linkedParameter, paramName, targetPtr, condition);

@@ -7,6 +7,13 @@ void XRTLpar::save(JsonObject &settings){};
 void XRTLpar::print(){};
 
 /**
+ * @brief fetch the name of a parameter with regard to its intended visibility
+ * @returns pointer to the name or NULL
+ * @note returns NULL if the parameter is not supposed to be visible
+*/
+String *XRTLpar::getName(){return &name;}
+
+/**
  * @brief check if parameter is empty
  * @returns true if parameter is uninitialized
  * @note base class only used for default parameter, specialized (= initialized) classes return false
@@ -54,10 +61,8 @@ void ParameterPack::setKey(const char *key) {
  * @return pointer to the name
  */
 String &ParameterPack::name() {
-    if (linkedName)
-        return *linkedName;
-    else
-        return reserveName;
+    if (linkedName) return *linkedName;
+    else return reserveName;
 }
 
 /**
@@ -169,7 +174,10 @@ bool ParameterPack::dialog() {
 
     for (int i = 0; i < parameterCount; i++) {
         if (!parameters[i]->notListed) {
-            Serial.printf("%d: %s\n", i, parameters[i]->name.c_str());
+            String *parameterName = parameters[i]->getName();
+            if (parameterName) {
+                Serial.printf("%d: %s\n", i, parameterName->c_str());
+            }
         }
     }
 

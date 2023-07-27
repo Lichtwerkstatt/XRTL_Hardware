@@ -12,7 +12,7 @@
 
 class InputModule : public XRTLmodule {
 private:
-    XRTLinput *input;
+    XRTLinput *input = NULL;
     // number of conversions currently applied to the input.
     // maximum number: 16
     uint8_t conversionCount = 0;
