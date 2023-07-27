@@ -1,5 +1,5 @@
 #include "InputModule.h"
-// #include "driver/adc.h"
+#include "driver/adc.h"
 
 InputModule::InputModule(String moduleName) {
     id = moduleName;
@@ -26,28 +26,43 @@ InputModule::~InputModule() {
 
 void InputModule::setup() {
     input = new XRTLinput;
+    input->attach(pin);
+    input->averageTime(averageTime);          // in ms
 
     // TODO: check if this works during initialization. Avoid taking measurements when invalid pins are used.
     // remember to uncomment include when using this code
-    // int8_t channel = digitalPinToAnalogChannel(pin);
-    // if (channel < 0) {
-    //     debug("WARNING: pin is no ADC pin");
-    // }
-    // if (channel > (SOC_ADC_MAX_CHANNEL_NUM - 1)) {
-    //     esp_err_t r = ESP_OK;
-    //     int tempValue;
-    //     r = adc2_get_raw( (adc2_channel_t) channel, (adc_bits_width_t) (ADC_WIDTH_MAX - 1), &tempValue);
-    //     if ( r == ESP_OK ) {
-    //         debug("WARNING: pin is attached to ADC2, do not use with WiFi");
-    //     } else if ( r == ESP_ERR_INVALID_STATE ) {
-    //         debug("pin not initialized yet");
-    //     } else if ( r == ESP_ERR_TIMEOUT ) {
-    //         debug("GPIO%u: %s: ADC2 is in use by Wi-Fi.");
-    //     }
-    // }
+    int8_t channel = digitalPinToAnalogChannel(pin);
+    bool deinitPin = false;
+    if (channel < 0) {
+        debug("WARNING: pin is no ADC pin");
+        deinitPin = true;
+    }
+    if (channel > (SOC_ADC_MAX_CHANNEL_NUM - 1)) {
+        channel -= SOC_ADC_MAX_CHANNEL_NUM;
+        esp_err_t r = ESP_OK;
+        int tempValue;
+        r = adc2_get_raw((adc2_channel_t) channel, (adc_bits_width_t) (ADC_WIDTH_MAX - 1), &tempValue);
+        debug("WARNING: pin is attached to ADC2");
+        if ( r == ESP_OK ) {
+            debug("no conflicts found");
+        } else if ( r == ESP_ERR_INVALID_STATE ) {
+            debug("unable to initialize pin");
+            deinitPin = true;
+        } else if ( r == ESP_ERR_TIMEOUT ) {
+            debug("ADC2 is in use by Wi-Fi, select a different pin");
+            deinitPin = true;
+        } else {
+            debug("an unknown error occured");
+            deinitPin = true;
+        }
+    }
+    if (deinitPin) {
+        debug("input deactivated");
+        delete input;
+        input = NULL;
+        return;
+    }
 
-    input->attach(pin);
-    input->averageTime(averageTime);          // in ms
     if (input->readMilliVolts() >= hiBound) { // initialize lastState
         lastState = true;
     } else {
@@ -56,9 +71,11 @@ void InputModule::setup() {
 
     next = esp_timer_get_time();      // start streaming immediately
     nextCheck = esp_timer_get_time(); // check immediately
+    debug("input initialized");
 }
 
 void InputModule::loop() {
+    if (input == NULL) return;
     input->loop();
 
     int64_t now = esp_timer_get_time();
@@ -104,7 +121,6 @@ void InputModule::loop() {
 
     event.add("data");
     JsonObject payload = event.createNestedObject();
-    // payload["componentId"] = getComponent(); // TODO: check function
     payload["controlId"] = id;
     payload["type"] = "float";
     // payload["dataId"] = id;
@@ -262,8 +278,13 @@ bool InputModule::dialog() {
 }
 
 bool InputModule::getStatus(JsonObject &status) {
-    if (input == NULL)
-        return true; // avoid errors: status might be called in setup before init occured
+    if (input == NULL) {
+        String errmsg = "[";
+        errmsg += id;
+        errmsg += "] input not initialized, check pin";
+        sendError(hardware_failure, errmsg);
+        return false;
+    }
 
     status["averageTime"] = averageTime;
     status["updateTime"] = intervalMicroSeconds / 1000;
@@ -321,6 +342,8 @@ void InputModule::handleCommand(String &controlId, JsonObject &command) {
             stopStreaming();
         }
     }
+
+    if (!input) return; // settings unavailable if deactivated
 
     if (getValue<uint16_t>("averageTime", command, averageTime)) {
         input->averageTime(averageTime);

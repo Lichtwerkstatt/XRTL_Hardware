@@ -46,8 +46,8 @@ camera_config_t CameraModule::camera_config = {
 
 void CameraModule::setup() {
     // initialize the camera
-    esp_err_t err = esp_camera_init(&camera_config);
-    if (err != ESP_OK) {
+    initStatus = esp_camera_init(&camera_config);
+    if (initStatus != ESP_OK) {
         // debug("camera init failed: %s", err); // TODO: investigate core panic if init failed after restart
         debug("camera init failed");
         String errmsg = "[";
@@ -67,12 +67,10 @@ void CameraModule::setup() {
 }
 
 void CameraModule::loop() {
-    if (!isStreaming)
-        return;
+    if (!isStreaming || initStatus != ESP_OK) return;
 
     int64_t now = esp_timer_get_time();
-    if (now < nextFrame)
-        return;
+    if (now < nextFrame) return;
 
     camera_fb_t *fb = esp_camera_fb_get();
     if (!fb) {
@@ -94,6 +92,14 @@ void CameraModule::loop() {
 }
 
 bool CameraModule::getStatus(JsonObject &status) {
+    if (initStatus != ESP_OK) {
+        String errmsg = "[";
+        errmsg += id;
+        errmsg += "] camera not initialized, check connectors";
+        sendError(hardware_failure, errmsg);
+        
+        return false;
+    }
 
     status["stream"] = isStreaming;
     status["frameSize"] = frameSize;
@@ -211,6 +217,17 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command) {
             stopStreaming();
     }
 
+    bool getStatus = false;
+    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+        sendStatus();
+    }
+
+    // camera settings follow here, should be inaccessible if cam not initialized
+    if (initStatus != ESP_OK) {
+        sendStatus(); // will issue report
+        return;
+    }
+
     if (getValue<bool>("gray", command, isGray)) {
         if (isGray) {
             cameraSettings->set_special_effect(cameraSettings, 2);
@@ -310,10 +327,6 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command) {
         sendStatus();
     }
 
-    bool getStatus = false;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
-        sendStatus();
-    }
 }
 
 void CameraModule::handleInternal(internalEvent eventId, String &sourceId) {

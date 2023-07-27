@@ -18,10 +18,10 @@ public:
 
     void attach(uint8_t controlPin);
     void attach(uint8_t controlPin, uint8_t pwmChannel, uint16_t pwmFrequency);
-    // turn on/off
+
     void toggle(bool targetState);
-    // set powerlevel for PWM
     void write(uint8_t powerLvl);
+    
     uint8_t read();
     bool getState();
 };
