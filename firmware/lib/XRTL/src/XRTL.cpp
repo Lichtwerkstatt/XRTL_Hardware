@@ -31,8 +31,7 @@ void XRTL::loop() {
         module[i]->loop();
     }
 
-    if (!Serial.available())
-        return;
+    if (!Serial.available()) return;
 
     // allow to switch into debug mode
     String input = Serial.readStringUntil('\n');
@@ -49,9 +48,8 @@ void XRTL::loop() {
         return;
     if (input == "setup") {
         setViaSerial();
-    } else if (input == "debug") {
-    }      // do not interprete debug as event
-    else { // parse input as event
+    } else if (input == "debug") { // do not interprete debug as event
+    } else { // parse input as event
         DynamicJsonDocument serialEvent(1024);
         DeserializationError error = deserializeJson(serialEvent, input);
         if (error) {
@@ -84,62 +82,62 @@ bool XRTL::addModule(String moduleName, moduleType category) {
         return false;
     }
 
-    bool ret = false;
+    bool addSuccessful = false;
     switch (category) {
     case xrtl_socket: {
         socketIO = new SocketModule(moduleName);
         module[moduleCount] = socketIO;
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_wifi: {
         module[moduleCount] = new WifiModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_infoLED: {
         module[moduleCount] = new InfoLEDModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_stepper: {
         module[moduleCount] = new StepperModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_servo: {
         module[moduleCount] = new ServoModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_camera: {
         module[moduleCount] = new CameraModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_output: {
         module[moduleCount] = new OutputModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_input: {
         module[moduleCount] = new InputModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     case xrtl_macro: {
         module[moduleCount] = new MacroModule(moduleName);
-        ret = true;
+        addSuccessful = true;
         break;
     }
     }
 
-    if (ret) {
+    if (addSuccessful) {
         debug("<%s> module added: <%s>", moduleNames[category], moduleName.c_str());
         module[moduleCount++]->setParent(this);
     }
 
-    return ret;
+    return addSuccessful;
 }
 
 void XRTL::listModules() {
@@ -308,7 +306,6 @@ bool XRTL::settingsDialog() {
     Serial.println("");
     String choice = serialInput("choose single letter or number from above: ");
     uint8_t choiceInt = choice.toInt();
-    // Serial.println(centerString("", 39, '-'));
 
     if (choice == "a") {
         highlightString("add module", '-');

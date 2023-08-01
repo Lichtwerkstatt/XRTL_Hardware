@@ -45,7 +45,7 @@ void InfoLEDModule::setViaSerial() {
 
 void InfoLEDModule::stop() {
     led->hsv(8000, 255, 110);
-    led->constant();
+    led->constant(); // constant yellow = stopped (most likely setup mode)
 }
 
 bool InfoLEDModule::handleCommand(String &command) {
@@ -110,13 +110,13 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId) {
     if (led == NULL)
         return;
     switch (eventId) {
-    case socket_disconnected: {
-        led->hsv(0, 255, 110);
-        led->hold(true);
-        led->cycle(5000);
-        break;
-    }
-    case wifi_disconnected: {
+    // case socket_disconnected: {
+    //     led->hsv(0, 255, 110);
+    //     led->hold(true);
+    //     led->cycle(5000); // 5 second cycle; red = no socket connection
+    //     break;
+    // }
+    case wifi_disconnected: { // will typically get called right after socket_disconnected
         led->hsv(0, 255, 110);
         led->fill(true);
         led->hold(true);
@@ -127,21 +127,21 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId) {
         led->hsv(8000, 255, 110);
         led->fill(true);
         led->hold(true);
-        led->constant();
+        led->pulse(40, 110, 2000, 600000); // pulsing yellow = waiting for auth
         break;
     }
     case socket_authed: {
         led->hsv(20000, 255, 110);
         led->fill(true);
         led->hold(false);
-        led->constant(2500);
+        led->constant(2500); // 2.5 second green = connection established
         break;
     }
-    case wifi_connected: {
-        led->hsv(0, 255, 110);
+    case wifi_connected: { // will typically get called right after socket_disconnected
+        led->hsv(8000, 255, 110);
         led->fill(true);
         led->hold(true);
-        led->pulse(40, 100, 1000, 600); // after 600 seconds the device restarts -> pulsing until restart
+        led->constant(); // solid yellow = WiFi disconnected
         break;
     }
 

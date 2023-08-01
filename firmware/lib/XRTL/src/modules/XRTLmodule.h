@@ -35,6 +35,7 @@ enum internalEvent {
     socket_disconnected,
     socket_connected,
     socket_authed,
+    // socket_declined,
 
     wifi_disconnected,
     wifi_connected,

@@ -305,7 +305,8 @@ void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length) 
     case sIOtype_ACK: {
     }
     case sIOtype_ERROR: {
-        socketInstance->debug("error received: %s", payload);
+        socketInstance->debug("socket.io connection declined: %s", payload);
+        // socketInstance->notify(socket_declined);
     }
     case sIOtype_BINARY_EVENT: {
     }
@@ -477,6 +478,9 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
         sendAllStatus();
         return;
     }
+    // case socket_declined: {
+    //     return;
+    // }
 
     case time_synced: {
         timeSynced = true;
