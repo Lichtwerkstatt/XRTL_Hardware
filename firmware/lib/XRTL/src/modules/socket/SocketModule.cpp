@@ -340,23 +340,20 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc) {
             JsonObject payload = doc[1];
             uint64_t receivedTime = 0;
             if (getValue("time", payload, receivedTime, true) && receivedTime != 0) {
-                uint64_t receivedTime = doc[1].as<uint64_t>();
-                debug("time received: %llu", receivedTime);
+                debug("time received: %llu ms", receivedTime);
 
                 time_t now;
                 time(&now);
 
-                if (abs((long long)receivedTime / 1000 - now) < 300) // less than 5 minutes difference
-                {
+                if (abs((long long)receivedTime / 1000 - now) < 300) { // less than 5 minutes difference
                     debug("approximate time match");
-                    return;
+                } else {
+                    debug("time mismatch, syncing to server time");
+                    timeval receivedEpoch;
+                    receivedEpoch.tv_sec = floor(receivedTime / 1000);
+                    receivedEpoch.tv_usec = (receivedTime % 1000) * 1000;
+                    sntp_set_system_time(receivedEpoch.tv_sec, receivedEpoch.tv_usec);
                 }
-
-                debug("time mismatch, syncing to server time");
-                timeval receivedEpoch;
-                receivedEpoch.tv_sec = floor(receivedTime / 1000);
-                receivedEpoch.tv_usec = (receivedTime % 1000) * 1000;
-                sntp_set_system_time(receivedEpoch.tv_sec, receivedEpoch.tv_usec);
             }
         }
 
@@ -491,7 +488,7 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
         uint32_t uSec;
         sntp_get_system_time(&sec, &uSec);
 
-        debug("time synced: %lu.%lu", sec, uSec / 1000);
+        debug("time synced: %lu.%lu s", sec, uSec / 1000);
         return;
     }
 
