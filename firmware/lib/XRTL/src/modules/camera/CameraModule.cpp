@@ -224,7 +224,7 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command) {
 
     // camera settings follow here, should be inaccessible if cam not initialized
     if (initStatus != ESP_OK) {
-        sendStatus(); // will issue report
+        sendStatus(); // will issue error
         return;
     }
 

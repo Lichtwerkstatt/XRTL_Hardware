@@ -32,24 +32,28 @@ void MacroModule::setup()
 
 void MacroModule::loop()
 {
-    if (!activeState || esp_timer_get_time() < nextAction) // only continue if executing a state AND no timer condition is violated (interrupts reset timer) 
-        return;
+    // only continue if executing a state AND no timer is due
+    if (!activeState || esp_timer_get_time() < nextAction) return;
 
-    nextAction = 0; // reset timer if condition met
+    nextAction = 0; // reset timer
     while (nextAction == 0 && activeState) // loop through commands until paused or completed (indicated by activeState == NULL)
     {
         activeState->loop(); // state will call stop() when completed
     }
 }
 
-// TODO: add function to signal unplanned stop
 void MacroModule::stop()
 {
-    if (!activeState) // no active state: nothing to stop
-        return;
+    if (!activeState) return; // no active state: nothing to stop
+
+    if (activeState->isCompleted()) {
+        currentStateName = activeState->getName();
+    } else {
+        currentStateName = "aborted";
+    }
     
-    listeningId = ""; // listeningId not persistent beyond state execution
-    currentStateName = activeState->getName();
+    
+    listeningId = ""; // so that listeningId does not persist beyond state execution
     nextAction = 0;
     activeState = NULL;
     sendStatus();
@@ -75,8 +79,7 @@ void MacroModule::loadSettings(JsonObject &settings)
         }
     }
 
-    if (debugging)
-        parameters.print();
+    if (debugging) parameters.print();
 }
 
 void MacroModule::saveSettings(JsonObject &settings)
@@ -84,8 +87,7 @@ void MacroModule::saveSettings(JsonObject &settings)
     JsonObject subSettings;
     parameters.save(settings, subSettings);
 
-    if (stateCount == 0)
-        return;
+    if (stateCount == 0) return;
 
     JsonObject stateSettings = subSettings.createNestedObject("states");
     for (int i = 0; i < stateCount; i++)
@@ -95,6 +97,9 @@ void MacroModule::saveSettings(JsonObject &settings)
     }
 }
 
+/**
+ * @brief prints all registered states via the serial interface
+*/
 void MacroModule::listStates()
 {
     for (int i = 0; i < stateCount; i++)
@@ -103,6 +108,10 @@ void MacroModule::listStates()
     }
 }
 
+/**
+ * @brief handles serial setup of the states
+ * @returns true if the dialog should be called again
+*/
 bool MacroModule::stateDialog()
 {
     Serial.println("");
@@ -123,8 +132,8 @@ bool MacroModule::stateDialog()
     uint8_t choiceInt = choice.toInt();
     Serial.println("");
 
-    if (choice == "r")
-        return false;
+    if (choice == "r") return false;
+
     else if (choice == "a")
     {
         String newState = serialInput("new state name: ");
@@ -151,6 +160,10 @@ bool MacroModule::stateDialog()
     return true;
 }
 
+/**
+ * @brief handles the setup dialog on the serial interface
+ * @returns true if the dialog should be called again
+*/
 bool MacroModule::dialog()
 {
     Serial.println("");
@@ -188,6 +201,11 @@ void MacroModule::setViaSerial()
     }
 }
 
+/**
+ * @brief search for a state by its name
+ * @param wantedState String of the module searched for
+ * @returns pointer to the state or NULL if the state could not be found
+*/
 MacroState *MacroModule::findState(String &wantedState)
 {
     for (int i = 0; i < stateCount; i++)
@@ -198,11 +216,18 @@ MacroState *MacroModule::findState(String &wantedState)
     return NULL;
 }
 
+/**
+ * @brief add a new state
+ * @param stateName ID of the new state
+*/
 void MacroModule::addState(String &stateName)
 {
     if (findState(stateName) != NULL)
     {
         debug("state <%s> already in use by this module", stateName.c_str());
+        return;
+    } else if (stateName == "aborted") {
+        debug("state name <%s> reserved for internal use", stateName.c_str());
         return;
     }
 
@@ -210,6 +235,10 @@ void MacroModule::addState(String &stateName)
     debug("state added: %s", stateName);
 }
 
+/**
+ * @brief delete a state permanently
+ * @param number index of the state to remove
+*/
 void MacroModule::delState(uint8_t number)
 {
     delete states[number];
@@ -307,7 +336,7 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     }
 
     String waitingId;
-    if (activeState && getValue("listen", command, waitingId))
+    if (getValue("listen", command, waitingId))
     {
         listeningId = waitingId;
         debug("listening for <%s>", listeningId.c_str());

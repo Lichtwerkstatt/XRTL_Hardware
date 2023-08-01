@@ -38,15 +38,12 @@ void WifiModule::setup() {
     if (enterprise) {
         if ((username == 0) or (username == "null") or (username == "")) {
             debug("WARNING! username not set -- falling back to regular WiFi");
-
             enterprise = false;
         } else if ((anonymous == 0) or (anonymous == "null") or (anonymous == "")) {
             debug("WARNING! anonymous identiy not set -- falling back to regular WiFi");
-
             enterprise = false;
         } else {
             debug("starting enterprise level WiFi");
-
             WiFi.begin(ssid.c_str(), WPA2_AUTH_PEAP, anonymous.c_str(), username.c_str(), password.c_str());
         }
     }
@@ -56,21 +53,18 @@ void WifiModule::setup() {
             debug("WARNING! SSID not set -- unable to start WiFi");
         } else {
             debug("starting regular WiFi");
-
             WiFi.begin(ssid.c_str(), password.c_str());
         }
     }
 }
 
 void WifiModule::loop() {
-    if (!checkConnection) {
-        return;
-    }
+    if (!checkConnection) return;
 
     if (WiFi.isConnected()) {
         uint8_t nullAddress[4] = {0, 0, 0, 0};
-        if (WiFi.localIP() == nullAddress)
-            return; // no IP yet, can't use online resources
+        if (WiFi.localIP() == nullAddress) return; // no IP yet, can't use online resources
+        
         debug("connected to WiFi with local IP: %s", WiFi.localIP().toString().c_str());
         debug("signal strength: %d dBm", WiFi.RSSI());
         notify(wifi_connected);
