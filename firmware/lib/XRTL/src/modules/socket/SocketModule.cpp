@@ -157,12 +157,6 @@ String SocketModule::createJWT() {
     time(&now);
     payload["sub"] = component; // client identity
     payload["component"] = "component";
-    // TODO: expiration handled by server
-    // if (timeSynced)
-    // {
-    //     payload["iat"] = now;
-    //     payload["exp"] = now + 605000; // ~ 1 week
-    // }
 
     encoding = "";
     serializeJson(payload, encoding);
@@ -387,7 +381,7 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc) {
         pushCommand(controlId, payload);
     }
 
-    if (eventName == "status") // TODO: complete status pipeline
+    if (eventName == "status")
     {
         auto payloadCandidate = doc[1];
         if (payloadCandidate.isNull() || !payloadCandidate.is<JsonObject>()) {
@@ -487,9 +481,7 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
     case time_synced: {
         timeSynced = true;
 
-        if (!debugging) {
-            return; // only need to print time if debugging
-        }
+        if (!debugging) return; // only need to print time if debugging
 
         uint32_t sec;
         uint32_t uSec;
