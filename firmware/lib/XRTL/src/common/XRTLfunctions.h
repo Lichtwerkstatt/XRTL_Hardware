@@ -25,6 +25,8 @@ T loadValue(String key, JsonObject &file, T defaultValue) {
 
 String serialInput(String query);
 
+String sanitizeBackSpace(String input);
+
 String centerString(String str, uint8_t targetLength, char filler);
 
 void highlightString(String str, char filler);

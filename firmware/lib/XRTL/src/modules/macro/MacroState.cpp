@@ -81,7 +81,7 @@ void MacroState::swpCommand(uint8_t firstNumber, uint8_t secondNumber) {
  * @returns true if the dialog should be called another time; false if the user asked to return to the previous menu
  */
 bool MacroState::dialog() {
-    Serial.println(centerString(stateName, 39, ' '));
+    Serial.println(centerString(stateName, 55, ' '));
     Serial.println("");
     listCommands();
     Serial.println("");

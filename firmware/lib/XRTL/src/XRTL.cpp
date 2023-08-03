@@ -35,10 +35,10 @@ void XRTL::loop() {
     if (!Serial.available()) return;
 
     // allow to switch into debug mode
-    String input = Serial.readStringUntil('\n');
+    String input = sanitizeBackSpace(Serial.readStringUntil('\n'));
     if (input == "debug") {
         debugging = !debugging;
-        debug("debug mode enabled");
+        Serial.printf("[%s] debug mode %sabled\n", id.c_str(), debugging ? "en" : "dis" );
     }
 
     // only allow inputs if debugging
