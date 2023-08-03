@@ -13,7 +13,7 @@ XRTL::~XRTL() {
 void XRTL::setup() {
     Serial.begin(115200);
 
-    debug("starting setup");
+    // debug("starting setup");
     loadSettings();
 
     // execute setup of all modules
@@ -29,6 +29,7 @@ void XRTL::loop() {
     for (int i = 0; i < moduleCount; i++) {
         // debug("loop <%s>", module[i]->getID().c_str());
         module[i]->loop();
+        // debug("executed successfully");
     }
 
     if (!Serial.available()) return;
@@ -37,15 +38,12 @@ void XRTL::loop() {
     String input = Serial.readStringUntil('\n');
     if (input == "debug") {
         debugging = !debugging;
-        if (debugging)
-            notify(debug_on, id);
-        else
-            notify(debug_off, id);
+        debug("debug mode enabled");
     }
 
     // only allow inputs if debugging
-    if (!debugging)
-        return;
+    if (!debugging) return;
+
     if (input == "setup") {
         setViaSerial();
     } else if (input == "debug") { // do not interprete debug as event
@@ -134,7 +132,7 @@ bool XRTL::addModule(String moduleName, moduleType category) {
 
     if (addSuccessful) {
         debug("<%s> module added: <%s>", moduleNames[category], moduleName.c_str());
-        module[moduleCount++]->setParent(this);
+        module[moduleCount++]->setLinks(this, &debugging);
     }
 
     return addSuccessful;
@@ -185,6 +183,8 @@ void XRTL::saveSettings() {
     DynamicJsonDocument doc(4096);
     JsonObject settings = doc.to<JsonObject>();
 
+    settings["debug"] = debugging;
+
     for (int i = 0; i < moduleCount; i++) {
         module[i]->saveSettings(settings);
     }
@@ -197,7 +197,7 @@ void XRTL::saveSettings() {
         }
     }
 
-    serializeJsonPretty(doc, Serial);
+    // serializeJsonPretty(doc, Serial);
     Serial.println("");
 
     if (!LittleFS.begin(false)) {
@@ -223,9 +223,6 @@ void XRTL::saveSettings() {
 }
 
 void XRTL::loadSettings() {
-    if (debugging) {
-        highlightString("loading settings", '=');
-    }
 
     if (!LittleFS.begin(false)) {
         debug("failed to mount LittleFS");
@@ -252,10 +249,27 @@ void XRTL::loadSettings() {
     file.close();
     LittleFS.end();
 
-    serializeJsonPretty(doc, Serial);
+    // serializeJsonPretty(doc, Serial);
     Serial.println("");
 
     JsonObject settings = doc.as<JsonObject>();
+
+    debugging = loadValue("debug", settings, true);
+    
+    if (debugging) {
+        highlightString("loading settings", '=');
+    }
+    
+    JsonArray internalSettings = settings["internal"];
+    if (!internalSettings.isNull()) {
+        if (debugging)
+            highlightString("custom internal events", '-');
+
+        for (JsonObject eventSettings : internalSettings) {
+            customInternal[internalCount] = new InternalHook;
+            customInternal[internalCount++]->load(eventSettings, debugging);
+        }
+    }
 
     for (JsonPair kv : settings) {
         moduleType type;
@@ -263,7 +277,7 @@ void XRTL::loadSettings() {
             // JsonObject moduleSettings = kv.value().as<JsonObject>();
             auto typeField = kv.value()["type"];
             // auto typeField = moduleSettings["type"];
-            if ((!typeField.isNull()) and (typeField.is<int>())) {
+            if ((!typeField.isNull()) && (typeField.is<int>())) {
                 type = typeField.as<moduleType>();
                 addModule(kv.key().c_str(), type);
                 module[moduleCount - 1]->loadSettings(settings);
@@ -279,16 +293,6 @@ void XRTL::loadSettings() {
         ESP.restart();
     }
 
-    JsonArray internalSettings = settings["internal"];
-    if (!internalSettings.isNull()) {
-        if (debugging)
-            highlightString("custom internal events", '-');
-
-        for (JsonObject eventSettings : internalSettings) {
-            customInternal[internalCount] = new InternalHook;
-            customInternal[internalCount++]->load(eventSettings, debugging);
-        }
-    }
 
     if (debugging)
         highlightString("loading successfull", '=');
@@ -302,6 +306,7 @@ bool XRTL::settingsDialog() {
     Serial.println("d: delete module");
     Serial.println("s: swap modules");
     Serial.println("i: internal events");
+    Serial.println("b: disable debug mode");
     Serial.println("r: save and restart");
     Serial.println("");
     String choice = serialInput("choose single letter or number from above: ");
@@ -367,6 +372,9 @@ bool XRTL::settingsDialog() {
     } else if (choice == "i") {
         // add internal event hooks
         manageInternal();
+    } else if (choice == "b") {
+        debugging = false;
+        Serial.printf("\ndebugging %sabled\n\n", debugging ? "en" : "dis" );
     } else if (choice == "r") {
         return false;
     } else if (choiceInt < moduleCount) {
@@ -381,22 +389,15 @@ bool XRTL::settingsDialog() {
 void XRTL::setViaSerial() {
     stop();
 
-    Serial.println("");
-    Serial.println(centerString("", 39, '='));
-    Serial.println(centerString("serial setup", 39, ' '));
-    Serial.println(centerString("", 39, '='));
-    Serial.println("");
+    highlightString("serial setup", '=');
 
     while (settingsDialog()) {
     }
 
     saveSettings();
 
-    Serial.println("");
-    Serial.println(centerString("", 39, '='));
-    Serial.println(centerString("setup complete", 39, ' '));
-    Serial.println(centerString("", 39, '='));
-    Serial.println("");
+    highlightString("setup complete", '=');
+
     Serial.println("restarting now");
     ESP.restart();
 }
@@ -685,7 +686,7 @@ void XRTL::addInternal() {
     Serial.println("");
     Serial.println("available event types:");
     Serial.println("");
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 10; i++) {
         Serial.printf("%d: %s\n", i, internalEventNames[i]);
     }
 

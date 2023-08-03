@@ -8,10 +8,8 @@ XRTLsetableCommand::~XRTLsetableCommand() {
  * @brief clear all variables and return to empty settings
  */
 void XRTLsetableCommand::clear() {
-    if (key)
-        delete key;
-    if (val)
-        delete val;
+    if (key) delete key;
+    if (val) delete val;
     key = NULL;
     val = NULL;
 }

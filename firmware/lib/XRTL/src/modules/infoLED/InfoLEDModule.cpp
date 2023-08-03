@@ -36,7 +36,7 @@ void InfoLEDModule::saveSettings(JsonObject &settings) {
 
 void InfoLEDModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
-    if (debugging) parameters.print();
+    if (debugging && *debugging) parameters.print();
 }
 
 void InfoLEDModule::setViaSerial() {
@@ -49,8 +49,7 @@ void InfoLEDModule::stop() {
 }
 
 bool InfoLEDModule::handleCommand(String &command) {
-    if (command != "reset")
-        return false;
+    if (command != "reset") return false;
 
     led->hsv(8000, 255, 110);
     led->constant();
@@ -142,22 +141,6 @@ void InfoLEDModule::handleInternal(internalEvent eventId, String &sourceId) {
         led->fill(true);
         led->hold(true);
         led->constant(); // solid yellow = WiFi disconnected
-        break;
-    }
-
-    case busy: {
-        break;
-    }
-    case ready: {
-        break;
-    }
-
-    case debug_off: {
-        debugging = false;
-        break;
-    }
-    case debug_on: {
-        debugging = true;
         break;
     }
     }

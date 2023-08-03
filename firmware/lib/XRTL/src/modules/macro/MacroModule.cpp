@@ -79,7 +79,7 @@ void MacroModule::loadSettings(JsonObject &settings)
         }
     }
 
-    if (debugging) parameters.print();
+    if (debugging && *debugging) parameters.print();
 }
 
 void MacroModule::saveSettings(JsonObject &settings)
@@ -115,9 +115,9 @@ void MacroModule::listStates()
 bool MacroModule::stateDialog()
 {
     Serial.println("");
-    Serial.println(centerString("",39,'-'));
-    Serial.println(centerString(id.c_str(), 39, ' '));
-    Serial.println(centerString("",39,'-'));
+    Serial.println(centerString("",55,'-'));
+    Serial.println(centerString(id.c_str(), 55, ' '));
+    Serial.println(centerString("",55,'-'));
     Serial.println("");
 
     Serial.println("current states:");
@@ -166,11 +166,7 @@ bool MacroModule::stateDialog()
 */
 bool MacroModule::dialog()
 {
-    Serial.println("");
-    Serial.println(centerString("",39,'-'));
-    Serial.println(centerString(id.c_str(), 39, ' '));
-    Serial.println(centerString("",39,'-'));
-    Serial.println("");
+    highlightString(id.c_str(), '-');
 
     Serial.println("available settings:");
     Serial.println("");

@@ -31,8 +31,8 @@ void ServoModule::saveSettings(JsonObject &settings) {
 
 void ServoModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
-    if (debugging)
-        parameters.print();
+
+    if (debugging && *debugging) parameters.print();
 }
 
 void ServoModule::setViaSerial() {
@@ -105,8 +105,7 @@ void ServoModule::loop() {
 }
 
 void ServoModule::stop() {
-    if (!wasRunning)
-        return;
+    if (!wasRunning) return;
     wasRunning = false;
     targetDuty = currentDuty;
     servo->detach();

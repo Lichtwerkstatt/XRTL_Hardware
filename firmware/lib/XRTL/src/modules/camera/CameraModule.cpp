@@ -20,7 +20,7 @@ camera_config_t CameraModule::camera_config = {
 
     .pin_d7 = 35,
     .pin_d6 = 34,
-    .pin_d5 = 39,
+    .pin_d5 = 55,
     .pin_d4 = 36,
     .pin_d3 = 21,
     .pin_d2 = 19,
@@ -120,11 +120,7 @@ void CameraModule::loadSettings(JsonObject &settings) {
 }
 
 void CameraModule::setViaSerial() {
-    Serial.println("");
-    Serial.println(centerString("", 39, '-').c_str());
-    Serial.println(centerString(id, 39, ' ').c_str());
-    Serial.println(centerString("", 39, '-').c_str());
-    Serial.println("");
+    highlightString(id.c_str(), '-');
 
     id = serialInput("controlId: ");
 }
@@ -337,16 +333,6 @@ void CameraModule::handleInternal(internalEvent eventId, String &sourceId) {
             return;
         stopStreaming();
         debug("stream stopped due to disconnect");
-        return;
-    }
-
-    case debug_on: {
-        debugging = true;
-        return;
-    }
-
-    case debug_off: {
-        debugging = false;
         return;
     }
     }

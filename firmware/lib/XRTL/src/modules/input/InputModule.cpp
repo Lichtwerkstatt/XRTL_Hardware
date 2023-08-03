@@ -160,13 +160,12 @@ void InputModule::loadSettings(JsonObject &settings) {
             auto typeField = conversionSettings["type"];
             conversion_t convType = loadValue<conversion_t>("type", conversionSettings, offset);
             addConversion(convType);
-            conversion[conversionCount - 1]->loadSettings(conversionSettings, debugging);
+            conversion[conversionCount - 1]->loadSettings(conversionSettings, *debugging);
             // if (debugging) Serial.println("");
         }
     }
 
-    if (debugging)
-        parameters.print();
+    if (debugging && *debugging) parameters.print();
 }
 
 void InputModule::setViaSerial() {
@@ -176,7 +175,7 @@ void InputModule::setViaSerial() {
 
 bool InputModule::conversionDialog() {
     Serial.println("");
-    Serial.println(centerString("current conversions", 39, ' '));
+    Serial.println(centerString("current conversions", 55, ' '));
     Serial.println("");
 
     for (int i = 0; i < conversionCount; i++) {
@@ -196,7 +195,7 @@ bool InputModule::conversionDialog() {
     if (choice == "r") {
         return false;
     } else if (choice == "a") {
-        Serial.println(centerString("conversions available", 39, ' ').c_str());
+        Serial.println(centerString("conversions available", 55, ' ').c_str());
         for (int i = 0; i < 6; i++) {
             Serial.printf("%d: %s\n", i, conversionName[i]);
         }
@@ -244,11 +243,7 @@ bool InputModule::conversionDialog() {
 }
 
 bool InputModule::dialog() {
-    Serial.println("");
-    Serial.println(centerString("", 39, '-'));
-    Serial.println(centerString(id.c_str(), 39, ' '));
-    Serial.println(centerString("", 39, '-'));
-    Serial.println("");
+    highlightString(id.c_str(), '-');
 
     Serial.println("available settings:");
     Serial.println("");
@@ -365,14 +360,7 @@ void InputModule::handleInternal(internalEvent eventId, String &sourceId) {
         return;
     }
 
-    case debug_off: {
-        debugging = false;
-        return;
-    }
-    case debug_on: {
-        debugging = true;
-        return;
-    }
+
     }
 }
 

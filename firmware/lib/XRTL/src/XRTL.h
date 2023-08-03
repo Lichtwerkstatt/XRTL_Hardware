@@ -68,8 +68,8 @@ public:
      */
     template <typename... Args>
     void debug(Args... args) {
-        if (!debugging)
-            return;
+        if (!debugging) return;
+
         Serial.printf("[%s] ", id.c_str());
         Serial.printf(args...);
         Serial.print('\n');

@@ -22,8 +22,8 @@ void WifiModule::saveSettings(JsonObject &settings) {
 
 void WifiModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
-    if (debugging)
-        parameters.print();
+    
+    if (debugging && *debugging) parameters.print();
 }
 
 void WifiModule::setViaSerial() {
@@ -85,15 +85,6 @@ void WifiModule::handleInternal(internalEvent eventId, String &sourceId) {
     switch (eventId) {
     case socket_disconnected: {
         checkConnection = true; // check if WiFi is down in next loop
-        return;
-    }
-
-    case debug_off: {
-        debugging = false;
-        return;
-    }
-    case debug_on: {
-        debugging = true;
         return;
     }
     }

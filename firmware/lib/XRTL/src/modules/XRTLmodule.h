@@ -45,15 +45,11 @@ enum internalEvent {
 
     time_synced,
 
-    debug_on,
-    debug_off,
-
     input_trigger_low,
     input_trigger_high
 };
 
-static const char *internalEventNames[12] =
-    {
+static const char *internalEventNames[10] = {
         "socket disconnected",
         "socket connected",
         "socket authed",
@@ -62,8 +58,6 @@ static const char *internalEventNames[12] =
         "busy",
         "ready",
         "time synced",
-        "debug on",
-        "debug off",
         "low input trigger",
         "high input trigger",
 };
@@ -89,13 +83,13 @@ protected:
     // @note if two modules share the same ID, both will react to commands issued under that ID
     String id;
     XRTL *xrtl;            // core address, must be assigned after construction using setParent()
-    bool debugging = true; // true: print status messages via serial monitor and accept serial events
+    bool *debugging = NULL; // true: print status messages via serial monitor and accept serial events
 
 public:
     ParameterPack parameters; // stores parameters for the module
     String getID();           // return id
     String &getComponent();
-    void setParent(XRTL *parent);
+    void setLinks(XRTL *parent, bool *debugPtr);
     bool isModule(String &moduleName);
 
     virtual void handleCommand(String &controlId, JsonObject &command);
@@ -128,8 +122,8 @@ public:
      */
     template <typename... Args>
     void debug(Args... args) {
-        if (!debugging)
-            return;
+        if (!(debugging && *debugging)) return;
+
         Serial.printf("[%s] ", id.c_str());
         Serial.printf(args...);
         Serial.print('\n');

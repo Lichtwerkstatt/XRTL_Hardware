@@ -4,8 +4,14 @@ String XRTLmodule::getID() {
     return id;
 }
 
-void XRTLmodule::setParent(XRTL *parent) {
+/**
+ * @brief set up links to module manager and debugging switch
+ * @param parent pointer to module manager
+ * @param debugPtr pointer to debugging switch
+*/
+void XRTLmodule::setLinks(XRTL *parent, bool *debugPtr) {
     xrtl = parent;
+    debugging = debugPtr;
 }
 
 /**
@@ -82,18 +88,7 @@ void XRTLmodule::stop() {
  * @param eventId type of the occuring event
  * @param sourceId ID of the module triggering the event
  */
-void XRTLmodule::handleInternal(internalEvent eventId, String &sourceId) {
-    switch (eventId) {
-    case debug_off: {
-        debugging = false;
-        break;
-    }
-    case debug_on: {
-        debugging = true;
-        break;
-    }
-    }
-}
+void XRTLmodule::handleInternal(internalEvent eventId, String &sourceId) {}
 
 /**
  *

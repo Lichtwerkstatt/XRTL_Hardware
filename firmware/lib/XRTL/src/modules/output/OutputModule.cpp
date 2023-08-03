@@ -34,7 +34,7 @@ void OutputModule::saveSettings(JsonObject &settings) {
 
 void OutputModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
-    if (debugging) parameters.print();
+    if (debugging && *debugging) parameters.print();
 }
 
 bool OutputModule::getStatus(JsonObject &status) {
@@ -104,15 +104,6 @@ void OutputModule::handleInternal(internalEvent eventId, String &sourceId) {
         if (!out || !out->getState()) return;
         out->toggle(false);
         debug("output powered down for safety reasons");
-        return;
-    }
-
-    case debug_off: {
-        debugging = false;
-        return;
-    }
-    case debug_on: {
-        debugging = true;
         return;
     }
     }

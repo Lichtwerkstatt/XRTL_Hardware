@@ -407,8 +407,7 @@ void SocketModule::saveSettings(JsonObject &settings) {
 
 void SocketModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
-    if (debugging)
-        parameters.print();
+    if (debugging && *debugging) parameters.print();
 }
 
 void SocketModule::setViaSerial() {
@@ -459,7 +458,7 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
     case socket_disconnected: {
         failedConnectionCount++; // TODO: is there a way to avoid the 5s BLOCKING!!! timeout?
         debug("disconnected, connection attempt: %i", failedConnectionCount);
-        if (failedConnectionCount > 49) {
+        if (failedConnectionCount > 55) {
             debug("unable to connect -- restarting device");
             ESP.restart();
         }
@@ -489,15 +488,6 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
         sntp_get_system_time(&sec, &uSec);
 
         debug("time synced: %lu.%lu s", sec, uSec / 1000);
-        return;
-    }
-
-    case debug_off: {
-        debugging = false;
-        return;
-    }
-    case debug_on: {
-        debugging = true;
         return;
     }
     }

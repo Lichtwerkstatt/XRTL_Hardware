@@ -40,9 +40,9 @@ String centerString(String str, uint8_t targetLength, char filler = ' ') {
  */
 void highlightString(String str, char filler = '-') {
     Serial.println("");
-    Serial.println(centerString("", 39, filler));
-    Serial.println(centerString(str, 39));
-    Serial.println(centerString("", 39, filler));
+    Serial.println(centerString("", 55, filler));
+    Serial.println(centerString(str, 55));
+    Serial.println(centerString("", 55, filler));
     Serial.println("");
 }
 
