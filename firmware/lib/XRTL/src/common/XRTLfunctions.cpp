@@ -10,9 +10,35 @@ String serialInput(String query) {
     while (!Serial.available()) {
         yield();
     }
-    String answer = Serial.readStringUntil('\n');
+    String answer = sanitizeBackSpace(Serial.readStringUntil('\n'));
     Serial.println(answer);
     return answer;
+}
+
+/**
+ * @brief allows for backspace in the serial input, removing it appropriately
+ * @param input raw string that might contain backspace
+ * @returns input string but with the backspace removed appropriately
+*/
+String sanitizeBackSpace(String input) {
+    char output[input.length() + 1];
+    int outputPos = 0;
+    char currentChar;
+    for (int i = 0; i < input.length(); i++) {
+        currentChar = input[i];
+
+        if (currentChar != '\b') {
+            output[outputPos++] = currentChar;
+            continue;
+        }
+
+        if (outputPos == 0) continue;
+
+        outputPos--;
+    }
+
+    output[outputPos] = '\0';
+    return String(output);
 }
 
 /**
