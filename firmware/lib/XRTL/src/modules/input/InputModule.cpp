@@ -308,10 +308,6 @@ void InputModule::stopStreaming() {
     debug("stopped streaming values");
 }
 
-bool InputModule::handleCommand(String &command) {
-    return false;
-}
-
 void InputModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*") return;
 

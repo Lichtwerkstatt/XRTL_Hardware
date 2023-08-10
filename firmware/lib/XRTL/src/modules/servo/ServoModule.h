@@ -38,7 +38,6 @@ public:
     void write(int16_t target);           // move servo to target on the value range
     void driveServo(JsonObject &command); // process the command object and move servo if needed
 
-    bool handleCommand(String &command);
     void handleCommand(String &controlId, JsonObject &command);
 
     void saveSettings(JsonObject &settings);

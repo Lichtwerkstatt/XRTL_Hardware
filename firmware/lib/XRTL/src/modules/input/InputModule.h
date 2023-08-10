@@ -60,7 +60,6 @@ public:
     void stopStreaming();
 
     void handleCommand(String &controlId, JsonObject &command);
-    bool handleCommand(String &command);
 
     void handleInternal(internalEvent eventId, String &sourceId);
 

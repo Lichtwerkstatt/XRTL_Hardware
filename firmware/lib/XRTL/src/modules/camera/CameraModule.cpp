@@ -188,19 +188,6 @@ void CameraModule::virtualPTZ() {
     cameraSettings->set_res_raw(cameraSettings, 0, 0, 0, 0, xOffset, yOffset, xLength, yLength, xLength, yLength, true, true);
 }
 
-bool CameraModule::handleCommand(String &command) {
-    if (command == "startStreaming") {
-        startStreaming();
-        return true;
-    }
-    if (command == "stopStreaming") {
-        stopStreaming();
-        return true;
-    }
-
-    return false;
-}
-
 void CameraModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;

@@ -43,7 +43,7 @@ public:
 
     void startStreaming();
     void stopStreaming();
-    bool handleCommand(String &command);
+    
     void handleCommand(String &controlId, JsonObject &command);
     void handleInternal(internalEvent eventId, String &sourceId);
 

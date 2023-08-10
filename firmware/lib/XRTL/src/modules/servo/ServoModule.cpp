@@ -112,20 +112,6 @@ void ServoModule::stop() {
     notify(ready);
 }
 
-bool ServoModule::handleCommand(String &command) {
-    if (strcmp(command.c_str(), "init") == 0) {
-        initial = read();
-        return true;
-    }
-
-    if (strcmp(command.c_str(), "reset") == 0) {
-        write(initial);
-        return true;
-    }
-
-    return false;
-}
-
 void ServoModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;

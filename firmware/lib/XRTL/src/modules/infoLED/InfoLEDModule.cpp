@@ -48,15 +48,6 @@ void InfoLEDModule::stop() {
     led->constant(); // constant yellow = stopped (most likely setup mode)
 }
 
-bool InfoLEDModule::handleCommand(String &command) {
-    if (command != "reset") return false;
-
-    led->hsv(8000, 255, 110);
-    led->constant();
-
-    return true;
-}
-
 void InfoLEDModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId))
         return;

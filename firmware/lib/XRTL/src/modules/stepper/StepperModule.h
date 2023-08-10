@@ -38,7 +38,6 @@ public:
     void loop();
     void stop();
 
-    bool handleCommand(String &command);
     void handleCommand(String &controlId, JsonObject &command);
 };
 

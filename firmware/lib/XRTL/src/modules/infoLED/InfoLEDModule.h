@@ -27,8 +27,7 @@ public:
     void stop();
 
     void handleInternal(internalEvent eventId, String &sourceId);
-    bool handleCommand(String &command);
-    void handleCommand(String &controlId, JsonObject &command); // TODO: add command for changing color?
+    void handleCommand(String &controlId, JsonObject &command);
 };
 
 void hexRGBtoHSV(String &hexRGB, uint16_t &hueTarget, uint8_t &satTarget, uint8_t &valTarget);

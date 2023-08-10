@@ -102,32 +102,6 @@ void StepperModule::stop() {
     stepper->disableOutputs();
 }
 
-bool StepperModule::handleCommand(String &command) {
-    if (command == "stop") {
-        stop();
-        return true;
-    }
-
-    else if (command == "init") {
-        stepper->setCurrentPosition(0);
-        return true;
-    }
-
-    else if (command == "reset") {
-        debug("reset: moving from %d to 0", stepper->currentPosition());
-        stepper->moveTo(0);
-        stepper->enableOutputs();
-        while (stepper->isRunning()) {
-            stepper->run();
-        }
-        stepper->disableOutputs();
-        debug("reset: done");
-        return true;
-    }
-
-    return false;
-}
-
 void StepperModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;
