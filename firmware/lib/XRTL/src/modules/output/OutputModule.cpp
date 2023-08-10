@@ -87,7 +87,7 @@ void OutputModule::loop() {
     if (esp_timer_get_time() > switchTime) { // time is up -> switch off
         out->toggle(false);
         sendStatus();
-        switchTime = 0; // return time trigger to off state
+        switchTime = 0; // no timed action in queue
         notify(ready);
     }
 }

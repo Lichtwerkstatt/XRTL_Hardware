@@ -15,8 +15,7 @@ void VoltageDivider::saveSettings(JsonObject &settings) {
 
 void VoltageDivider::loadSettings(JsonObject &settings, bool debugMode) {
     parameters.load(settings);
-    if (debugMode)
-        parameters.print();
+    if (debugMode) parameters.print();
 }
 
 void VoltageDivider::setViaSerial() {

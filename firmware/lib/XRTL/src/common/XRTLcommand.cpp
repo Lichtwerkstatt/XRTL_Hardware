@@ -109,6 +109,7 @@ void XRTLsetableCommand::setViaSerial() {
 XRTLdisposableCommand::XRTLdisposableCommand(String targetId) {
     id = targetId;
 }
+
 XRTLdisposableCommand::~XRTLdisposableCommand() {
     for (int i = 0; i < keyCount; i++) {
         delete keys[i];
