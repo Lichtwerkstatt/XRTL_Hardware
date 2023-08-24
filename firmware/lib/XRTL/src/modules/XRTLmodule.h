@@ -114,8 +114,6 @@ public:
     virtual void loadSettings(JsonObject &settings);
     virtual void setViaSerial();
 
-    void setViaSerialBasic();
-
     /** @brief send a message over the serial monitor if in debug mode
      * @param ... uses printf syntax
      * @note automatically adds [controlId] at the start and \\n at the end of the message

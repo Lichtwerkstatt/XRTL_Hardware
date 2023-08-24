@@ -14,7 +14,7 @@ InputModule::InputModule(String moduleName) {
     parameters.addDependent(isBinary, "isBinary", "y/n", "rangeChecking", true);
     parameters.addDependent(loBound, "loBound", "float", "rangeChecking", true);
     parameters.addDependent(hiBound, "hiBound", "float", "rangeChecking", true);
-    parameters.add(deadMicroSeconds, "deadMicroSeconds", "µs");
+    parameters.addDependent(deadMicroSeconds, "deadMicroSeconds", "µs", "rangeChecking", true);
 }
 
 InputModule::~InputModule() {
@@ -25,6 +25,10 @@ InputModule::~InputModule() {
 }
 
 void InputModule::setup() {
+    // check whether the pin
+    // a) is connected to an ADC
+    // b) is connected to a responsive ADC
+    // c) can be initialized as input
     int8_t channel = digitalPinToAnalogChannel(pin);
     bool abortInit = false;
     if (channel < 0) {
@@ -209,7 +213,7 @@ bool InputModule::conversionDialog() {
         Serial.println("");
         uint8_t deleteChoice = serialInput("send number to delete conversion: ").toInt();
 
-        if (deleteChoice >= conversionCount - 1) return true;
+        if (deleteChoice >= conversionCount) return true;
 
         delete conversion[deleteChoice];
 

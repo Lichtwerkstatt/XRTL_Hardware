@@ -63,7 +63,6 @@ public:
 
     void handleInternal(internalEvent eventId, String &sourceId);
 
-    // add a conversion that is applied to every value before it is delivered
     void addConversion(conversion_t conversion);
 };
 

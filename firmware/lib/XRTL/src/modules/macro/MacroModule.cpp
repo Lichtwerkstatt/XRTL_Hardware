@@ -153,7 +153,7 @@ bool MacroModule::stateDialog()
             delState(choiceInt);
         }
     }
-    else if (choiceInt <= stateCount)
+    else if (choiceInt < stateCount)
     {
         states[choiceInt]->setViaSerial();
     }

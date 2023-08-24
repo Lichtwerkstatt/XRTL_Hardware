@@ -27,17 +27,17 @@ String sanitizeBackSpace(String input) {
     for (int i = 0; i < input.length(); i++) {
         currentChar = input[i];
 
-        if (currentChar != '\b') {
+        if (currentChar != '\b') { //encountered backspace
             output[outputPos++] = currentChar;
             continue;
         }
 
-        if (outputPos == 0) continue;
+        if (outputPos == 0) continue; // already reached start of string
 
         outputPos--;
     }
 
-    output[outputPos] = '\0';
+    output[outputPos] = '\0'; // finalize String after input is finished
     return String(output);
 }
 

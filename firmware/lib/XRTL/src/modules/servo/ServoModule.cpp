@@ -68,11 +68,10 @@ void ServoModule::setup() {
 }
 
 void ServoModule::loop() {
-    if (!wasRunning)
-        return;
+    if (!wasRunning) return;
+
     int64_t now = esp_timer_get_time();
-    if (now < nextStep)
-        return;
+    if (now < nextStep) return;
 
     if (currentDuty != targetDuty) {
         if (positiveDirection) {

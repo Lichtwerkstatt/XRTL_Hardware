@@ -63,8 +63,7 @@ void StepperModule::loop() {
     if (stepper->isRunning()) {
         stepper->run();
     } else if (wasRunning) {
-        if (!holdOn)
-            stepper->disableOutputs();
+        if (!holdOn) stepper->disableOutputs();
 
         if (infoLED != "") {
             XRTLdisposableCommand command(infoLED);
