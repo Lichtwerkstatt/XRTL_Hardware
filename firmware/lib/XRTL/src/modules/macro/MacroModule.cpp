@@ -254,8 +254,8 @@ bool MacroModule::getStatus(JsonObject &status)
 
 void MacroModule::selectState(String &targetState)
 {
-    activeState = findState(targetState);
-    if (!activeState)
+    MacroState *candidateState = findState(targetState);
+    if (!candidateState)
     {
         String errmsg = "target state <";
         errmsg += targetState;
@@ -264,7 +264,9 @@ void MacroModule::selectState(String &targetState)
         return;
     }
 
+
     nextAction = 0;
+    activeState = candidateState;
     activeState->activate();
     sendStatus();
     notify(busy);
