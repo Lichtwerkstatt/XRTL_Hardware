@@ -87,7 +87,7 @@ public:
     virtual void print() {
         if (notListed) return;
 
-        Serial.printf("%s (%s): ", name.c_str(), unit.c_str());
+        Serial.printf("%s (%s) = ", name.c_str(), unit.c_str());
         Serial.println(*parameter);
     }
 
@@ -207,7 +207,7 @@ public:
 
     virtual void print() {
         if (notListed) return;
-        Serial.printf("%s (%s): %s\n", name.c_str(), unit.c_str(), *parameter ? "true" : "false");
+        Serial.printf("%s (%s) = %s\n", name.c_str(), unit.c_str(), *parameter ? "true" : "false");
     }
 
     bool isNull() {
@@ -274,7 +274,7 @@ public:
         Serial.print(this->name.c_str());
         Serial.print(" (");
         Serial.print(this->unit.c_str());
-        Serial.print("): ");
+        Serial.print(") = ");
         Serial.println(*this->parameter);
     }
 

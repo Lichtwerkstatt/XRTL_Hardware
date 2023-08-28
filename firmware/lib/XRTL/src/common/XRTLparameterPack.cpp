@@ -173,12 +173,10 @@ bool ParameterPack::dialog() {
     Serial.println("");
 
     for (int i = 0; i < parameterCount; i++) {
-        if (!parameters[i]->notListed) {
-            String *parameterName = parameters[i]->getName();
-            if (parameterName) {
-                Serial.printf("%d: %s\n", i, parameterName->c_str());
-            }
-        }
+        if (parameters[i]->notListed) continue;
+
+        Serial.printf("%d: ", i);
+        parameters[i]->print();
     }
 
     Serial.println("");
@@ -193,16 +191,13 @@ bool ParameterPack::dialog() {
 
     if (rawInput == "r") {
         return false;
-    } else if (rawInput == "c") {
+    } else if (rawInput == "c" && linkedName) {
         *linkedName = serialInput("controlId (String) = ");
     } else if (rawInput == "a") {
-        if (linkedName != NULL) {
-            *linkedName = serialInput("controlId (String) = ");
-        }
-
         for (int i = 0; i < parameterCount; i++) {
-            if (!parameters[i]->notListed)
-                parameters[i]->setViaSerial();
+            if (parameters[i]->notListed) continue;
+
+            parameters[i]->setViaSerial();
         }
     } else if (inputNumber < parameterCount && !parameters[inputNumber]->notListed) {
         parameters[inputNumber]->setViaSerial();
