@@ -10,10 +10,10 @@ private:
     bool checkConnection = true;
 
     bool enterprise;
-    String ssid;
-    String password;
-    String username;
-    String anonymous;
+    String ssid = "ssid";
+    String password = "password";
+    String username = "user";
+    String anonymous = "anonymous";
 
     WiFiEventId_t eventIdDisconnected; // use this when attaching the disconnected handler; needed for deinit
 

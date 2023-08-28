@@ -10,7 +10,7 @@ private:
     MacroState *states[16];
     MacroState *activeState = NULL;
 
-    String controlKey = "key";
+    String controlKey = "state";
     String currentStateName = "";
     String initState = "";
 

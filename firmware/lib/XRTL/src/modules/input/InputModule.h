@@ -22,7 +22,7 @@ private:
     // number of the physical input pin
     // WARNING: ADC2 cannot be used when WiFi is active. Be aware of your board limitations.
     uint8_t pin = 35;
-    uint16_t averageTime = 0; // time that the voltage value is averaged for in milli seconds
+    uint16_t averageTime = 100; // time that the voltage value is averaged for in milli seconds
 
     bool isStreaming = false;
     int64_t next;

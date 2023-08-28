@@ -14,10 +14,10 @@ private:
     bool pwm = false;
     // @brief pwm channel of the ESP used to control output
     // @note do NOT use channel 1 or 2 with ESP32CAM
-    uint8_t channel;
+    uint8_t channel = 3;
     // @brief pwm frequency in Hz
     // @note permitted values: 1000, 5000, 8000, 10000
-    uint16_t frequency = 1000;
+    uint16_t frequency = 100;
 
     // @brief esp_timer value (µs) at which the module is switched off again
     int64_t switchTime = 0;
