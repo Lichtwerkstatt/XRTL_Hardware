@@ -1,20 +1,22 @@
 #include "ServoModule.h"
 
+// TODO: investigate fade option of hardware PWM -- drawback: can't stop fade once activated
 ServoModule::ServoModule(String moduleName) {
     id = moduleName;
 
     parameters.setKey(id);
     parameters.add(type, "type");
 
+    parameters.add(channel, "channel", "int");
     parameters.add(frequency, "frequency", "Hz");
     parameters.add(minDuty, "minDuty", "µs");
     parameters.add(maxDuty, "maxDuty", "µs");
 
-    parameters.add(minAngle, "minAngle", "int");
-    parameters.add(maxAngle, "maxAngle", "int");
+    parameters.add(minAngle, "minAngle", "float");
+    parameters.add(maxAngle, "maxAngle", "float");
     parameters.add(maxSpeed, "maxSpeed", "float");
 
-    parameters.add(initial, "initial", "int");
+    parameters.add(initial, "initial", "float");
 
     parameters.add(pin, "pin", "int");
 
@@ -48,14 +50,14 @@ bool ServoModule::getStatus(JsonObject &status) {
 }
 
 void ServoModule::setup() {
-    servo = new Servo;
-    servo->setPeriodHertz(frequency);
-    servo->attach(pin, minDuty, maxDuty);
+    tickScalingFactor = frequency * 65535 / 1000000; // scale once, save operations later. Frequency never adjusted without restart.
+    ledcSetup(channel, frequency, 16);
+    ledcAttachPin(pin, channel);
 
     if (maxSpeed <= 0) {
         timeStep = 0;
     } else {
-        timeStep = round(float(maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
+        timeStep = round((maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
     }
 
     write(initial);
@@ -75,16 +77,16 @@ void ServoModule::loop() {
 
     if (currentDuty != targetDuty) {
         if (positiveDirection) {
-            servo->writeMicroseconds(currentDuty++);
+            writeDuty(++currentDuty);
         } else {
-            servo->writeMicroseconds(currentDuty--);
+            writeDuty(--currentDuty);
         }
     }
 
     if (currentDuty == targetDuty) {
         if (!holdOn) // note: when detaching pin do so as close as possible to last write command to avoid unwanted movements
         {
-            servo->detach(); // if hold is activated: keep motor powered
+            ledcWrite(channel, 0); // if hold is activated: keep motor powered
         }
 
         if (infoLED != "") {
@@ -107,7 +109,7 @@ void ServoModule::stop() {
     if (!wasRunning) return;
     wasRunning = false;
     targetDuty = currentDuty;
-    servo->detach();
+    ledcWrite(channel, 0);
     notify(ready);
 }
 
@@ -115,24 +117,23 @@ void ServoModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;
 
-    bool temp = false;
-    if (getValue<bool>("getStatus", command, temp) && temp) {
+    bool tempBool = false;
+    if (getValue<bool>("getStatus", command, tempBool) && tempBool) {
         sendStatus();
     }
 
-    if (getValue<bool>("stop", command, temp) && temp) {
+    if (getValue<bool>("stop", command, tempBool) && tempBool) {
         stop();
         sendStatus();
     }
 
-    if (getValue<bool>("reset", command, temp) && temp) {
+    if (getValue<bool>("reset", command, tempBool) && tempBool) {
         DynamicJsonDocument doc(128);
         JsonObject driveCommand = doc.to<JsonObject>();
         driveCommand["controlId"] = id;
         driveCommand["moveTo"] = initial;
         driveServo(driveCommand);
-        while (wasRunning)
-            loop();
+        while (wasRunning) loop();
     }
 
     if (getValue<bool>("hold", command, holdOn)) {
@@ -156,29 +157,38 @@ void ServoModule::handleCommand(String &controlId, JsonObject &command) {
     driveServo(command); // only reached if not busy
 }
 
-int16_t ServoModule::read() {
-    if (servo == NULL)
-        return 0;
+float ServoModule::read() {
     return round(mapFloat(currentDuty, minDuty, maxDuty, minAngle, maxAngle));
 }
 
-void ServoModule::write(int16_t target) {
-    if (servo == NULL)
-        return;
+/**
+ * @brief immediately sets the servo to the new target
+ * @param target value that the servo motor should move to (value range)
+*/
+void ServoModule::write(float target) {
     currentDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
-    servo->writeMicroseconds(currentDuty);
+    writeDuty(currentDuty);
+}
+
+/**
+ * @brief immediately set the servo to the new target
+ * @param target value that the servo motor should move to (in µs of duty time)
+*/
+void ServoModule::writeDuty(uint16_t target) {
+    target = round(target * tickScalingFactor);
+    ledcWrite(channel, target);
 }
 
 void ServoModule::driveServo(JsonObject &command) {
-
-    int16_t target;
+    float target;
     bool binaryCtrl;
-
-    if (getAndConstrainValue<int16_t>("move", command, target, minAngle - maxAngle, maxAngle - minAngle)) { // complete range: maxAngle - minAngle; negative range: minAngle - maxAngle
+    if (getAndConstrainValue<float>("move", command, target, minAngle - maxAngle, maxAngle - minAngle)) { // complete range: maxAngle - minAngle; negative range: minAngle - maxAngle
         target += read();
-    } else if (getAndConstrainValue<int16_t>("moveTo", command, target, minAngle, maxAngle)) {
+    }
+    else if (getAndConstrainValue<float>("moveTo", command, target, minAngle, maxAngle)) {
         // nothing to do here
-    } else if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
+    }
+    else if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
         if (binaryCtrl) {
             target = maxAngle;
             positiveDirection = true;
@@ -186,8 +196,8 @@ void ServoModule::driveServo(JsonObject &command) {
             target = minAngle;
             positiveDirection = false;
         }
-    } else
-        return; // command is accepted after this point; check bounds and drive servo
+    }
+    else return; // command is accepted after this point; check bounds and drive servo
 
     if (wasRunning) { // ignore move commands if already moving
         String error = "[";
@@ -215,22 +225,22 @@ void ServoModule::driveServo(JsonObject &command) {
     if (timeStep > 0) // speed has been limited
     {
         wasRunning = true;
-        servo->attach(pin, minDuty, maxDuty);
-        servo->writeMicroseconds(currentDuty);
+        writeDuty(currentDuty);
         targetDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
         travelTime = abs(targetDuty - currentDuty) * timeStep / 1000; // travelTime in ms
 
         if (targetDuty > currentDuty) {
             positiveDirection = true;
             nextStep = esp_timer_get_time() + timeStep;
-        } else if (targetDuty < currentDuty) {
+        }
+        else if (targetDuty < currentDuty) {
             positiveDirection = false;
             nextStep = esp_timer_get_time() + timeStep;
-        } else if (targetDuty == currentDuty) {
+        }
+        else if (targetDuty == currentDuty) {
             nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
         }
     } else {
-        servo->attach(pin, minDuty, maxDuty);
         write(target);
         targetDuty = currentDuty;
         wasRunning = true;
