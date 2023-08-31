@@ -94,7 +94,7 @@ bool base64url_encodeCharArray(const unsigned char *in, unsigned int inlen, char
     }
 
     // check last character
-    i -= 1;
+    i--;
 
     if ((i % 3) == 0) {
         out[j++] = base64url_en[(in[i] & 0x3) << 4];
@@ -138,7 +138,6 @@ String base64url_encode(const String &text) {
 /**
  * @brief create a JSON Web Token (JWT) based on the information stored in the module
  * @returns JWT as String
- * @note expiration time is set as 1 week by default
  */
 String SocketModule::createJWT() {
     DynamicJsonDocument document(512);
@@ -153,8 +152,6 @@ String SocketModule::createJWT() {
     String headerBase64 = base64url_encode(encoding);
 
     JsonObject payload = document.to<JsonObject>();
-    time_t now;
-    time(&now);
     payload["sub"] = component; // client identity
     payload["component"] = "component";
 
