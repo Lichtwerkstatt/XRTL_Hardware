@@ -58,6 +58,7 @@ void ServoModule::setup() {
         timeStep = 0;
     } else {
         timeStep = round((maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
+        // timeStep = 1000000 / frequency; // duration of one full cycle in µs, steps cannot be shorter than this
     }
 
     write(initial);
@@ -74,6 +75,7 @@ void ServoModule::loop() {
 
     int64_t now = esp_timer_get_time();
     if (now < nextStep) return;
+    // if (esp_timer_get_time() < nextStep) return;
 
     if (currentDuty != targetDuty) {
         if (positiveDirection) {
@@ -103,6 +105,7 @@ void ServoModule::loop() {
     }
 
     nextStep = now + timeStep;
+    // nextStep = esp_timer_get_time() + timeStep; // make sure one complete PWM cycle passed before the next step (controller only updates after cycle)
 }
 
 void ServoModule::stop() {
@@ -161,6 +164,13 @@ float ServoModule::read() {
     return round(mapFloat(currentDuty, minDuty, maxDuty, minAngle, maxAngle));
 }
 
+uint32_t ServoModule::angleToTicks(float angle) {
+    uint32_t maxTicks = (maxDuty * 65535) / timeStep;
+    uint32_t minTicks = (minDuty * 65535) / timeStep;
+
+    return round(mapFloat(angle, minAngle, maxAngle, minTicks, maxTicks));
+}
+
 /**
  * @brief immediately sets the servo to the new target
  * @param target value that the servo motor should move to (value range)
@@ -190,9 +200,11 @@ void ServoModule::driveServo(JsonObject &command) {
     }
     else if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
         if (binaryCtrl) {
+            // TODO: new methode
             target = maxAngle;
             positiveDirection = true;
         } else {
+            // TODO: new methode
             target = minAngle;
             positiveDirection = false;
         }
@@ -228,6 +240,7 @@ void ServoModule::driveServo(JsonObject &command) {
         writeDuty(currentDuty);
         targetDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
         travelTime = abs(targetDuty - currentDuty) * timeStep / 1000; // travelTime in ms
+        // stepTarget = round((abs(target - read()) * frequency) / maxSpeed);
 
         if (targetDuty > currentDuty) {
             positiveDirection = true;
