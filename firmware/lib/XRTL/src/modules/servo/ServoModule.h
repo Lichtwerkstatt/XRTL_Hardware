@@ -20,10 +20,12 @@ private:
     int64_t nextStep;
     uint16_t targetDuty;
     uint16_t currentDuty;
+    // uint32_t targetDuty;
+    // uint32_t currentDuty;
+    uint32_t angleToTicks(float angle);
     bool positiveDirection;
     bool wasRunning = false;
     bool holdOn = false;
-    bool isHolding = false;
 
     uint8_t pin = 26;
 
