@@ -13,7 +13,7 @@ private:
     float maxAngle = 90;     // maximum of value range that duty gets maped to
     float maxSpeed = 0.0;
 
-    uint32_t timeStep;
+    uint32_t timeStep;       // time needed for a full duty cycle
     float initial = 0;       // value between minAngle and maxAngle that servo gets initialized with
 
     int64_t nextStep;        // stores the time in µs when the next action is to be taken

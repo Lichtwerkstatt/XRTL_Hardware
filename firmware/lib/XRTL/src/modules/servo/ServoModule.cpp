@@ -78,8 +78,7 @@ void ServoModule::loop() {
 
     if (esp_timer_get_time() < nextStep) return;
 
-    if (currentTicks == targetTicks || (positiveDirection && currentTicks > targetTicks) || (!positiveDirection && currentTicks < targetTicks)) {
-        currentTicks = targetTicks;         // rewrite currentTicks to target if it has been exceeded
+    if (currentTicks == targetTicks) {
         if (!holdOn) ledcWrite(channel, 0); // if hold is deactivated: power down motor
 
         if (infoLED != "") {
@@ -100,6 +99,11 @@ void ServoModule::loop() {
         }
         else {
             currentTicks -= stepSize;
+        }
+
+        // check if target has been exceeded
+        if ((positiveDirection && currentTicks > targetTicks) || (!positiveDirection && currentTicks < targetTicks)) {
+            currentTicks = targetTicks;
         }
 
         ledcWrite(channel, currentTicks);
@@ -220,8 +224,10 @@ void ServoModule::driveServo(JsonObject &command) {
         positiveDirection = false;
     }
 
-    uint32_t travelTime;
     targetTicks = round(mapFloat(target, minAngle, maxAngle, minTicks, maxTicks));
+    debug("moving from %d to %d", currentTicks, targetTicks);
+    uint32_t travelTime;
+    
     if (timeStep > 0) // speed has been limited
     {
         wasRunning = true;
@@ -231,10 +237,10 @@ void ServoModule::driveServo(JsonObject &command) {
             nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
         }
         else {
-            travelTime = timeStep * stepSize;
+            travelTime = abs((int64_t) targetTicks - (int64_t) currentTicks) * timeStep / stepSize;
             nextStep = esp_timer_get_time() + timeStep;
         }
-    } else {
+    } else { // write target position right away
         ledcWrite(channel, targetTicks);
         wasRunning = true;
         travelTime = 750;
@@ -257,7 +263,6 @@ void ServoModule::driveServo(JsonObject &command) {
         sendCommand(ledCommand);
     }
 
-    debug("moving from %d to %d", currentTicks, targetTicks);
     sendStatus();
     notify(busy);
 }
