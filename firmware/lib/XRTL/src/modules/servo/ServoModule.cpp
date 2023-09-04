@@ -44,28 +44,31 @@ void ServoModule::setViaSerial() {
 bool ServoModule::getStatus(JsonObject &status) {
     status["busy"] = wasRunning;
     status["absolute"] = read();
-    status["relative"] = mapFloat(currentDuty, minDuty, maxDuty, 0, 100);
+    status["relative"] = mapFloat(currentTicks, minTicks, maxTicks, 0, 100);
 
     return true;
 }
 
 void ServoModule::setup() {
-    tickScalingFactor = frequency * 65535 / 1000000; // scale once, save operations later. Frequency never adjusted without restart.
+    timeStep = round((double) 1000000.0 / (double) frequency); // duration of one full PWM cycle in µs, steps cannot be shorter than this
+    minTicks = round((double) minDuty * (double) frequency * (double) 0.065535);
+    maxTicks = round((double) maxDuty * (double) frequency * (double) 0.065535);
+    if (maxSpeed > 0) {
+        stepSize = round((double) maxSpeed * ((double) maxDuty - (double) minDuty) / ((double) maxAngle - (double) minAngle) * (double) 0.065535);
+        debug("stepsize: %d", stepSize);
+    }
+
     ledcSetup(channel, frequency, 16);
     ledcAttachPin(pin, channel);
 
     if (maxSpeed <= 0) {
-        timeStep = 0;
-    } else {
-        timeStep = round((maxAngle - minAngle) / float(maxDuty - minDuty) * 1000000 / maxSpeed);
-        // timeStep = 1000000 / frequency; // duration of one full cycle in µs, steps cannot be shorter than this
+        timeStep = 0; // re-use as switch for direct setting of servo
     }
 
     write(initial);
-    targetDuty = currentDuty;
+    targetTicks = currentTicks;
     wasRunning = true;
     nextStep = esp_timer_get_time() + 750000;
-    // servo->detach();
 
     // debug("stepping: %d µs", timeStep);
 }
@@ -73,23 +76,11 @@ void ServoModule::setup() {
 void ServoModule::loop() {
     if (!wasRunning) return;
 
-    int64_t now = esp_timer_get_time();
-    if (now < nextStep) return;
-    // if (esp_timer_get_time() < nextStep) return;
+    if (esp_timer_get_time() < nextStep) return;
 
-    if (currentDuty != targetDuty) {
-        if (positiveDirection) {
-            writeDuty(++currentDuty);
-        } else {
-            writeDuty(--currentDuty);
-        }
-    }
-
-    if (currentDuty == targetDuty) {
-        if (!holdOn) // note: when detaching pin do so as close as possible to last write command to avoid unwanted movements
-        {
-            ledcWrite(channel, 0); // if hold is activated: keep motor powered
-        }
+    if (currentTicks == targetTicks || (positiveDirection && currentTicks > targetTicks) || (!positiveDirection && currentTicks < targetTicks)) {
+        currentTicks = targetTicks;         // rewrite currentTicks to target if it has been exceeded
+        if (!holdOn) ledcWrite(channel, 0); // if hold is deactivated: power down motor
 
         if (infoLED != "") {
             XRTLdisposableCommand ledCommand(infoLED);
@@ -103,15 +94,24 @@ void ServoModule::loop() {
         notify(ready);
         return;
     }
+    else {
+        if (positiveDirection) {
+            currentTicks += stepSize;
+        }
+        else {
+            currentTicks -= stepSize;
+        }
 
-    nextStep = now + timeStep;
-    // nextStep = esp_timer_get_time() + timeStep; // make sure one complete PWM cycle passed before the next step (controller only updates after cycle)
+        ledcWrite(channel, currentTicks);
+    }
+
+    nextStep = esp_timer_get_time() + timeStep; // make sure one complete PWM cycle passed before the next step (controller only updates after cycle)
 }
 
 void ServoModule::stop() {
     if (!wasRunning) return;
     wasRunning = false;
-    targetDuty = currentDuty;
+    targetTicks = currentTicks;
     ledcWrite(channel, 0);
     notify(ready);
 }
@@ -161,14 +161,7 @@ void ServoModule::handleCommand(String &controlId, JsonObject &command) {
 }
 
 float ServoModule::read() {
-    return round(mapFloat(currentDuty, minDuty, maxDuty, minAngle, maxAngle));
-}
-
-uint32_t ServoModule::angleToTicks(float angle) {
-    uint32_t maxTicks = (maxDuty * 65535) / timeStep;
-    uint32_t minTicks = (minDuty * 65535) / timeStep;
-
-    return round(mapFloat(angle, minAngle, maxAngle, minTicks, maxTicks));
+    return mapFloat(currentTicks, minTicks, maxTicks, minAngle, maxAngle);
 }
 
 /**
@@ -176,17 +169,8 @@ uint32_t ServoModule::angleToTicks(float angle) {
  * @param target value that the servo motor should move to (value range)
 */
 void ServoModule::write(float target) {
-    currentDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
-    writeDuty(currentDuty);
-}
-
-/**
- * @brief immediately set the servo to the new target
- * @param target value that the servo motor should move to (in µs of duty time)
-*/
-void ServoModule::writeDuty(uint16_t target) {
-    target = round(target * tickScalingFactor);
-    ledcWrite(channel, target);
+    currentTicks = round(mapFloat(target, minAngle, maxAngle, minTicks, maxTicks));
+    ledcWrite(channel, currentTicks);
 }
 
 void ServoModule::driveServo(JsonObject &command) {
@@ -200,13 +184,9 @@ void ServoModule::driveServo(JsonObject &command) {
     }
     else if (getValue<bool>("binaryCtrl", command, binaryCtrl)) {
         if (binaryCtrl) {
-            // TODO: new methode
             target = maxAngle;
-            positiveDirection = true;
         } else {
-            // TODO: new methode
             target = minAngle;
-            positiveDirection = false;
         }
     }
     else return; // command is accepted after this point; check bounds and drive servo
@@ -233,29 +213,29 @@ void ServoModule::driveServo(JsonObject &command) {
         sendError(out_of_bounds, error);
     }
 
+    if (target >= read()) {
+        positiveDirection = true;
+    }
+    else {
+        positiveDirection = false;
+    }
+
     uint32_t travelTime;
+    targetTicks = round(mapFloat(target, minAngle, maxAngle, minTicks, maxTicks));
     if (timeStep > 0) // speed has been limited
     {
         wasRunning = true;
-        writeDuty(currentDuty);
-        targetDuty = round(mapFloat(target, minAngle, maxAngle, minDuty, maxDuty));
-        travelTime = abs(targetDuty - currentDuty) * timeStep / 1000; // travelTime in ms
-        // stepTarget = round((abs(target - read()) * frequency) / maxSpeed);
+        ledcWrite(channel, currentTicks);
 
-        if (targetDuty > currentDuty) {
-            positiveDirection = true;
-            nextStep = esp_timer_get_time() + timeStep;
-        }
-        else if (targetDuty < currentDuty) {
-            positiveDirection = false;
-            nextStep = esp_timer_get_time() + timeStep;
-        }
-        else if (targetDuty == currentDuty) {
+        if (targetTicks == currentTicks) {
             nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
         }
+        else {
+            travelTime = timeStep * stepSize;
+            nextStep = esp_timer_get_time() + timeStep;
+        }
     } else {
-        write(target);
-        targetDuty = currentDuty;
+        ledcWrite(channel, targetTicks);
         wasRunning = true;
         travelTime = 750;
         nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
@@ -277,7 +257,7 @@ void ServoModule::driveServo(JsonObject &command) {
         sendCommand(ledCommand);
     }
 
-    debug("moving from %d to %d", currentDuty, targetDuty);
+    debug("moving from %d to %d", currentTicks, targetTicks);
     sendStatus();
     notify(busy);
 }

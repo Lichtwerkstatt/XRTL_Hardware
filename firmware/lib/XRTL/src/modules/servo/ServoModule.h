@@ -13,17 +13,20 @@ private:
     float maxAngle = 90;     // maximum of value range that duty gets maped to
     float maxSpeed = 0.0;
 
-    double tickScalingFactor; // used to scale the duty cycle (in µs) to ticks
     uint32_t timeStep;
     float initial = 0;       // value between minAngle and maxAngle that servo gets initialized with
 
-    int64_t nextStep;
-    uint16_t targetDuty;
-    uint16_t currentDuty;
-    // uint32_t targetDuty;
-    // uint32_t currentDuty;
-    uint32_t angleToTicks(float angle);
-    bool positiveDirection;
+    int64_t nextStep;        // stores the time in µs when the next action is to be taken
+
+    bool positiveDirection;  // stores the direction of current movement
+    uint32_t stepSize;       // amount of ticks per step
+    uint32_t targetTicks;    // target duty in ticks
+
+    uint32_t currentTicks;   // current duty in ticks
+
+    uint32_t maxTicks;       // number of ticks that corresponds to the maximum angle
+    uint32_t minTicks;       // number of ticks that corresponds to the minimum angle
+
     bool wasRunning = false;
     bool holdOn = false;
 
@@ -38,7 +41,6 @@ public:
 
     float read();                         // read the current servo position, delivered on value range
     void write(float target);             // move servo to target value on value range
-    void writeDuty(uint16_t target);      // move servo to target duty
     void driveServo(JsonObject &command); // process the command object and move servo if needed
 
     void handleCommand(String &controlId, JsonObject &command);
