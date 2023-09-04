@@ -58,7 +58,7 @@ void ServoModule::setup() {
         debug("stepsize: %d", stepSize);
     }
 
-    ledcSetup(channel, frequency, 16);
+    ledcSetup(channel, frequency, 16); // 16 bit resolution, maximum duty is 65535
     ledcAttachPin(pin, channel);
 
     if (maxSpeed <= 0) {
@@ -241,6 +241,7 @@ void ServoModule::driveServo(JsonObject &command) {
             nextStep = esp_timer_get_time() + timeStep;
         }
     } else { // write target position right away
+        currentTicks = targetTicks;
         ledcWrite(channel, targetTicks);
         wasRunning = true;
         travelTime = 750;
