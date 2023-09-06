@@ -55,7 +55,6 @@ void ServoModule::setup() {
     maxTicks = round((double) maxDuty * (double) frequency * (double) 0.065535);
     if (maxSpeed > 0) {
         stepSize = round((double) maxSpeed * ((double) maxDuty - (double) minDuty) / ((double) maxAngle - (double) minAngle) * (double) 0.065535);
-        debug("stepsize: %d", stepSize);
     }
 
     ledcSetup(channel, frequency, 16); // 16 bit resolution, maximum duty is 65535
@@ -234,10 +233,11 @@ void ServoModule::driveServo(JsonObject &command) {
         ledcWrite(channel, currentTicks);
 
         if (targetTicks == currentTicks) {
+            travelTime = 750;
             nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
         }
         else {
-            travelTime = abs((int64_t) targetTicks - (int64_t) currentTicks) * timeStep / stepSize;
+            travelTime = abs((int64_t) targetTicks - (int64_t) currentTicks) * timeStep / stepSize / 1000;
             nextStep = esp_timer_get_time() + timeStep;
         }
     } else { // write target position right away
@@ -247,6 +247,8 @@ void ServoModule::driveServo(JsonObject &command) {
         travelTime = 750;
         nextStep = esp_timer_get_time() + 750000; // holding for at least 750 ms
     }
+
+    debug("travelTime: %d", travelTime);
 
     if (infoLED != "") {
         XRTLdisposableCommand ledCommand(infoLED);
