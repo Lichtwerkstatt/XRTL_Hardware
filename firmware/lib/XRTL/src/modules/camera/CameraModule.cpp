@@ -20,7 +20,7 @@ camera_config_t CameraModule::camera_config = {
 
     .pin_d7 = 35,
     .pin_d6 = 34,
-    .pin_d5 = 55,
+    .pin_d5 = 39,
     .pin_d4 = 36,
     .pin_d3 = 21,
     .pin_d2 = 19,
