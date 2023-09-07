@@ -391,6 +391,7 @@ void XRTL::setViaSerial() {
 
     highlightString("serial setup", '=');
 
+    // repeat dialog until it is intentionally exited
     while (settingsDialog()) {
     }
 
