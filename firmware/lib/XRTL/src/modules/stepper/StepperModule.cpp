@@ -28,7 +28,8 @@ moduleType StepperModule::getType() {
 }
 
 void StepperModule::saveSettings(JsonObject &settings) {
-    position = stepper->currentPosition(); // update position
+    // update position
+    position = stepper->currentPosition();
 
     parameters.save(settings);
 }
@@ -36,12 +37,19 @@ void StepperModule::saveSettings(JsonObject &settings) {
 void StepperModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
 
-    if (debugging)
-        parameters.print();
+    if (debugging) parameters.print();
 }
 
 void StepperModule::setViaSerial() {
+    // update position
+    position = stepper->currentPosition();
+
     parameters.setViaSerial();
+    
+    // if the position has been changed, push updated value to stepper
+    if (position != stepper->currentPosition()) {
+        stepper->setCurrentPosition(position);
+    }
 }
 
 void StepperModule::setup() {
@@ -62,7 +70,8 @@ void StepperModule::setup() {
 void StepperModule::loop() {
     if (stepper->isRunning()) {
         stepper->run();
-    } else if (wasRunning) {
+    }
+    else if (wasRunning) {
         if (!holdOn) stepper->disableOutputs();
 
         if (infoLED != "") {
@@ -105,16 +114,16 @@ void StepperModule::handleCommand(String &controlId, JsonObject &command) {
     if (!isModule(controlId) && controlId != "*")
         return;
 
-    bool getStatus = false;
-    if (getValue<bool>("getStatus", command, getStatus) && getStatus) {
+    bool tempBool = false;
+    if (getValue<bool>("getStatus", command, tempBool) && tempBool) {
         sendStatus();
     }
 
-    if (getValue<bool>("stop", command, getStatus) && getStatus) {
+    if (getValue<bool>("stop", command, tempBool) && tempBool) {
         stop();
     }
 
-    if (getValue<bool>("reset", command, getStatus) && getStatus) {
+    if (getValue<bool>("reset", command, tempBool) && tempBool) {
         debug("reset: moving from %d to 0", stepper->currentPosition());
         stepper->moveTo(0);
         stepper->enableOutputs();
@@ -123,6 +132,10 @@ void StepperModule::handleCommand(String &controlId, JsonObject &command) {
         }
         stepper->disableOutputs();
         debug("reset: done");
+    }
+
+    if (getValue<bool>("manualSave", command, tempBool) && tempBool) {
+        manualSave();
     }
 
     if (stepper->isRunning()) {

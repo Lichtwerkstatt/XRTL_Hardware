@@ -84,6 +84,8 @@ void MacroModule::loadSettings(JsonObject &settings)
 
 void MacroModule::saveSettings(JsonObject &settings)
 {
+    // initState = currentStateName; // set current state to init state
+
     JsonObject subSettings;
     parameters.save(settings, subSettings);
 
@@ -287,6 +289,10 @@ void MacroModule::handleCommand(String &controlId, JsonObject &command)
     {
         stop();
     }
+
+    // if (getValue<bool>("manualSave", command, tmpBool) && tmpBool) {
+    //     manualSave;
+    // }
 
     String color;
     if (infoLED != "" && getValue("color", command, color))

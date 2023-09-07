@@ -92,18 +92,18 @@ void InputModule::loop() {
             if (isBinary && lastState) { // no trigger if state = lastState
             } else {
                 debug("high input");
-                notify(input_trigger_high);
                 lastState = true;
                 nextCheck = now + deadMicroSeconds;
+                notify(input_trigger_high);
             }
         }
         if (value < loBound) {
             if (isBinary && !lastState) {// no trigger if state = lastState
             } else {
                 debug("low input");
-                notify(input_trigger_low);
                 lastState = false;
                 nextCheck = now + deadMicroSeconds;
+                notify(input_trigger_low);
             }
         }
     }

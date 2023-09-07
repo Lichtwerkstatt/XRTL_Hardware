@@ -173,7 +173,7 @@ bool ParameterPack::dialog() {
     Serial.println("");
 
     for (int i = 0; i < parameterCount; i++) {
-        if (parameters[i]->notListed) continue;
+        if (parameters[i]->isNotListed()) continue;
 
         Serial.printf("%d: ", i);
         parameters[i]->print();

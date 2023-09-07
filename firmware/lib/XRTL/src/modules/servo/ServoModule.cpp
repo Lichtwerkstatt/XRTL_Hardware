@@ -28,6 +28,8 @@ moduleType ServoModule::getType() {
 }
 
 void ServoModule::saveSettings(JsonObject &settings) {
+    //initial = read(); // set initialization to current value
+
     parameters.save(settings);
 }
 
@@ -145,6 +147,10 @@ void ServoModule::handleCommand(String &controlId, JsonObject &command) {
     if (getValue<bool>("hold", command, holdOn)) {
         debug("hold %sactive", holdOn ? "" : "in");
     }
+
+    // if (getValue<bool>("manualSave", command, tempBool) && tempBool) {
+    //     manualSave;
+    // }
 
     uint32_t duration;
     if (infoLED != "" && getValue("identify", command, duration)) {

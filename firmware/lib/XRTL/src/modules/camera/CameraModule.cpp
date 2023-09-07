@@ -117,12 +117,11 @@ void CameraModule::saveSettings(JsonObject &settings) {
 
 void CameraModule::loadSettings(JsonObject &settings) {
     parameters.load(settings);
+    if (debugging && *debugging) parameters.print();
 }
 
 void CameraModule::setViaSerial() {
-    highlightString(id.c_str(), '-');
-
-    id = serialInput("controlId: ");
+    parameters.setViaSerial();
 }
 
 void CameraModule::startStreaming() {

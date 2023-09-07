@@ -7,6 +7,9 @@ class XRTLpar {
 protected:
     String name;
     bool notListed = false;
+    virtual bool isNotListed() {
+        return notListed;
+    }
 
 public:
     virtual void load(JsonObject &settings);
@@ -76,7 +79,7 @@ public:
      * @note returns NULL if the parameter is not listed
     */
     String *getName() {
-        if (notListed) return NULL;
+        if (isNotListed()) return NULL;
         return &name;
     }
 
@@ -85,7 +88,7 @@ public:
      * @note will not print anything if the parameter is not listed
      */
     virtual void print() {
-        if (notListed) return;
+        if (isNotListed()) return;
 
         Serial.printf("%s (%s) = ", name.c_str(), unit.c_str());
         Serial.println(*parameter);
@@ -96,7 +99,7 @@ public:
      * @note does nothing if the parameter is not listed
      */
     virtual void setViaSerial() {
-        if (notListed) return;
+        if (isNotListed()) return;
 
         setViaSerialQuery();
     }
@@ -180,7 +183,7 @@ public:
     }
 
     virtual void setViaSerial() {
-        if (notListed) return;
+        if (isNotListed()) return;
 
         setViaSerialQuery();
     }
@@ -201,12 +204,12 @@ public:
     }
 
     virtual String *getName() {
-        if (notListed) return NULL;
+        if (isNotListed()) return NULL;
         return &name;
     }
 
     virtual void print() {
-        if (notListed) return;
+        if (isNotListed()) return;
         Serial.printf("%s (%s) = %s\n", name.c_str(), unit.c_str(), *parameter ? "true" : "false");
     }
 
@@ -231,6 +234,10 @@ class XRTLdependentPar : public XRTLparameter<T> {
 private:
     XRTLparameter<U> *dependency;
     U condition;
+
+    bool isNotListed() {
+        return (this->notListed || !dependency->isEqual(condition));
+    }
 
 public:
     XRTLdependentPar(T &linkedParameter, String &paramName, String &unitStr, XRTLparameter<U> *dependencyPar, U &dependencyCond) {
@@ -264,12 +271,12 @@ public:
     }
 
     virtual String *getName() {
-        if (!dependency->isEqual(condition) || this->notListed) return NULL;
+        if (isNotListed()) return NULL;
         return &this->name;
     }
 
     virtual void print() {
-        if (!dependency->isEqual(condition) || this->notListed) return;
+        if (isNotListed()) return;
 
         Serial.print(this->name.c_str());
         Serial.print(" (");
@@ -279,8 +286,7 @@ public:
     }
 
     void setViaSerial() {
-        if (!dependency->isEqual(condition)) return;
-        if (this->notListed) return;
+        if (isNotListed()) return;
 
         this->setViaSerialQuery();
     }

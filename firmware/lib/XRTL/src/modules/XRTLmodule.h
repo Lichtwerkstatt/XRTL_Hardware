@@ -110,6 +110,7 @@ public:
 
     virtual bool getStatus(JsonObject &status);
 
+    void manualSave();
     virtual void saveSettings(JsonObject &settings);
     virtual void loadSettings(JsonObject &settings);
     virtual void setViaSerial();

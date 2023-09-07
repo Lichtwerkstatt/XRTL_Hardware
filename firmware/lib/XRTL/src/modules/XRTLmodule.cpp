@@ -61,6 +61,59 @@ void XRTLmodule::saveSettings(JsonObject &settings) {
 }
 
 /**
+ * 
+ * @brief manually and immediately write the settings of this module to flash.
+ * @note do not use frequently, as it might introduce significant wear to the flash.
+*/
+void XRTLmodule::manualSave() {
+    debug("saving settings manually");
+
+    if (!LittleFS.begin(false)) {
+        debug("failed to mount file system. Please run a complete setup.");
+        return;
+    }
+
+    File file = LittleFS.open("/settings.txt", "r+");
+
+    if (!file) {
+        debug("failed to load settings file. Please run a complete setup.");
+        LittleFS.end();
+        return;
+    }
+
+    DynamicJsonDocument doc(4096);
+    DeserializationError error = deserializeJson(doc, file);
+    if (error) {
+        debug("deserializeJson() failed while loading settings: <%s>", error.c_str());
+        file.close();
+        LittleFS.end();
+        return;
+    }
+    file.close();
+
+    file = LittleFS.open("/settings.txt", "w");
+    if (!file) {
+        debug("unable to open file for writing");
+        file.close();
+        LittleFS.end();
+        return;
+    }
+    
+    JsonObject settings = doc.as<JsonObject>();
+    saveSettings(settings);
+    
+    if (serializeJson(doc, file) == 0) {
+        debug("unable to write file");
+    }
+    else {
+        debug("settings succesfully saved");
+    }
+
+    file.close();
+    LittleFS.end();
+}
+
+/**
  *
  * @brief load settings when device is started
  * @param settings JsonObject containing the data for this module loaded from flash
