@@ -162,12 +162,10 @@ void InfoLED::cycle(int64_t cycleDuration) {
  * @note should be called as frequently as possible, or at least as fast as a pattern is supposed to change
  */
 void InfoLED::loop() {
-    if (!updatesQueued)
-        return;
+    if (!updatesQueued) return;
 
     int64_t now = esp_timer_get_time();
-    if (nextOperation >= now)
-        return;
+    if (nextOperation >= now) return;
 
     switch (mode) {
     case on: // if this is reached a timed constant pattern has reached its life time; turn off.
@@ -212,7 +210,7 @@ void InfoLED::loop() {
     }
     case cyclingCCW: {
         led.setPixelColor(currentLED--, currentColor());
-        if (currentLED == 0)
+        if (currentLED == 0 || currentLED == 255) // 255 is only reached in this mode if only 1 LED is present
             mode = on;
 
         nextOperation = now + operationInterval;
