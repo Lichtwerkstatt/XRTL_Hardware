@@ -152,6 +152,11 @@ String SocketModule::createJWT() {
     String headerBase64 = base64url_encode(encoding);
 
     JsonObject payload = document.to<JsonObject>();
+    // I have no clue why it is important, but the following lines make the WiFi work 
+    // Though the time is never used, calling this routine seems to be important. DO NOT DELETE
+    time_t now;
+    time(&now);
+
     payload["sub"] = component; // client identity
     payload["component"] = "component";
 
@@ -432,9 +437,7 @@ void SocketModule::setup() {
 void SocketModule::loop() {
     socket->loop();
 
-    if (timeSynced) {
-        return;
-    }
+    if (timeSynced) return;
 
     if (esp_timer_get_time() > 300000000) { // 5 minutes after start -> WiFi not working?
         debug("unable to sync time -- restarting device");
