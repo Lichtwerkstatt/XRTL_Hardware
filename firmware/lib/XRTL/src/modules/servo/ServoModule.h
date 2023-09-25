@@ -30,7 +30,7 @@ private:
     bool wasRunning = false;
     bool holdOn = false;
 
-    uint8_t pin = 26;
+    uint8_t pin = 25;
 
     String infoLED = "";
 
