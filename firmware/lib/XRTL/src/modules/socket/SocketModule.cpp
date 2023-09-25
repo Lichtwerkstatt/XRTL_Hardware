@@ -152,7 +152,7 @@ String SocketModule::createJWT() {
     String headerBase64 = base64url_encode(encoding);
 
     JsonObject payload = document.to<JsonObject>();
-    // I have no clue why it is important, but the following lines make the WiFi work 
+    // I have no clue why, but the following lines make the WiFi work 
     // Though the time is never used, calling this routine seems to be important. DO NOT DELETE
     time_t now;
     time(&now);
