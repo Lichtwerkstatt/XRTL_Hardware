@@ -152,10 +152,6 @@ String SocketModule::createJWT() {
     String headerBase64 = base64url_encode(encoding);
 
     JsonObject payload = document.to<JsonObject>();
-    // I have no clue why, but the following lines make the WiFi work 
-    // Though the time is never used, calling this routine seems to be important. DO NOT DELETE
-    time_t now;
-    time(&now);
 
     payload["sub"] = component; // client identity
     payload["component"] = "component";
@@ -270,6 +266,13 @@ void timeSyncCallback(timeval *tv) {
     socketInstance->notify(time_synced);
 }
 
+/**
+ * @brief incomming socket events are handled through this function and fed into the event pipeline
+ * @param type integer indentifying socket event, see socket.io protocole for details
+ * @param payload pointer to the payload
+ * @param length length of the payload
+ * @note the callback function needs to be static, which is why the socket class has a static pointer storing the last initialized socket instance. Hence, only one socket instance is supported. More than one socket can be initialized without error, but only the latest is ever called.
+*/
 void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length) {
     SocketModule *socketInstance = SocketModule::lastModule;
 
@@ -424,6 +427,9 @@ void SocketModule::setup() {
     sntp_set_time_sync_notification_cb(timeSyncCallback);
     configTime(0, 0, "pool.ntp.org");
 
+    // it seems to be important to initialize the client early
+    // --> initialize with "empty" server details
+    // if initialized "too late" it becomes very unresponsive and connection seems sluggish
     debug("preparing client");
     if (useSSL) {
         socket->beginSSL("0.0.0.0", 0);
@@ -471,6 +477,8 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
         else {
             socket->begin(serverIp.toString().c_str(), port, url.c_str());
         }
+
+        clientStarted = true;
 
         return;
     }
