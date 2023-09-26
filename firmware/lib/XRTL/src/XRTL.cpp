@@ -46,7 +46,7 @@ void XRTL::loop() {
 
     if (input == "setup") {
         setViaSerial();
-    } else if (input == "debug") { // do not interprete debug as event
+    } else if (input == "debug") { // do not interprete debug switch as event
     } else { // parse input as event
         DynamicJsonDocument serialEvent(1024);
         DeserializationError error = deserializeJson(serialEvent, input);
@@ -59,6 +59,12 @@ void XRTL::loop() {
     }
 }
 
+/**
+ * @brief add a software module to the manager
+ * @param moduleName controlId of the new module
+ * @param moduleType integer, codes for the type of module
+ * @note the controlId should be unique, otherwise individual control is not possible anymore. The following IDs are restricted and should not be used: "*", "none", "core", "internal"
+*/
 bool XRTL::addModule(String moduleName, moduleType category) {
     if (moduleCount == 16) {
         debug("unable to add module: maximum number of modules reached");
@@ -138,12 +144,20 @@ bool XRTL::addModule(String moduleName, moduleType category) {
     return addSuccessful;
 }
 
+/**
+ * @brief print the controlIds of all available modules to the serial monitor
+*/
 void XRTL::listModules() {
     for (int i = 0; i < moduleCount; i++) {
         Serial.printf("%d: %s\n", i, module[i]->getID().c_str());
     }
 }
 
+/**
+ * @brief dialog for the serial interfac allowing to delete modules
+ * @param number index of the module to delete in the module array
+ * @note since changes to the settings are stored in the modules after loading, those are lost after deletion. Only settings written to flash survive a restart.
+*/
 void XRTL::delModule(uint8_t number) {
     if (number < 0 || number >= moduleCount)
         return;
@@ -159,6 +173,11 @@ void XRTL::delModule(uint8_t number) {
     Serial.println("done");
 }
 
+/**
+ * @brief dialog for the serial interface allowing to swap to modules
+ * @param numberX index of the first module in the module array
+ * @param numberY index of the second module in the module array
+*/
 void XRTL::swapModules(uint8_t numberX, uint8_t numberY) {
     if (numberX == numberY || numberX < 0 || numberX >= moduleCount || numberY < 0 || numberY >= moduleCount)
         return;
@@ -170,6 +189,11 @@ void XRTL::swapModules(uint8_t numberX, uint8_t numberY) {
     debug("swapped <%s> and <%s>", module[numberX]->getID().c_str(), module[numberY]->getID().c_str());
 }
 
+/**
+ * @brief search all available modules for a match in their controlId
+ * @param moduleName search for a match in the `controlId`s of all modules
+ * @returns pointer to the module that matches the controlId or NULL if no match was found
+*/
 XRTLmodule *XRTL::operator[](String moduleName) {
     for (int i = 0; i < moduleCount; i++) {
         if (module[i]->isModule(moduleName)) {
@@ -179,6 +203,9 @@ XRTLmodule *XRTL::operator[](String moduleName) {
     return NULL; // probably not a good idea as default, return a special null module instead?
 }
 
+/**
+ * @brief write the settings of all modules to the flash
+*/
 void XRTL::saveSettings() {
     DynamicJsonDocument doc(4096);
     JsonObject settings = doc.to<JsonObject>();
@@ -222,6 +249,9 @@ void XRTL::saveSettings() {
     LittleFS.end();
 }
 
+/**
+ * @brief load the settings from flash and add modules as specified in there
+*/
 void XRTL::loadSettings() {
 
     if (!LittleFS.begin(false)) {
@@ -298,6 +328,9 @@ void XRTL::loadSettings() {
         highlightString("loading successfull", '=');
 }
 
+/**
+ * @brief dialog for the serial interface allowing to manage all settings
+*/
 bool XRTL::settingsDialog() {
     highlightString("modules:", '-');
     listModules();
@@ -386,6 +419,9 @@ bool XRTL::settingsDialog() {
     return true;
 }
 
+/**
+ * @brief call the settings dialog, save the settings and restart after all changes have been made
+*/
 void XRTL::setViaSerial() {
     stop();
 
@@ -403,6 +439,9 @@ void XRTL::setViaSerial() {
     ESP.restart();
 }
 
+/**
+ * @brief call the stop methode of all available modules
+*/
 void XRTL::stop() {
     debug("stopping all modules");
 
@@ -517,19 +556,16 @@ void XRTL::sendCommand(XRTLcommand &command, const String &userId = "") {
 
         command.fillCommand(commandObj);
         targetModule->handleCommand(controlId, commandObj);
-    } else {
+    }
+    else {
         JsonArray event = doc.to<JsonArray>();
         event.add("command");
         JsonObject commandObj = event.createNestedObject();
 
         if (userId == "") {
-            if (socketIO) // only use default if no socket module is present
-            {
-                commandObj["userId"] = socketIO->getComponent();
-            } else {
-                commandObj["userId"] = id;
-            }
-        } else {
+            commandObj["userId"] = getComponent(); // only use default if no socket module is present
+        }
+        else {
             commandObj["userId"] = userId;
         }
 
@@ -583,6 +619,10 @@ void XRTLmodule::notify(internalEvent state) {
     xrtl->notify(state, id);
 }
 
+/**
+ * @brief fetch the component name from the socket module
+ * @returns name stored in the socketmodule (not the controlId) or "core" if no socket module is present
+*/
 String &XRTL::getComponent() {
     if (socketIO == NULL) {
         debug("WARNING: no socket module present");
@@ -591,28 +631,54 @@ String &XRTL::getComponent() {
     return socketIO->getComponent();
 }
 
+/**
+ * @brief 
+*/
 String &XRTLmodule::getComponent() {
     return xrtl->getComponent();
 }
 
+/**
+ * @brief offer the seperated controlId and the entire command to all modules available
+ * @param controlId String holding the ID of the addressed module
+ * @param command JsonObject holding the entire command
+ * @note the command is offered to every module, but the modules themself decide whether it is relevant for them or not
+*/
 void XRTL::pushCommand(String &controlId, JsonObject &command) {
     for (int i = 0; i < moduleCount; i++) {
         module[i]->handleCommand(controlId, command);
     }
 }
 
+/**
+ * @brief offer the seperated controlId and the entire status to all modules available
+ * @param controlId String holding the ID of the sending module
+ * @param status JsonObject holding the entire status
+ * @note the status is offered to every module, but the modules themself decide whether it is relevant for them or not
+*/
 void XRTL::pushStatus(String &controlId, JsonObject &status) {
     for (int i = 0; i < moduleCount; i++) {
         module[i]->handleStatus(controlId, status);
     }
 }
 
-// only module that can receive commands externally and needs this methode
-// MacroModule can send commands too but needs a different methode or it would cause a feedback loop with several ESPs
+
+/**
+ * @brief forwards the entire command as well as the already extracted controlId to the module manager
+ * @param controlId String holding the ID of the addressed module
+ * @param command JsonObject holding the entire command (including controlId)
+ * @note the controlId should be extracted before pushing to avoid multiple modules searching for it on their own. The macro module can also push Commands but uses a different methode to avoid a feedback loop.
+*/
 void SocketModule::pushCommand(String &controlId, JsonObject &command) {
     xrtl->pushCommand(controlId, command);
 }
 
+/**
+ * @brief forwards the entire status as well as the already extracted controlId to the module manager
+ * @param controlId String holding the ID of the sending module
+ * @param status JsonObject holding the entire status (including controlId)
+ * @note the controlId should be extracted before pushing to avoid multiple modules searching for it on their own
+*/
 void SocketModule::pushStatus(String &controlId, JsonObject &status) {
     xrtl->pushStatus(controlId, status);
 }
@@ -641,6 +707,9 @@ void XRTLmodule::sendError(componentError ernr, String msg) {
     xrtl->sendError(ernr, msg);
 }
 
+/**
+ * @brief dialog for the serial interface, allows to edit the internal listener settings
+*/
 void XRTL::manageInternal() {
     highlightString("internal events", '-');
     Serial.println("");
@@ -678,6 +747,9 @@ void XRTL::manageInternal() {
     }
 }
 
+/**
+ * @brief dialog for the serial interface, allows to add an internal listener
+*/
 void XRTL::addInternal() {
     if (internalCount >= 16) {
         Serial.println("maximum event count reached");
@@ -704,7 +776,15 @@ void XRTL::addInternal() {
     customInternal[internalCount++]->getCommand().setViaSerial();
 }
 
+/**
+ * @brief dialog for the serial interface, allows to swap two internal listeners
+*/
 void XRTL::swpInternal() {
+    if (internalCount < 2) {
+        debug("not enough listeners for swapping");
+        return;
+    }
+
     Serial.println("send the number of two listeners to swap");
     uint8_t choiceNum1 = serialInput("first listener: ").toInt();
     uint8_t choiceNum2 = serialInput("second listener:").toInt();
@@ -717,6 +797,9 @@ void XRTL::swpInternal() {
     customInternal[choiceNum2] = tmp;
 }
 
+/**
+ * @brief dialog for the serial interface, allows to delete an internal listener
+*/
 void XRTL::delInternal() {
     Serial.println("current event listeners:");
     Serial.println("");

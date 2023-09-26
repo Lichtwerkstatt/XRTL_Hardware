@@ -153,6 +153,12 @@ String SocketModule::createJWT() {
 
     JsonObject payload = document.to<JsonObject>();
 
+    // do not remove: seems to be important for normal functioning of the socket connection
+    // though the time is never used, it improves connection time significantly
+    // maybe some undocumented problem in the network stack?
+    time_t now;
+    time(&now);
+
     payload["sub"] = component; // client identity
     payload["component"] = "component";
 
@@ -184,7 +190,7 @@ String SocketModule::createJWT() {
 }
 
 /**
- * pointer to the last initiated socket module (why would you have more then one?)
+ * pointer to the last initiated socket module (why would you have more than one?)
  * @note returns NULL if no module has been initialized
  */
 SocketModule *SocketModule::lastModule = NULL;
@@ -218,8 +224,7 @@ moduleType SocketModule::getType() {
  */
 void SocketModule::sendEvent(JsonArray &event) {
     if (!socket->isConnected()) {
-        if (!debugging)
-            return;
+        if (!debugging) return;
         String output; // print the event to serial monitor
         serializeJson(event, output);
         debug("disconnected, unable to sent event: %s", output.c_str());
@@ -320,6 +325,11 @@ void socketHandler(socketIOmessageType_t type, uint8_t *payload, size_t length) 
     }
 }
 
+/**
+ * @brief receives the event after it has been deserialized, recognizes special events and feeds them into the appropriate pipeline
+ * @param doc JsonDocument holding the event
+ * @note array must have the event name as first entry. Currently supported events are "Auth", "command", and "status"
+*/
 void SocketModule::handleEvent(DynamicJsonDocument &doc) {
     // possibly unsave: operator[] will fail if doc is a JsonObject
     if (doc[0].isNull()) {
