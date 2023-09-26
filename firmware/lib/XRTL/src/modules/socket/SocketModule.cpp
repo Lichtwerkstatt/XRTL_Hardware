@@ -342,7 +342,7 @@ void SocketModule::handleEvent(DynamicJsonDocument &doc) {
             JsonObject payload = doc[1];
             uint64_t receivedTime = 0;
             if (getValue("time", payload, receivedTime, true) && receivedTime != 0) {
-                debug("time received: %llu ms", receivedTime);
+                debug("time received from server: %llu ms", receivedTime);
 
                 time_t now;
                 time(&now);
@@ -424,26 +424,29 @@ void SocketModule::setup() {
     sntp_set_time_sync_notification_cb(timeSyncCallback);
     configTime(0, 0, "pool.ntp.org");
 
-    debug("starting socket client");
+    debug("preparing client");
     if (useSSL) {
-        socket->beginSSL(ip.c_str(), port, url.c_str());
-    } else {
-        socket->begin(ip.c_str(), port, url.c_str());
+        socket->beginSSL("0.0.0.0", 0);
     }
-
+    else {
+        socket->begin("0.0.0.0", 0);
+    }
+    
     socket->onEvent(socketHandler);
 }
 
 void SocketModule::loop() {
     socket->loop();
 
-    if (timeSynced) return;
+    if (clientStarted) return;
 
     if (esp_timer_get_time() > 300000000) { // 5 minutes after start -> WiFi not working?
-        debug("unable to sync time -- restarting device");
+        debug("unable to connect to server -- restarting device");
         // TODO: stop all modules?
         ESP.restart();
     }
+
+
 }
 
 void SocketModule::stop() {
@@ -453,6 +456,22 @@ void SocketModule::stop() {
 void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
     switch (eventId) {
     case wifi_connected: {
+        if (clientStarted) return;
+
+        IPAddress serverIp;
+        if (WiFiGenericClass::hostByName(ip.c_str(), serverIp) != 1) {
+            debug("unable to resolve host <%s>", ip.c_str());
+            return;
+        }
+
+        debug("trying to connect to server %s:%d", serverIp.toString().c_str(), port);
+        if (useSSL) {
+            socket->beginSSL(serverIp.toString().c_str(), port, url.c_str());
+        }
+        else {
+            socket->begin(serverIp.toString().c_str(), port, url.c_str());
+        }
+
         return;
     }
     case socket_disconnected: {
@@ -479,7 +498,6 @@ void SocketModule::handleInternal(internalEvent eventId, String &sourceId) {
     // }
 
     case time_synced: {
-        timeSynced = true;
 
         if (!debugging) return; // only need to print time if debugging
 
