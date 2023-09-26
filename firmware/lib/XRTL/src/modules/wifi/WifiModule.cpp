@@ -62,8 +62,7 @@ void WifiModule::loop() {
     if (!checkConnection) return;
 
     if (WiFi.isConnected()) {
-        uint8_t nullAddress[4] = {0, 0, 0, 0};
-        if (WiFi.localIP() == nullAddress) return; // no IP yet, can't use online resources -> effectively disconnected
+        if (WiFi.localIP() == INADDR_NONE) return; // no IP yet, can't use online resources -> effectively disconnected
         
         debug("connected to WiFi with local IP: %s", WiFi.localIP().toString().c_str());
         debug("signal strength: %d dBm", WiFi.RSSI());
