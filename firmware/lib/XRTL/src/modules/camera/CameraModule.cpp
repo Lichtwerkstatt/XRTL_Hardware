@@ -210,6 +210,123 @@ void CameraModule::handleCommand(String &controlId, JsonObject &command) {
         return;
     }
 
+    // raw camera drivers exposed
+
+    int driverInt;
+    bool driverBool;
+
+    if (getAndConstrainValue<int>("saturation", command, driverInt, -2, 2)) {
+        cameraSettings->set_saturation(cameraSettings, driverInt);
+        debug("saturation set to %d", driverInt);
+    }
+
+    if (getAndConstrainValue<int>("sharpness", command, driverInt, -2, 2)) {
+        cameraSettings->set_sharpness(cameraSettings, driverInt);
+        debug("sharpness set to %d", driverInt);
+    }
+
+    if (getAndConstrainValue<int>("denoise", command, driverInt, 0, 255)) {
+        cameraSettings->set_denoise(cameraSettings, driverInt);
+        debug("denoise set to %d", driverInt);
+    }
+
+    if (getAndConstrainValue<int>("gainceiling", command, driverInt, 0, 6)) {
+        cameraSettings->set_gainceiling(cameraSettings, (gainceiling_t) driverInt);
+        debug("gainceiling set to %dx", pow(2, driverInt));
+    }
+
+    if (getAndConstrainValue<int>("quality", command, driverInt, 0, 63)) {
+        cameraSettings->set_quality(cameraSettings, driverInt);
+        debug("quality set to %d", driverInt);
+    }
+
+    if (getValue<bool>("colorbar", command, driverBool)) {
+        cameraSettings->set_colorbar(cameraSettings, driverBool);
+        debug("colorbar %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("whitebal", command, driverBool)) {
+        cameraSettings->set_whitebal(cameraSettings, driverBool);
+        debug("whitebal %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("exposure_ctrl", command, driverBool)) {
+        cameraSettings->set_exposure_ctrl(cameraSettings, driverBool);
+        debug("exposure_ctrl %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("hmirror", command, driverBool)) {
+        cameraSettings->set_hmirror(cameraSettings, driverBool);
+        debug("hmirror %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("vflip", command, driverBool)) {
+        cameraSettings->set_vflip(cameraSettings, driverBool);
+        debug("vflip %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("aec2", command, driverBool)) {
+        cameraSettings->set_aec2(cameraSettings, driverBool);
+        debug("aec2 %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("awb_gain", command, driverBool)) {
+        cameraSettings->set_awb_gain(cameraSettings, driverBool);
+        debug("awb_gain %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getAndConstrainValue<int>("agc_gain", command, driverInt, 0, 30)) {
+        cameraSettings->set_agc_gain(cameraSettings, driverInt);
+        debug("agc_gain set to %d", driverInt);
+    }
+
+    if (getAndConstrainValue<int>("aec_value", command, driverInt, 0, 1200)) {
+        cameraSettings->set_aec_value(cameraSettings, driverInt);
+        debug("aec_value set to %d", driverInt);
+    }
+
+    if (getAndConstrainValue<int>("wb_mode", command, driverInt, 0, 4)) {
+        cameraSettings->set_wb_mode(cameraSettings, driverInt);
+        debug("wb_mode set to %d", driverInt);
+    }
+
+    if (getAndConstrainValue<int>("ae_level", command, driverInt, -2, 2)) {
+        cameraSettings->set_ae_level(cameraSettings, driverInt);
+        debug("ae_level set to %d", driverInt);
+    }
+
+    if (getValue<bool>("dcw", command, driverBool)) {
+        cameraSettings->set_dcw(cameraSettings, driverBool);
+        debug("dcw %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("bpc", command, driverBool)) {
+        cameraSettings->set_bpc(cameraSettings, driverBool);
+        debug("bpc %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("wpc", command, driverBool)) {
+        cameraSettings->set_wpc(cameraSettings, driverBool);
+        debug("wpc %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("raw_gma", command, driverBool)) {
+        cameraSettings->set_raw_gma(cameraSettings, driverBool);
+        debug("raw_gma %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getValue<bool>("lenc", command, driverBool)) {
+        cameraSettings->set_lenc(cameraSettings, driverBool);
+        debug("lenc %sabled", driverBool ? "en" : "dis");
+    }
+
+    if (getAndConstrainValue<int>("special_effect", command, driverInt, 0, 6)) {
+        cameraSettings->set_special_effect(cameraSettings, driverInt);
+        debug("special_effect set to %d", driverInt);
+    }
+
+    // old code
+
     if (getValue<bool>("gray", command, isGray)) {
         if (isGray) {
             cameraSettings->set_special_effect(cameraSettings, 2);
